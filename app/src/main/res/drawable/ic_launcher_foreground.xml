@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A note card with a folded corner and two ticked lines, in the 72dp safe zone of a 108dp icon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FF5F4B00"
+        android:pathData="M34,30h30l10,10v38a4,4 0,0 1,-4 4H34a4,4 0,0 1,-4 -4V34a4,4 0,0 1,4 -4z" />
+    <path
+        android:fillColor="#FFFFF8B8"
+        android:pathData="M64,30v10h10z M38,46h6v6h-6z M48,47h20v4H48z M38,58h6v6h-6z M48,59h20v4H48z M38,70h6v4h-6z M48,70h14v4H48z" />
+</vector>

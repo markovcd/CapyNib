@@ -1,0 +1,68 @@
+-- One row per note. A deleted note stays as a tombstone (deleted = 1) until the server has
+-- forgotten it too. version counts local edits; synced_version is the version the server holds,
+-- so a row with version > synced_version has edits to push. synced_* hold the memo as last seen
+-- on the server, to tell a server-side edit from a local one.
+CREATE TABLE note (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    color TEXT NOT NULL,
+    pinned INTEGER AS kotlin.Boolean NOT NULL,
+    archived INTEGER AS kotlin.Boolean NOT NULL,
+    deleted INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    version INTEGER NOT NULL DEFAULT 1,
+    synced_version INTEGER NOT NULL DEFAULT 0,
+    on_server INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
+    synced_content TEXT,
+    synced_pinned INTEGER AS kotlin.Boolean,
+    synced_archived INTEGER AS kotlin.Boolean
+);
+
+CREATE INDEX note_created_at ON note(created_at);
+
+visible:
+SELECT * FROM note WHERE deleted = 0 ORDER BY pinned DESC, created_at DESC, id;
+
+byId:
+SELECT * FROM note WHERE id = ?;
+
+pending:
+SELECT * FROM note WHERE version != synced_version;
+
+onServer:
+SELECT * FROM note WHERE on_server = 1;
+
+insertLocal:
+INSERT INTO note(id, title, body, color, pinned, archived, created_at, updated_at, version, synced_version, on_server)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, 0, 0);
+
+insertFromServer:
+INSERT INTO note(id, title, body, color, pinned, archived, created_at, updated_at, version, synced_version, on_server, synced_content, synced_pinned, synced_archived)
+VALUES (:id, :title, :body, :color, :pinned, :archived, :created_at, :updated_at, 1, 1, 1, :synced_content, :pinned, :archived);
+
+updateLocal:
+UPDATE note SET title = ?, body = ?, color = ?, pinned = ?, archived = ?, updated_at = ?, version = version + 1
+WHERE id = ?;
+
+markDeleted:
+UPDATE note SET deleted = 1, updated_at = ?, version = version + 1 WHERE id = ?;
+
+markPushed:
+UPDATE note SET synced_version = :pushed_version, on_server = 1, synced_content = :content, synced_pinned = :pinned, synced_archived = :archived
+WHERE id = :id;
+
+applyServer:
+UPDATE note SET title = :title, body = :body, color = :color, pinned = :pinned, archived = :archived, updated_at = :updated_at,
+    version = version + 1, synced_version = version + 1, synced_content = :synced_content, synced_pinned = :pinned, synced_archived = :archived
+WHERE id = :id AND version = :expected_version;
+
+acceptServer:
+UPDATE note SET on_server = 1, synced_content = :synced_content, synced_pinned = :synced_pinned, synced_archived = :synced_archived WHERE id = :id;
+
+forgetServer:
+UPDATE note SET on_server = 0, synced_content = NULL, synced_pinned = NULL, synced_archived = NULL WHERE id = :id;
+
+purge:
+DELETE FROM note WHERE id = ?;

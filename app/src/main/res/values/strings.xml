@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">QuickNib</string>
+
+    <string name="board_search_hint">Search your notes</string>
+    <string name="board_pinned">Pinned</string>
+    <string name="board_others">Others</string>
+    <string name="board_empty">Notes you add appear here</string>
+    <string name="board_archive_empty">Your archived notes appear here</string>
+    <string name="board_archive_title">Archive</string>
+    <string name="board_new_note">New note</string>
+    <string name="board_new_list">New list</string>
+    <string name="board_show_archive">Archive</string>
+    <string name="board_show_notes">Notes</string>
+    <string name="board_settings">Settings</string>
+
+    <string name="editor_title_hint">Title</string>
+    <string name="editor_body_hint">Note</string>
+    <string name="editor_item_hint">List item</string>
+    <string name="editor_add_item">List item</string>
+    <plurals name="editor_checked_items">
+        <item quantity="one">%1$d checked item</item>
+        <item quantity="other">%1$d checked items</item>
+    </plurals>
+    <string name="editor_back">Back</string>
+    <string name="editor_pin">Pin</string>
+    <string name="editor_unpin">Unpin</string>
+    <string name="editor_archive">Archive</string>
+    <string name="editor_unarchive">Unarchive</string>
+    <string name="editor_delete">Delete</string>
+    <string name="editor_show_checkboxes">Show checkboxes</string>
+    <string name="editor_hide_checkboxes">Hide checkboxes</string>
+    <string name="editor_remove_item">Remove item</string>
+    <string name="editor_color">Color %1$s</string>
+
+    <string name="sync_local">Notes are on this phone only</string>
+    <string name="sync_waiting">Waiting to sync</string>
+    <string name="sync_syncing">Syncing</string>
+    <string name="sync_synced">Synced</string>
+    <string name="sync_offline">Offline, changes are saved and will sync later</string>
+    <string name="sync_unauthorized">The server refused the access token</string>
+    <string name="sync_error">Sync failed: %1$s</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_server">Memos server address</string>
+    <string name="settings_server_example">https://memos.example.com</string>
+    <string name="settings_token">Access token</string>
+    <string name="settings_token_help">Create one in the memos web app under Settings, Access Tokens.</string>
+    <string name="settings_connect">Connect</string>
+    <string name="settings_disconnect">Disconnect</string>
+    <string name="settings_sync_now">Sync now</string>
+    <string name="settings_bad_address">That is not a server address</string>
+    <string name="settings_token_missing">Enter an access token</string>
+    <string name="settings_checking">Checking…</string>
+    <string name="settings_connected">Connected as %1$s</string>
+    <string name="settings_not_connected">Not connected. Notes stay on this phone.</string>
+</resources>
