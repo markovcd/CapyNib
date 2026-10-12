@@ -1,0 +1,112 @@
+# Design handoff: icon, color scheme and UI style
+
+QuickNib needs a visual identity. This is what a designer needs to know to produce one: what the
+app is, every screen and control, what can change freely and what cannot, and where each design
+token lives in the code so the result drops in without guesswork.
+
+## The app in one paragraph
+
+QuickNib is a quick-notes app for Android in the spirit of Google Keep. The board shows notes as
+colored cards in a staggered grid; tapping one opens it full screen in its color. A note has a
+title and a body; the body can be plain text or a checklist whose items tick off. Notes can be
+pinned to the top, archived, searched and deleted. Everything is saved on the phone as you type and
+synced to the user's own [memos](https://usememos.com) server when one is set up. The first version
+has no text formatting on purpose: just text and checklists.
+
+Personality to aim for: quick, light, tactile, calm. The cards are the content; chrome stays
+quiet.
+
+## What is wanted
+
+1. **Launcher icon and logo.** An adaptive icon (Android 8+): a foreground layer, a background
+   layer, and a monochrome layer for themed icons. Each is 108 x 108 dp with the meaningful part
+   inside the central 72 dp circle (anything outside may be cropped by the launcher mask). Vector
+   (SVG or Android vector drawable) preferred, flat shapes, no fine detail under 2 dp. A wordmark
+   or logo lockup for the README and store listing is welcome too.
+2. **App color scheme.** A Material 3 scheme for light and dark: at least `primary`, `onPrimary`,
+   `primaryContainer`, `onPrimaryContainer`, `secondaryContainer`, `onSecondaryContainer`,
+   `background`, `surface`, `surfaceContainerHigh`, `outlineVariant`. A seed color plus the
+   generated scheme (Material Theme Builder export) is ideal. The app does not use Android 12
+   dynamic (wallpaper) color; say if you want it to.
+3. **Note palette.** The fill for each note color, in light and dark themes. See the constraints
+   below; this is the most visible part of the app.
+4. **UI style.** Card corner radius, outline or shadow for cards, spacing, the typeface (a Google
+   Font is easy to bundle) and type scale, the search bar shape, the floating buttons, and the
+   checkbox and color-swatch look in the editor. Mockups of the three screens are the clearest
+   way to say it.
+
+## Screens and controls
+
+**Board** (`ui/board/BoardScreen.kt`, `NoteCard.kt`)
+- Top bar: a rounded search field ("Search your notes"), a sync status icon, an archive toggle
+  (archive box; a light bulb when showing the archive), and a settings gear.
+- Body: a staggered grid of note cards, about 160 dp wide columns. Sections "Pinned" and
+  "Others" get small labels when there are pinned notes. An empty board shows one centered line
+  ("Notes you add appear here").
+- A card: the note color as fill (default notes have a thin outline instead), the title in a
+  title style, then up to 10 lines of the body; checklist items show a small checkbox glyph,
+  ticked ones struck through.
+- Floating buttons: an extended "New note" button with a pencil, and a small "New list" button
+  with a checkbox above it.
+
+**Note** (`ui/editor/EditorScreen.kt`)
+- The whole screen takes the note's color.
+- Top bar, transparent: back, pin (outlined or filled pin), archive or unarchive, delete.
+- A borderless title field ("Title") and either a borderless body field ("Note") or a checklist:
+  rows of checkbox, item text and a remove (x) button; an "+ List item" row; then "N checked
+  items" and the ticked rows, struck through.
+- Bottom bar: a "show/hide checkboxes" button and a row of 12 round color swatches (the selected
+  one has a ring and a check mark).
+
+**Settings** (`ui/settings/SettingsScreen.kt`)
+- Server address and access token fields (outlined), Connect, Sync now and Disconnect buttons, a
+  message line ("Connected as ...") and the sync status with its icon.
+
+**Sync status icons** (`ui/SyncStatusLabel.kt`): phone (notes only on this phone), plain cloud
+(waiting), sync arrows (syncing), cloud with check (synced), crossed cloud (offline), error
+circle (token refused or server error). Icons come from Material Icons (outlined); a different
+icon set is fine if it covers the same meanings.
+
+## Constraints
+
+- **Note colors are fixed in number and name.** There are exactly 12: `default`, `coral`,
+  `peach`, `sand`, `mint`, `sage`, `fog`, `storm`, `dusk`, `blossom`, `clay`, `chalk`. The names
+  are saved in every note and on the memos server (as `#color/sand`), so they cannot be renamed,
+  removed or reordered in meaning; only how each one looks can change. "default" means "no
+  color" and follows the theme's surface.
+- **Readable on every color.** Card text uses the theme's normal on-surface color: dark text on
+  light-theme note colors, light text on dark-theme note colors. Each note color needs at least
+  4.5:1 contrast with that text, in its theme. Pastels in light and deep tones in dark work; mid
+  tones do not.
+- **Distinguishable.** The 11 colors should stay tellable apart at swatch size (36 dp circles),
+  including for common color-vision deficiencies where possible, and the light and dark versions
+  of one color should feel like the same color.
+- **Material 3 in Jetpack Compose.** Anything expressible as Material 3 color roles, typography
+  and shapes is cheap; fully custom components are possible but cost more. Edge-to-edge layout:
+  the board and note draw behind the status and navigation bars.
+- **Android 8 (API 26) and up**, phones first; the grid adapts to tablets by adding columns.
+- No text formatting controls in this version; please don't design a formatting toolbar.
+
+## Where the tokens live
+
+| Token | File |
+|---|---|
+| App color scheme (light and dark) | `app/src/main/kotlin/io/github/markovcd/quicknib/ui/theme/Theme.kt` (`LightColors`, `DarkColors`) |
+| Note palette (light and dark) | `app/src/main/kotlin/io/github/markovcd/quicknib/ui/theme/NoteColors.kt` (`light`, `dark` maps); the only place note colors are defined |
+| Typography, shapes | not customized yet (Material 3 defaults); would go in `ui/theme/` next to `Theme.kt` |
+| Card corner radius, outline | `ui/board/NoteCard.kt` (12 dp, 1 dp `outlineVariant` outline on default notes) |
+| Window color before the UI draws | `app/src/main/res/values/colors.xml`, `values-night/colors.xml` (`window_background`) |
+| Launcher icon | `app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml`, `res/drawable/ic_launcher_foreground.xml`, `res/values/colors.xml` (`ic_launcher_background`) — the current one is a placeholder |
+| UI text | `app/src/main/res/values/strings.xml` |
+
+## How to deliver
+
+Any of these works, in order of preference:
+
+1. Hex values for the tokens above (a Material Theme Builder export for the scheme, a table for
+   the note palette), the icon layers as SVG or vector drawables, and mockups of the three screens.
+2. A change to the files above directly. The gate (`./gate.sh`) builds and tests it; the UI tests
+   find controls by tag, not by look, so restyling does not break them.
+
+The current look can be tried from the debug APK each CI run on `main` uploads (artifact
+`quicknib-debug-apk` on the `gate` workflow).

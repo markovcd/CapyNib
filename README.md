@@ -29,6 +29,10 @@ Each note is one private memo. The title is the memo's first-line heading and th
 The command line works on the same notes and sync as the app (`list`, `add`, `edit`, `check`,
 `sync`, with `--json`), against a local database file.
 
+## Design
+
+The icon, color scheme and UI style are open for a design pass: see [docs/design-handoff.md](docs/design-handoff.md).
+
 ## License
 
 [MIT](LICENSE)
