@@ -26,7 +26,7 @@ class AppGraph(
     cipher: TokenCipher = KeystoreTokenCipher(),
     val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
     val clock: () -> Long = System::currentTimeMillis,
-    private val api: (ServerAddress, String) -> MemosApi = ::HttpMemosApi,
+    private val apiFactory: (ServerAddress, String) -> MemosApi = ::HttpMemosApi,
 ) {
     val store = NoteStore(AndroidSqliteDriver(NoteStore.schema, context, databaseName))
 
@@ -37,7 +37,7 @@ class AppGraph(
     /** A client for [settings], or null when they name no usable server. */
     fun api(settings: SyncSettings): MemosApi? {
         val server = settings.server ?: return null
-        return if (settings.isConfigured) api(server, settings.token) else null
+        return if (settings.isConfigured) apiFactory(server, settings.token) else null
     }
 
     private fun engine(): SyncEngine? = api(settings.settings.value)?.let { SyncEngine(store, it, clock) }

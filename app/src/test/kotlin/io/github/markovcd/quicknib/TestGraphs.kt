@@ -14,7 +14,7 @@ object TestGraphs {
         databaseName = null,
         cipher = ReversingCipher,
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined),
-        api = { _, _ -> server },
+        apiFactory = { _, _ -> server },
     )
 
     object ReversingCipher : TokenCipher {
