@@ -1,11 +1,11 @@
-# QuickNib
+# Capynib
 
-QuickNib is a Google Keep-style notes app for Android that keeps notes on the device and syncs them to a [memos](https://usememos.com) server as you type. See [README.md](README.md) for the build and run
+Capynib is a Google Keep-style notes app for Android that keeps notes on the device and syncs them to a [memos](https://usememos.com) server as you type. See [README.md](README.md) for the build and run
 commands, `docs/adr/` for the decisions behind the design, and
 [docs/glossary.md](docs/glossary.md) for the one word each thing is called by.
 
 - **The gate:** `./gate.sh`: builds the app and runs every test, including sync against a real memos server, inside a pinned Android SDK container (needs Docker). It is the truth; a local run can be green about code it skipped.
-- **Fast loop:** `./gradlew :core:test --tests '*SyncEngineTest'` (any module, any class). With a memos server running (`docker run -d -p 5230:5230 neosmemo/memos:stable`), set `MEMOS_TEST_URL=http://localhost:5230` to include the live-server tests; without it they skip and say so. Machines that cannot reach Google's Maven repository add `-Pquicknib.jvmOnly=true` to build only `core` and `cli`.
+- **Fast loop:** `./gradlew :core:test --tests '*SyncEngineTest'` (any module, any class). With a memos server running (`docker run -d -p 5230:5230 neosmemo/memos:stable`), set `MEMOS_TEST_URL=http://localhost:5230` to include the live-server tests; without it they skip and say so. Machines that cannot reach Google's Maven repository add `-Pcapynib.jvmOnly=true` to build only `core` and `cli`.
 - **TODO.md** lists work asked for and not yet started. Add to it when the user says "add to the todo", and take an item off in the commit that lands it. A plan, an audit or an out-of-scope problem too long for a line is written up in [docs/handoff/](docs/handoff/README.md) and linked from its item.
 
 Standing rules are in `docs/agents/rules/`. They apply to nearly every task, so read all of them before starting; Claude Code imports them through the paths below:
@@ -40,6 +40,6 @@ Commands in `.claude/commands/` are run by name: `/bughunt` hunts for bugs, conf
 ## Where things are
 
 - `core/`: plain Kotlin, no Android. The note model and memo format (`note/`), the SQLite store (`store/`, schema in `src/main/sqldelight`), the memos client (`memos/`), sync (`sync/`), and the logic behind the screens (`board/`, `editor/`). Most behavior is tested here.
-- `cli/`: the `quicknib` command line over `core`, for driving notes and sync without a phone (`./gradlew :cli:run --args='list --json'`).
+- `cli/`: the `capynib` command line over `core`, for driving notes and sync without a phone (`./gradlew :cli:run --args='list --json'`).
 - `app/`: the Android app (Jetpack Compose). Screens are thin over `core`; theme tokens are in `app/src/main/kotlin/.../ui/theme/`.
 - `docs/adr/`: decisions. `docs/design-handoff.md`: what a designer needs to restyle the app.

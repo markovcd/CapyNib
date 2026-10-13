@@ -20,8 +20,8 @@ kotlin {
 
 sqldelight {
     databases {
-        create("QuickNibDatabase") {
-            packageName.set("io.github.markovcd.quicknib.core.db")
+        create("CapynibDatabase") {
+            packageName.set("io.github.markovcd.capynib.core.db")
             // Each released schema is kept here as N.db; migrations are verified against them.
             schemaOutputDirectory.set(file("src/main/sqldelight/databases"))
             verifyMigrations.set(true)

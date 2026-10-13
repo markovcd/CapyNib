@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "io.github.markovcd.quicknib"
+    namespace = "io.github.markovcd.capynib"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "io.github.markovcd.quicknib"
+        applicationId = "io.github.markovcd.capynib"
         minSdk = 26
         targetSdk = 36
         // A release commit raises both; the tag v<versionName> marks it (docs/adr/0004).
@@ -42,10 +42,10 @@ android {
         unitTests.isIncludeAndroidResources = true
         unitTests.all {
             it.environment("MEMOS_TEST_URL", System.getenv("MEMOS_TEST_URL") ?: "")
-            it.systemProperty("quicknib.versionCode", defaultConfig.versionCode.toString())
+            it.systemProperty("capynib.versionCode", defaultConfig.versionCode.toString())
             val listing = rootProject.file("fastlane/metadata/android")
             it.inputs.dir(listing).withPropertyName("listing")
-            it.systemProperty("quicknib.listing", listing.path)
+            it.systemProperty("capynib.listing", listing.path)
         }
     }
 }

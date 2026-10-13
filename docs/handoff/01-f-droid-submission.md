@@ -1,4 +1,4 @@
-# 01. QuickNib is not on F-Droid yet
+# 01. Capynib is not on F-Droid yet
 
 - **Severity:** Low
 - **Status:** Open
@@ -13,12 +13,12 @@ there is no release tag and no merge request to [fdroiddata](https://gitlab.com/
 
 ## Suggested fix
 
-1. Tag the release: `git tag -a v0.1.0 -m "QuickNib 0.1.0"` on a commit whose gate run is green,
+1. Tag the release: `git tag -a v0.1.0 -m "Capynib 0.1.0"` on a commit whose gate run is green,
    then `git push origin v0.1.0`.
-2. Fork fdroiddata on GitLab, add `metadata/io.github.markovcd.quicknib.yml` with the recipe
-   below, and check it with `fdroid readmeta`, `fdroid rewritemeta io.github.markovcd.quicknib`,
-   `fdroid lint io.github.markovcd.quicknib` and `fdroid build -v -l io.github.markovcd.quicknib`.
-3. Open the merge request on branch `io.github.markovcd.quicknib` using fdroiddata's "App
+2. Fork fdroiddata on GitLab, add `metadata/io.github.markovcd.capynib.yml` with the recipe
+   below, and check it with `fdroid readmeta`, `fdroid rewritemeta io.github.markovcd.capynib`,
+   `fdroid lint io.github.markovcd.capynib` and `fdroid build -v -l io.github.markovcd.capynib`.
+3. Open the merge request on branch `io.github.markovcd.capynib` using fdroiddata's "App
    inclusion" template.
 
 Later releases need nothing on F-Droid's side: raise the version, add the changelog, tag.
@@ -32,7 +32,7 @@ SourceCode: https://github.com/markovcd/QuickNib
 IssueTracker: https://github.com/markovcd/QuickNib/issues
 Changelog: https://github.com/markovcd/QuickNib/blob/HEAD/CHANGELOG.md
 
-AutoName: QuickNib
+AutoName: Capynib
 
 RepoType: git
 Repo: https://github.com/markovcd/QuickNib.git

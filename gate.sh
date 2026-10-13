@@ -8,7 +8,7 @@ cd "$(dirname "$0")"
 ANDROID_IMAGE="cimg/android:2025.10@sha256:dc1cda740cb5712732734ca8ee61fa8f35d2a0fa55fbc468ad13a52efbdf65ac"
 MEMOS_IMAGE="neosmemo/memos:0.31.0@sha256:24c2707ddd8fbd2ceaa7a61ecab86a53cdcde640b24ce572b73da14b00b5785f"
 
-run_id="quicknib-gate-$$"
+run_id="capynib-gate-$$"
 cleanup() {
     docker rm -f "$run_id-memos" >/dev/null 2>&1 || true
     docker network rm "$run_id" >/dev/null 2>&1 || true
@@ -22,12 +22,12 @@ mkdir -p .gradle-home
 # Runs as root so the build can add SDK parts it lacks; files it makes are handed back on exit.
 # shellcheck disable=SC2086 # GATE_DOCKER_ARGS is a list of options.
 # The alias lets the memos server call back into the tests (a fake sign-in provider).
-docker run --rm --network "$run_id" --network-alias quicknib-tests \
+docker run --rm --network "$run_id" --network-alias capynib-tests \
     --user root \
     -e HOST_OWNER="$(id -u):$(id -g)" \
     -e GRADLE_USER_HOME=/work/.gradle-home \
     -e MEMOS_TEST_URL=http://memos:5230 \
-    -e MEMOS_TEST_REACH_BACK=quicknib-tests \
+    -e MEMOS_TEST_REACH_BACK=capynib-tests \
     -v "$PWD:/work" -w /work \
     ${GATE_DOCKER_ARGS:-} \
     "$ANDROID_IMAGE" \

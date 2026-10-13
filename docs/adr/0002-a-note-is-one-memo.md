@@ -3,7 +3,7 @@
 ## Context
 
 Memos (v0.31) stores a memo as Markdown `content` plus `pinned` and `state` (normal or archived).
-It has no fields for a title or a color, and QuickNib's first version has no text formatting
+It has no fields for a title or a color, and Capynib's first version has no text formatting
 beyond checklist items.
 
 ## Decision

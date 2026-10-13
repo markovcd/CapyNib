@@ -2,7 +2,7 @@
 
 ## Context
 
-QuickNib is an Android-only notes app whose center is typing into colored cards and having it sync
+Capynib is an Android-only notes app whose center is typing into colored cards and having it sync
 as you type. Every feature has to be testable by an agent without a phone or an emulator.
 
 ## Decision

@@ -18,7 +18,7 @@ buildscript {
         classpath("org.jetbrains.kotlin:kotlin-serialization:$kotlin")
         classpath("org.jetbrains.kotlin:compose-compiler-gradle-plugin:$kotlin")
         classpath("app.cash.sqldelight:gradle-plugin:2.4.1")
-        if (providers.gradleProperty("quicknib.jvmOnly").orNull != "true") {
+        if (providers.gradleProperty("capynib.jvmOnly").orNull != "true") {
             classpath("com.android.tools.build:gradle:9.4.0")
         }
     }

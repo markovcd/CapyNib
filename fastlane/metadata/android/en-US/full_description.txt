@@ -1,4 +1,4 @@
-QuickNib is a quick notes app in the style of Google Keep: colored cards, checklists you can tick, pinned notes and an archive.
+Capynib is a quick notes app in the style of Google Keep: colored cards, checklists you can tick, pinned notes and an archive.
 
 <b>Your notes stay on your phone.</b> Everything you write is saved on the device first and works fully offline. No account is needed.
 

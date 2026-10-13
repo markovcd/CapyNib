@@ -18,8 +18,8 @@ kotlin {
 }
 
 application {
-    mainClass.set("io.github.markovcd.quicknib.cli.MainKt")
-    applicationName = "quicknib"
+    mainClass.set("io.github.markovcd.capynib.cli.MainKt")
+    applicationName = "capynib"
 }
 
 dependencies {

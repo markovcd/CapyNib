@@ -1,13 +1,13 @@
 # Design handoff: icon, color scheme and UI style
 
-What a designer needs to know to restyle QuickNib: what the app is, every screen and control, what
+What a designer needs to know to restyle Capynib: what the app is, every screen and control, what
 can change freely and what cannot, and where each design token lives in the code so the result
 drops in without guesswork. The current identity (icon, teal-grey scheme, note palette, Figtree)
-comes from the [QuickNib identity canvas](https://claude.ai/artifact/RQR8sA3JUE7e8qHsUtp94r).
+comes from the [Capynib identity canvas](https://claude.ai/artifact/RQR8sA3JUE7e8qHsUtp94r).
 
 ## The app in one paragraph
 
-QuickNib is a quick-notes app for Android in the spirit of Google Keep. The board shows notes as
+Capynib is a quick-notes app for Android in the spirit of Google Keep. The board shows notes as
 colored cards in a staggered grid; tapping one opens it full screen in its color. A note has a
 title and a body; the body can be plain text or a checklist whose items tick off. Notes can be
 pinned to the top, archived, searched and deleted. Everything is saved on the phone as you type and
@@ -93,9 +93,9 @@ icon set is fine if it covers the same meanings.
 
 | Token | File |
 |---|---|
-| App color scheme (light and dark) | `app/src/main/kotlin/io/github/markovcd/quicknib/ui/theme/Theme.kt` (`LightColors`, `DarkColors`) |
-| Note palette (light and dark) | `app/src/main/kotlin/io/github/markovcd/quicknib/ui/theme/NoteColors.kt` (`light`, `dark` maps); the only place note colors are defined |
-| Typography | `ui/theme/QuickNibType.kt` (Figtree in `res/font/`, license in `licenses/`) |
+| App color scheme (light and dark) | `app/src/main/kotlin/io/github/markovcd/capynib/ui/theme/Theme.kt` (`LightColors`, `DarkColors`) |
+| Note palette (light and dark) | `app/src/main/kotlin/io/github/markovcd/capynib/ui/theme/NoteColors.kt` (`light`, `dark` maps); the only place note colors are defined |
+| Typography | `ui/theme/CapynibType.kt` (Figtree in `res/font/`, license in `licenses/`) |
 | Sync status icon colors | `ui/theme/SyncToneColor.kt` |
 | Card corner radius, outline | `ui/board/NoteCard.kt` (16 dp, 1 dp `outlineVariant` outline on default notes) |
 | Window color before the UI draws | `app/src/main/res/values/colors.xml`, `values-night/colors.xml` (`window_background`) |
@@ -112,4 +112,4 @@ Any of these works, in order of preference:
    find controls by tag, not by look, so restyling does not break them.
 
 The current look can be tried from the debug APK each CI run on `main` uploads (artifact
-`quicknib-debug-apk` on the `gate` workflow).
+`capynib-debug-apk` on the `gate` workflow).
