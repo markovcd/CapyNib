@@ -1,6 +1,7 @@
 First release.
 
-- Keep-style notes: colored cards, titles, pinning, archive and search.
-- A trash that keeps deleted notes for a week, or as many days as you set.
-- Checklists with items you can tick.
-- Sync with a memos server as you type, working offline until the server is back.
+- Keep-style notes: colored cards, titles, checklists, pinning, archive and search.
+- Tags, and a trash that keeps deleted notes for as many days as you set.
+- Long press to pick notes, drag to reorder, swipe to archive or pin.
+- Quick capture: widget, launcher shortcuts, Quick Settings tile and Share.
+- Sync with your memos server as you type, offline until it is back; sign in with a token or the browser.

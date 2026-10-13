@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.1.0 - 2026-10-13
+
 ### Features
 
 - Keep-style notes: colored cards, titles, pinning, archive and search.

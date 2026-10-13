@@ -28,14 +28,14 @@ Categories:
   - Writing
 License: MIT
 AuthorName: markovcd
-SourceCode: https://github.com/markovcd/QuickNib
-IssueTracker: https://github.com/markovcd/QuickNib/issues
-Changelog: https://github.com/markovcd/QuickNib/blob/HEAD/CHANGELOG.md
+SourceCode: https://github.com/markovcd/CapyNib
+IssueTracker: https://github.com/markovcd/CapyNib/issues
+Changelog: https://github.com/markovcd/CapyNib/blob/HEAD/CHANGELOG.md
 
 AutoName: Capynib
 
 RepoType: git
-Repo: https://github.com/markovcd/QuickNib.git
+Repo: https://github.com/markovcd/CapyNib.git
 
 Builds:
   - versionName: 0.1.0
