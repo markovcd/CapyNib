@@ -3,6 +3,9 @@ package io.github.markovcd.capynib.ui
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.UriHandler
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrElse
+import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -63,6 +66,9 @@ class CapynibRootTest {
     private fun awaitNoTag(tag: String) = compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isEmpty() }
 
     private fun awaitText(text: String) = compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty() }
+
+    private fun settingsMessage(): String =
+        compose.onNodeWithTag(Tags.SETTINGS_MESSAGE).fetchSemanticsNode().config.getOrElse(SemanticsProperties.Text) { emptyList() }.joinToString()
 
     private fun open(id: String) {
         awaitTag(Tags.card(id))
@@ -191,7 +197,11 @@ class CapynibRootTest {
         compose.onNodeWithTag(Tags.SERVER).performTextReplacement("https://memos.example.com")
         compose.onNodeWithTag(Tags.SIGN_IN).performScrollTo().performClick()
 
-        compose.waitUntil(timeoutMillis = 5_000) { browser.opened.isNotEmpty() }
+        try {
+            compose.waitUntil(timeoutMillis = 5_000) { browser.opened.isNotEmpty() }
+        } catch (e: ComposeTimeoutException) {
+            throw AssertionError("no sign-in page was opened; settings say '${settingsMessage()}'", e)
+        }
         val page = browser.opened.single().toHttpUrl()
         assertEquals("accounts.example.com", page.host)
         awaitText("Finish signing in with Google in the browser, then come back.")
