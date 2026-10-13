@@ -46,6 +46,11 @@ android {
             val listing = rootProject.file("fastlane/metadata/android")
             it.inputs.dir(listing).withPropertyName("listing")
             it.systemProperty("capynib.listing", listing.path)
+            // -Pcapynib.screenshots=true makes StoreScreenshotsTest write the listing's screenshots.
+            if (providers.gradleProperty("capynib.screenshots").orNull == "true") {
+                it.systemProperty("capynib.screenshots", listing.resolve("en-US/images/phoneScreenshots").path)
+                it.outputs.upToDateWhen { false }
+            }
         }
     }
 }

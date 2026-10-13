@@ -42,6 +42,7 @@ Each note is one private memo. The title is the memo's first-line heading and th
 | Include the live memos tests | `docker run -d -p 5230:5230 --add-host=host.docker.internal:host-gateway neosmemo/memos:stable` then `MEMOS_TEST_URL=http://localhost:5230 MEMOS_TEST_REACH_BACK=host.docker.internal ./gradlew check` |
 | Debug APK | `./gradlew :app:assembleDebug` |
 | Release APK, as F-Droid builds it | `./gradlew :app:assembleRelease` |
+| Store screenshots, rendered into `fastlane/` | `./gradlew :app:testDebugUnitTest --tests '*StoreScreenshotsTest' -Pcapynib.screenshots=true` |
 | The command line | `./gradlew :cli:installDist` then `cli/build/install/capynib/bin/capynib --help` |
 
 The command line works on the same notes and sync as the app (`list`, `tags`, `add`, `edit`, `check`,
