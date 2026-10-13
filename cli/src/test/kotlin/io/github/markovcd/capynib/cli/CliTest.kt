@@ -217,6 +217,20 @@ class CliTest {
     }
 
     @Test
+    fun Login_names_the_redirect_address_the_sign_in_provider_must_allow() {
+        MockWebServer().use { memos ->
+            memos.start()
+            memos.reply(googleOnly)
+            memos.reply("""{"user":{"name":"users/arek","username":"arek"},"accessToken":"session-jwt"}""")
+            memos.reply("""{"token":"memos_pat_new"}""")
+
+            val ran = login(memos)
+
+            assertTrue(ran.err, ran.err.contains("Google must allow the redirect address http://127.0.0.1:47815/capynib\n"))
+        }
+    }
+
+    @Test
     fun Login_to_a_server_without_sign_in_providers_fails_with_its_own_code() {
         MockWebServer().use { memos ->
             memos.start()

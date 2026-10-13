@@ -16,7 +16,8 @@ server (or another device) come back.
 Signing in with the browser works when the memos server signs people in through another site, such
 as Google. That site sends the browser back to `http://127.0.0.1:47815/capynib` on the phone, so
 the address has to be listed as an authorized redirect URI on the server's OAuth client (for Google:
-Cloud Console, APIs & Services, Credentials). Capynib then asks memos for an access token of its
+Cloud Console, APIs & Services, Credentials). Settings shows the address under the sign-in button,
+and `capynib login` prints it. Capynib then asks memos for an access token of its
 own, which expires after 30 days; sign in again when Settings says the token was refused. See [docs/adr/0005-browser-sign-in-comes-back-to-the-phone-over-loopback.md](docs/adr/0005-browser-sign-in-comes-back-to-the-phone-over-loopback.md).
 
 Each note is one private memo. The title is the memo's first-line heading and the color is a

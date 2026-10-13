@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
@@ -31,11 +32,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.markovcd.capynib.R
+import io.github.markovcd.capynib.core.memos.LoopbackReceiver
 import io.github.markovcd.capynib.core.memos.SyncFailure
 import io.github.markovcd.capynib.ui.SyncStatusLabel
 import io.github.markovcd.capynib.ui.Tags
@@ -96,6 +99,15 @@ fun SettingsScreen(model: SettingsViewModel, onClose: () -> Unit) {
                         Text(stringResource(R.string.settings_sign_in))
                     }
                     Text(stringResource(R.string.settings_sign_in_help), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                    Text(stringResource(R.string.settings_redirect_help), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                    SelectionContainer {
+                        Text(
+                            LoopbackReceiver.REDIRECT_URI,
+                            Modifier.testTag(Tags.REDIRECT_URI),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontFamily = FontFamily.Monospace,
+                        )
+                    }
                 }
                 OutlinedTextField(
                     value = token,

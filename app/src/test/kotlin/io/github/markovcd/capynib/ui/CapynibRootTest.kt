@@ -2,6 +2,7 @@ package io.github.markovcd.capynib.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -214,6 +215,13 @@ class CapynibRootTest {
     }
 
     @Test
+    fun Settings_show_the_redirect_address_the_sign_in_site_must_allow() {
+        compose.onNodeWithTag(Tags.SETTINGS).performClick()
+
+        compose.onNodeWithTag(Tags.REDIRECT_URI).performScrollTo().assertTextEquals("http://127.0.0.1:47815/capynib")
+    }
+
+    @Test
     fun Settings_offer_only_disconnect_while_connected_and_only_the_ways_to_connect_otherwise() {
         compose.onNodeWithTag(Tags.SETTINGS).performClick()
         awaitNoTag(Tags.DISCONNECT)
@@ -223,12 +231,12 @@ class CapynibRootTest {
         compose.onNodeWithTag(Tags.CONNECT).performScrollTo().performClick()
 
         awaitTag(Tags.DISCONNECT)
-        for (gone in listOf(Tags.CONNECT, Tags.SIGN_IN, Tags.SERVER, Tags.TOKEN)) awaitNoTag(gone)
+        for (gone in listOf(Tags.CONNECT, Tags.SIGN_IN, Tags.REDIRECT_URI, Tags.SERVER, Tags.TOKEN)) awaitNoTag(gone)
 
         compose.onNodeWithTag(Tags.DISCONNECT).performScrollTo().performClick()
 
         awaitNoTag(Tags.DISCONNECT)
-        for (back in listOf(Tags.CONNECT, Tags.SIGN_IN, Tags.SERVER, Tags.TOKEN)) awaitTag(back)
+        for (back in listOf(Tags.CONNECT, Tags.SIGN_IN, Tags.REDIRECT_URI, Tags.SERVER, Tags.TOKEN)) awaitTag(back)
     }
 
     @Test

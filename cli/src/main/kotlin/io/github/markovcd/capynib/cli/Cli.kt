@@ -3,6 +3,7 @@ package io.github.markovcd.capynib.cli
 import io.github.markovcd.capynib.core.board.BoardContent
 import io.github.markovcd.capynib.core.memos.ApiResult
 import io.github.markovcd.capynib.core.memos.BrowserSignIn
+import io.github.markovcd.capynib.core.memos.LoopbackReceiver
 import io.github.markovcd.capynib.core.memos.HttpMemosApi
 import io.github.markovcd.capynib.core.memos.MemosApi
 import io.github.markovcd.capynib.core.memos.ServerAddress
@@ -152,7 +153,10 @@ class Cli(
             ApiResult.NotFound, ApiResult.AlreadyExists -> error("listing providers finds no memo")
         }
         val result = runBlocking {
-            browserSignIn.signIn(provider) { page -> err.appendLine("Open this page to sign in with ${provider.title}:").appendLine(page) }
+            browserSignIn.signIn(provider) { page ->
+                err.appendLine("Open this page to sign in with ${provider.title}:").appendLine(page)
+                err.appendLine("${provider.title} must allow the redirect address ${LoopbackReceiver.REDIRECT_URI}")
+            }
         }
         return when (result) {
             is SignInResult.SignedIn -> {

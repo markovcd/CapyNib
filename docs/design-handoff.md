@@ -60,8 +60,8 @@ quiet.
   one has a ring and a check mark).
 
 **Settings** (`ui/settings/SettingsScreen.kt`)
-- Not connected: server address field, a full-width Sign in with browser button with a help line,
-  the access token field (outlined) and a Connect button. Connected: only a Disconnect button.
+- Not connected: server address field, a full-width Sign in with browser button with a help line
+  and the redirect address to allow (selectable, monospace), the access token field (outlined) and a Connect button. Connected: only a Disconnect button.
 - Both: a message line ("Connected to ... as ...") and the sync status with its icon.
 
 **Sync status icons** (`ui/SyncStatusLabel.kt`): phone (notes only on this phone), plain cloud

@@ -110,6 +110,9 @@ class LoopbackReceiver private constructor(private val socket: ServerSocket) : C
         const val PORT = 47815
         private const val HOST = "127.0.0.1"
         private const val PATH = "/capynib"
+
+        /** The address the sign-in provider sends the browser back to; its OAuth client must allow it. */
+        const val REDIRECT_URI = "http://$HOST:$PORT$PATH"
         private const val MAX_REQUEST_LINE = 8192
         private const val READ_TIMEOUT_MS = 10_000
 

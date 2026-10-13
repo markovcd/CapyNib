@@ -34,6 +34,7 @@ object Tags {
     const val SERVER = "server"
     const val TOKEN = "token"
     const val SIGN_IN = "sign-in"
+    const val REDIRECT_URI = "redirect-uri"
     const val CONNECT = "connect"
     const val DISCONNECT = "disconnect"
     const val SETTINGS_MESSAGE = "settings-message"
