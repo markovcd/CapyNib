@@ -23,3 +23,9 @@ buildscript {
         }
     }
 }
+
+// Every test task signs in to the live memos server as the same user and empties its memos first,
+// so the tasks that use it take turns rather than wiping each other's memos.
+abstract class LiveMemosServer : BuildService<BuildServiceParameters.None>
+
+gradle.sharedServices.registerIfAbsent("liveMemosServer", LiveMemosServer::class) { maxParallelUsages.set(1) }

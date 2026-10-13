@@ -34,6 +34,7 @@ dependencies {
 }
 
 tasks.test {
+    usesService(gradle.sharedServices.registrations.getByName("liveMemosServer").service)
     environment("MEMOS_TEST_URL", System.getenv("MEMOS_TEST_URL") ?: "")
     testLogging {
         events("failed", "skipped")

@@ -47,6 +47,7 @@ dependencies {
 }
 
 tasks.test {
+    usesService(gradle.sharedServices.registrations.getByName("liveMemosServer").service)
     // The memos integration tests read these; the gate always sets them.
     environment("MEMOS_TEST_URL", System.getenv("MEMOS_TEST_URL") ?: "")
     environment("MEMOS_TEST_REACH_BACK", System.getenv("MEMOS_TEST_REACH_BACK") ?: "")
