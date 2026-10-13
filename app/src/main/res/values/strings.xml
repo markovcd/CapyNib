@@ -36,6 +36,14 @@
         <item quantity="one">Note moved to the trash</item>
         <item quantity="other">%1$d notes moved to the trash</item>
     </plurals>
+    <plurals name="board_restored">
+        <item quantity="one">Note restored</item>
+        <item quantity="other">%1$d notes restored</item>
+    </plurals>
+    <plurals name="delete_forever_question">
+        <item quantity="one">Delete this note forever? It cannot be restored.</item>
+        <item quantity="other">Delete %1$d notes forever? They cannot be restored.</item>
+    </plurals>
 
     <string name="editor_title_hint">Title</string>
     <string name="editor_body_hint">Note</string>
@@ -53,7 +61,6 @@
     <string name="editor_delete">Delete</string>
     <string name="editor_restore">Restore</string>
     <string name="editor_delete_forever">Delete forever</string>
-    <string name="editor_delete_forever_question">Delete this note forever? It cannot be restored.</string>
     <string name="editor_cancel">Cancel</string>
     <string name="editor_show_checkboxes">Show checkboxes</string>
     <string name="editor_hide_checkboxes">Hide checkboxes</string>

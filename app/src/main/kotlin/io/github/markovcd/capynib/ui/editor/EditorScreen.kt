@@ -31,7 +31,6 @@ import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.RestoreFromTrash
 import androidx.compose.material.icons.outlined.Unarchive
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -68,6 +67,7 @@ import io.github.markovcd.capynib.core.note.ChecklistLine
 import io.github.markovcd.capynib.core.note.NoteColor
 import io.github.markovcd.capynib.ui.ColorPalette
 import io.github.markovcd.capynib.ui.PlainTextField
+import io.github.markovcd.capynib.ui.ConfirmDeleteForever
 import io.github.markovcd.capynib.ui.Tags
 import io.github.markovcd.capynib.ui.theme.NoteColors
 
@@ -91,6 +91,7 @@ fun EditorScreen(editor: NoteEditor, startTyping: Boolean, onClose: () -> Unit) 
     var confirmingDelete by remember { mutableStateOf(false) }
     if (confirmingDelete) {
         ConfirmDeleteForever(
+            count = 1,
             onConfirm = {
                 confirmingDelete = false
                 editor.deleteForever()
@@ -194,25 +195,6 @@ fun EditorScreen(editor: NoteEditor, startTyping: Boolean, onClose: () -> Unit) 
             }
         }
     }
-}
-
-/** Asks before a note is deleted for good, since nothing can bring it back. */
-@Composable
-private fun ConfirmDeleteForever(onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        text = { Text(stringResource(R.string.editor_delete_forever_question)) },
-        confirmButton = {
-            TextButton(onClick = onConfirm, modifier = Modifier.testTag(Tags.CONFIRM_DELETE_FOREVER)) {
-                Text(stringResource(R.string.editor_delete_forever))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss, modifier = Modifier.testTag(Tags.CANCEL_DELETE_FOREVER)) {
-                Text(stringResource(R.string.editor_cancel))
-            }
-        },
-    )
 }
 
 /** Unticked items and text in their order, then the ticked items under a count, as Keep does. */

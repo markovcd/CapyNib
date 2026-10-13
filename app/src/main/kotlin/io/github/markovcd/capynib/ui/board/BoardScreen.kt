@@ -35,10 +35,12 @@ import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.outlined.RestoreFromTrash
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Unarchive
@@ -101,6 +103,7 @@ import io.github.markovcd.capynib.core.note.Note
 import io.github.markovcd.capynib.core.note.NoteColor
 import io.github.markovcd.capynib.core.sync.SyncStatus
 import io.github.markovcd.capynib.ui.ColorPalette
+import io.github.markovcd.capynib.ui.ConfirmDeleteForever
 import io.github.markovcd.capynib.ui.PlainTextField
 import io.github.markovcd.capynib.ui.SyncStatusLabel
 import io.github.markovcd.capynib.ui.Tags
@@ -140,6 +143,8 @@ fun BoardScreen(model: BoardViewModel, onOpen: (String) -> Unit, onNew: (String)
             color = model::colorSelected,
             archive = model::archiveSelected,
             trash = model::trashSelected,
+            restore = model::restoreSelected,
+            deleteForever = model::deleteSelectedForever,
         ),
         onSwiped = model::swiped,
         onSwipedToPin = model::swipedToPin,
@@ -268,15 +273,13 @@ private fun NoteGrid(
     val picked by rememberUpdatedState(selection)
     val movable = shelf == Shelf.Notes && query.isBlank() && content.tag == null
     val canMove by rememberUpdatedState(movable)
-    val pressable = shelf != Shelf.Trash
     val edge = with(LocalDensity.current) { SCROLL_EDGE.toPx() }
 
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Adaptive(160.dp),
         state = grid,
         modifier = modifier.fillMaxSize()
-            .pointerInput(pressable) {
-                if (!pressable) return@pointerInput
+            .pointerInput(Unit) {
                 var pickedByPress = false
                 detectPressOnCard(
                     toRoot = { point -> coordinates?.let { it.localToRoot(point) } ?: point },
@@ -317,8 +320,12 @@ private fun NoteGrid(
         val card = CardBehavior(
             drag,
             selection,
-            swipeable = pressable && !selection.isActive,
-            pinnable = shelf == Shelf.Notes,
+            swipeable = !selection.isActive,
+            rightSwipe = when (shelf) {
+                Shelf.Notes -> RightSwipe.Pin
+                Shelf.Archive -> RightSwipe.None
+                Shelf.Trash -> RightSwipe.Same
+            },
             onOpen,
             actions.toggle,
             onSwiped,
@@ -445,6 +452,17 @@ private fun TagBar(tags: List<String>, picked: String?, onTag: (String?) -> Unit
 private fun SelectionBar(selection: Selection, pins: Boolean, shelf: Shelf, actions: SelectionActions) {
     val colors = MaterialTheme.colorScheme
     var palette by remember { mutableStateOf(false) }
+    var confirmingDelete by remember { mutableStateOf(false) }
+    if (confirmingDelete) {
+        ConfirmDeleteForever(
+            count = selection.ids.size,
+            onConfirm = {
+                confirmingDelete = false
+                actions.deleteForever()
+            },
+            onDismiss = { confirmingDelete = false },
+        )
+    }
     Row(
         Modifier.statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 8.dp).fillMaxWidth().height(52.dp)
             .clip(CircleShape).background(colors.secondaryContainer).padding(horizontal = 4.dp).testTag(Tags.SELECTION_BAR),
@@ -459,37 +477,46 @@ private fun SelectionBar(selection: Selection, pins: Boolean, shelf: Shelf, acti
             style = MaterialTheme.typography.titleMedium,
             color = colors.onSecondaryContainer,
         )
-        IconButton(onClick = actions.pin, modifier = Modifier.testTag(Tags.PIN_SELECTED)) {
-            if (pins) {
-                Icon(Icons.Outlined.PushPin, contentDescription = stringResource(R.string.editor_pin), tint = colors.onSecondaryContainer)
-            } else {
-                Icon(Icons.Filled.PushPin, contentDescription = stringResource(R.string.editor_unpin), tint = colors.onSecondaryContainer)
+        if (shelf == Shelf.Trash) {
+            IconButton(onClick = actions.restore, modifier = Modifier.testTag(Tags.RESTORE_SELECTED)) {
+                Icon(Icons.Outlined.RestoreFromTrash, contentDescription = stringResource(R.string.editor_restore), tint = colors.onSecondaryContainer)
             }
-        }
-        Box {
-            IconButton(onClick = { palette = true }, modifier = Modifier.testTag(Tags.COLOR_SELECTED)) {
-                Icon(Icons.Outlined.Palette, contentDescription = stringResource(R.string.board_color_selected), tint = colors.onSecondaryContainer)
+            IconButton(onClick = { confirmingDelete = true }, modifier = Modifier.testTag(Tags.DELETE_FOREVER_SELECTED)) {
+                Icon(Icons.Outlined.DeleteForever, contentDescription = stringResource(R.string.editor_delete_forever), tint = colors.onSecondaryContainer)
             }
-            DropdownMenu(expanded = palette, onDismissRequest = { palette = false }) {
-                ColorPalette(
-                    selected = null,
-                    onColor = { color ->
-                        palette = false
-                        actions.color(color)
-                    },
-                    modifier = Modifier.width(300.dp).padding(horizontal = 8.dp),
-                )
+        } else {
+            IconButton(onClick = actions.pin, modifier = Modifier.testTag(Tags.PIN_SELECTED)) {
+                if (pins) {
+                    Icon(Icons.Outlined.PushPin, contentDescription = stringResource(R.string.editor_pin), tint = colors.onSecondaryContainer)
+                } else {
+                    Icon(Icons.Filled.PushPin, contentDescription = stringResource(R.string.editor_unpin), tint = colors.onSecondaryContainer)
+                }
             }
-        }
-        IconButton(onClick = actions.archive, modifier = Modifier.testTag(Tags.ARCHIVE_SELECTED)) {
-            if (shelf == Shelf.Archive) {
-                Icon(Icons.Outlined.Unarchive, contentDescription = stringResource(R.string.editor_unarchive), tint = colors.onSecondaryContainer)
-            } else {
-                Icon(Icons.Outlined.Archive, contentDescription = stringResource(R.string.editor_archive), tint = colors.onSecondaryContainer)
+            Box {
+                IconButton(onClick = { palette = true }, modifier = Modifier.testTag(Tags.COLOR_SELECTED)) {
+                    Icon(Icons.Outlined.Palette, contentDescription = stringResource(R.string.board_color_selected), tint = colors.onSecondaryContainer)
+                }
+                DropdownMenu(expanded = palette, onDismissRequest = { palette = false }) {
+                    ColorPalette(
+                        selected = null,
+                        onColor = { color ->
+                            palette = false
+                            actions.color(color)
+                        },
+                        modifier = Modifier.width(300.dp).padding(horizontal = 8.dp),
+                    )
+                }
             }
-        }
-        IconButton(onClick = actions.trash, modifier = Modifier.testTag(Tags.TRASH_SELECTED)) {
-            Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.editor_delete), tint = colors.onSecondaryContainer)
+            IconButton(onClick = actions.archive, modifier = Modifier.testTag(Tags.ARCHIVE_SELECTED)) {
+                if (shelf == Shelf.Archive) {
+                    Icon(Icons.Outlined.Unarchive, contentDescription = stringResource(R.string.editor_unarchive), tint = colors.onSecondaryContainer)
+                } else {
+                    Icon(Icons.Outlined.Archive, contentDescription = stringResource(R.string.editor_archive), tint = colors.onSecondaryContainer)
+                }
+            }
+            IconButton(onClick = actions.trash, modifier = Modifier.testTag(Tags.TRASH_SELECTED)) {
+                Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.editor_delete), tint = colors.onSecondaryContainer)
+            }
         }
     }
 }
@@ -502,6 +529,7 @@ private fun ChangeSnackbar(snackbar: SnackbarHostState, change: BoardChange?, on
             BoardChange.Kind.Archive -> R.plurals.board_archived
             BoardChange.Kind.Unarchive -> R.plurals.board_unarchived
             BoardChange.Kind.Trash -> R.plurals.board_trashed
+            BoardChange.Kind.Restore -> R.plurals.board_restored
         }
         pluralStringResource(text, it.ids.size, it.ids.size)
     }
@@ -560,7 +588,7 @@ private fun LazyStaggeredGridScope.section(heading: Int?, tag: String, notes: Li
         // One callback per card: the box calls it again whenever it changes while still dismissed.
         val onDismiss: (SwipeToDismissBoxValue) -> Unit = remember(note.id) {
             { direction ->
-                if (direction == SwipeToDismissBoxValue.StartToEnd) {
+                if (direction == SwipeToDismissBoxValue.StartToEnd && card.rightSwipe == RightSwipe.Pin) {
                     card.onSwipedToPin(note.id)
                     scope.launch { swipe.reset() }
                 } else {
@@ -581,7 +609,7 @@ private fun LazyStaggeredGridScope.section(heading: Int?, tag: String, notes: Li
                     translationY = offset.y
                     if (dragged) shadowElevation = 8.dp.toPx()
                 },
-            enableDismissFromStartToEnd = card.pinnable,
+            enableDismissFromStartToEnd = card.rightSwipe != RightSwipe.None,
             gesturesEnabled = card.swipeable && !dragged,
             onDismiss = onDismiss,
         ) {

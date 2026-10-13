@@ -40,6 +40,19 @@ class BoardChangeTest {
     }
 
     @Test
+    fun Restoring_notes_from_the_trash_and_undoing_it_puts_them_back_in_the_trash() {
+        val a = store.create(1, body = "a").id
+        store.trash(a, 2)
+        val change = BoardChange(BoardChange.Kind.Restore, setOf(a))
+
+        change.apply(store, 3)
+        assertEquals(listOf(false to false), shelves(a))
+
+        change.undo(store, 4)
+        assertEquals(listOf(false to true), shelves(a))
+    }
+
+    @Test
     fun Applying_a_change_twice_is_the_same_as_once() {
         val a = store.create(1, body = "a").id
         val change = BoardChange(BoardChange.Kind.Unarchive, setOf(a))

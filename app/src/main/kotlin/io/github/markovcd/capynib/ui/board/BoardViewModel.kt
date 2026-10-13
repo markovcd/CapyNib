@@ -84,9 +84,22 @@ class BoardViewModel(private val graph: AppGraph) : ViewModel() {
         clearSelection()
     }
 
-    /** A swiped note goes to the archive, or out of it when the archive is shown. */
+    fun restoreSelected() {
+        change(BoardChange(BoardChange.Kind.Restore, selection.value.ids))
+        clearSelection()
+    }
+
+    /** Deletes the picked notes for good; the screen asks first, since nothing undoes it. */
+    fun deleteSelectedForever() {
+        val ids = selection.value.ids
+        write { ids.forEach { graph.store.deleteForever(it, graph.clock()) } }
+        clearSelection()
+    }
+
+    /** A swiped note goes to the archive, out of it when the archive is shown, or out of the trash when that is. */
     fun swiped(id: String) {
-        change(BoardChange(archiveKind(), setOf(id)))
+        val kind = if (shelf.value == Shelf.Trash) BoardChange.Kind.Restore else archiveKind()
+        change(BoardChange(kind, setOf(id)))
     }
 
     /** A note swiped right is pinned, or unpinned when it was. */

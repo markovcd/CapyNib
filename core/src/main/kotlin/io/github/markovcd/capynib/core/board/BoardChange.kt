@@ -8,13 +8,14 @@ import io.github.markovcd.capynib.core.store.NoteStore
  * already as asked.
  */
 data class BoardChange(val kind: Kind, val ids: Set<String>) {
-    enum class Kind { Archive, Unarchive, Trash }
+    enum class Kind { Archive, Unarchive, Trash, Restore }
 
     fun apply(store: NoteStore, now: Long) {
         when (kind) {
             Kind.Archive -> store.saveAll(ids, now) { it.copy(archived = true) }
             Kind.Unarchive -> store.saveAll(ids, now) { it.copy(archived = false) }
             Kind.Trash -> store.trashAll(ids, now)
+            Kind.Restore -> ids.forEach { store.restore(it, now) }
         }
     }
 
@@ -23,6 +24,7 @@ data class BoardChange(val kind: Kind, val ids: Set<String>) {
             Kind.Archive -> store.saveAll(ids, now) { it.copy(archived = false) }
             Kind.Unarchive -> store.saveAll(ids, now) { it.copy(archived = true) }
             Kind.Trash -> ids.forEach { store.restore(it, now) }
+            Kind.Restore -> store.trashAll(ids, now)
         }
     }
 }

@@ -10,4 +10,6 @@ class SelectionActions(
     val color: (NoteColor) -> Unit,
     val archive: () -> Unit,
     val trash: () -> Unit,
+    val restore: () -> Unit,
+    val deleteForever: () -> Unit,
 )

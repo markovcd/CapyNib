@@ -11,6 +11,7 @@
 - Long press to pick several notes and pin, color, archive or delete them together.
 - Drag a note to move it; its place syncs, and the memos web app lists notes in the same order.
 - Swipe a note left to archive it, right to pin it, with Undo for archive and delete.
+- In the trash, long press to restore or delete forever several notes at once, and swipe a note to restore it.
 - Quick capture: a home screen widget, launcher shortcuts, a Quick Settings tile and Share to Capynib each open a new note ready to type.
 - Sync with a memos server as you type, working offline until the server is back.
 - `capynib` command line for the same notes and sync.

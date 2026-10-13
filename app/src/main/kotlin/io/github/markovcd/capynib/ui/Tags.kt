@@ -21,6 +21,8 @@ object Tags {
     const val COLOR_SELECTED = "color-selected"
     const val ARCHIVE_SELECTED = "archive-selected"
     const val TRASH_SELECTED = "trash-selected"
+    const val RESTORE_SELECTED = "restore-selected"
+    const val DELETE_FOREVER_SELECTED = "delete-forever-selected"
     const val UNDO = "undo"
 
     fun card(id: String) = "card-$id"

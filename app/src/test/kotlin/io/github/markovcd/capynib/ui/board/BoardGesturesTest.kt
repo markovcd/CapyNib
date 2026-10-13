@@ -202,4 +202,61 @@ class BoardGesturesTest {
         compose.onNodeWithTag(Tags.card(bottom)).assertIsNotSelected()
         awaitNoTag(Tags.SELECTION_BAR)
     }
+
+    /** Notes made and moved to the trash, with the trash open. */
+    private fun trashed(vararg titles: String): List<String> {
+        val ids = titles.map { graph.store.create(graph.clock(), title = it).id }
+        graph.store.trashAll(ids, graph.clock())
+        compose.onNodeWithTag(Tags.TRASH_TOGGLE).performClick()
+        ids.forEach { awaitTag(Tags.card(it)) }
+        return ids
+    }
+
+    @Test
+    fun Restoring_the_picked_notes_in_the_trash_takes_them_out_and_undo_puts_them_back() {
+        val (a, b, c) = trashed("a", "b", "c")
+        longPress(a)
+        awaitTag(Tags.SELECTION_BAR)
+        compose.onNodeWithTag(Tags.card(b)).performClick()
+
+        compose.onNodeWithTag(Tags.RESTORE_SELECTED).performClick()
+
+        waitForStore { !graph.store.get(a)!!.inTrash && !graph.store.get(b)!!.inTrash }
+        assertEquals(true, graph.store.get(c)!!.inTrash)
+        awaitTag(Tags.UNDO)
+        compose.onNodeWithTag(Tags.UNDO).performClick()
+        waitForStore { graph.store.get(a)!!.inTrash && graph.store.get(b)!!.inTrash }
+    }
+
+    @Test
+    fun Deleting_the_picked_notes_forever_asks_first_and_cancel_keeps_them() {
+        val (a, b) = trashed("a", "b")
+        longPress(a)
+        awaitTag(Tags.SELECTION_BAR)
+
+        compose.onNodeWithTag(Tags.DELETE_FOREVER_SELECTED).performClick()
+        awaitTag(Tags.CANCEL_DELETE_FOREVER)
+        compose.onNodeWithTag(Tags.CANCEL_DELETE_FOREVER).performClick()
+        awaitNoTag(Tags.CANCEL_DELETE_FOREVER)
+        assertEquals(true, graph.store.get(a)!!.inTrash)
+
+        compose.onNodeWithTag(Tags.DELETE_FOREVER_SELECTED).performClick()
+        awaitTag(Tags.CONFIRM_DELETE_FOREVER)
+        compose.onNodeWithTag(Tags.CONFIRM_DELETE_FOREVER).performClick()
+
+        waitForStore { graph.store.get(a) == null }
+        assertEquals(true, graph.store.get(b)!!.inTrash)
+        awaitNoTag(Tags.card(a))
+    }
+
+    @Test
+    fun Swiping_a_note_in_the_trash_either_way_restores_it() {
+        val (a, b) = trashed("a", "b")
+
+        compose.onNodeWithTag(Tags.card(a)).performTouchInput { swipeLeft() }
+        compose.onNodeWithTag(Tags.card(b)).performTouchInput { swipeRight() }
+
+        waitForStore { !graph.store.get(a)!!.inTrash && !graph.store.get(b)!!.inTrash }
+        assertEquals(false, graph.store.get(b)!!.pinned)
+    }
 }
