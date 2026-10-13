@@ -80,8 +80,8 @@ quiet.
   Trash section with a number field for the days deleted notes stay in the trash (1 to 365).
 
 **Quick capture** (`capture/`, `res/layout/widget_new_note.xml`)
-- Home screen widget: a rounded bar with a "New note" button (pencil and label) and a "New
-  checklist" button (checkbox icon).
+- Home screen widget: one tile, a pen on a see-through circle of the theme's surface, that opens a
+  new note.
 - Launcher shortcuts "New note" and "New checklist", each an adaptive icon of the same glyph on
   a container color, and a "New note" Quick Settings tile.
 

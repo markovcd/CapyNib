@@ -2,8 +2,8 @@
 <resources>
     <color name="window_background">#FFF4FBF9</color>
     <color name="ic_launcher_background">#FF006A63</color>
-    <!-- Quick capture's widget and shortcut icons: the theme's primary on its container colors. -->
+    <!-- Quick capture's widget and shortcut icons: the theme's primary, on a see-through surface for the widget and on the container color for shortcuts. -->
     <color name="capture_ink">#FF006A63</color>
-    <color name="capture_widget_background">#FFE3EAE7</color>
+    <color name="capture_widget_background">#99F4FBF9</color>
     <color name="capture_shortcut_background">#FF9DF2E8</color>
 </resources>

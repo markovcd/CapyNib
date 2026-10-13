@@ -1,48 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@android:id/background"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@drawable/widget_background"
-    android:gravity="center_vertical"
-    android:orientation="horizontal"
-    android:padding="4dp">
-
-    <LinearLayout
-        android:id="@+id/widget_new_note"
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:layout_weight="1"
-        android:background="?android:attr/selectableItemBackground"
-        android:gravity="center"
-        android:minHeight="48dp"
-        android:orientation="horizontal"
-        android:paddingHorizontal="12dp">
-
-        <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:importantForAccessibility="no"
-            android:src="@drawable/ic_capture_note" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:text="@string/capture_new_note"
-            android:textColor="@color/capture_ink"
-            android:textSize="16sp" />
-    </LinearLayout>
+    android:layout_height="match_parent">
 
     <ImageView
-        android:id="@+id/widget_new_checklist"
-        android:layout_width="56dp"
-        android:layout_height="match_parent"
-        android:background="?android:attr/selectableItemBackground"
-        android:contentDescription="@string/capture_new_checklist"
-        android:minHeight="48dp"
+        android:id="@+id/widget_new_note"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="center"
+        android:background="@drawable/widget_background"
+        android:contentDescription="@string/capture_new_note"
         android:scaleType="center"
-        android:src="@drawable/ic_capture_checklist" />
-</LinearLayout>
+        android:src="@drawable/ic_capture_note" />
+</FrameLayout>

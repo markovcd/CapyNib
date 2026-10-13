@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Features
+
+- The home screen widget is a single pen on a see-through circle, one tile wide.
+
 ## 0.1.1 - 2026-10-13
 
 ### Features

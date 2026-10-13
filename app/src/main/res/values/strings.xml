@@ -108,5 +108,5 @@
 
     <string name="capture_new_note">New note</string>
     <string name="capture_new_checklist">New checklist</string>
-    <string name="capture_widget_description">Start a note or a checklist from the home screen</string>
+    <string name="capture_widget_description">Start a note from the home screen</string>
 </resources>

@@ -3,8 +3,8 @@
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/capture_widget_description"
     android:initialLayout="@layout/widget_new_note"
-    android:minWidth="180dp"
+    android:minWidth="40dp"
     android:minHeight="40dp"
-    android:resizeMode="horizontal"
+    android:resizeMode="none"
     android:updatePeriodMillis="0"
     android:widgetCategory="home_screen" />

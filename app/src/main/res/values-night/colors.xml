@@ -2,6 +2,6 @@
 <resources>
     <color name="window_background">#FF0E1514</color>
     <color name="capture_ink">#FF81D5CC</color>
-    <color name="capture_widget_background">#FF252B2A</color>
+    <color name="capture_widget_background">#990E1514</color>
     <color name="capture_shortcut_background">#FF00504A</color>
 </resources>

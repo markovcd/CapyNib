@@ -17,16 +17,15 @@ import org.robolectric.annotation.Config
 class NewNoteWidgetTest {
     private val context: Application = ApplicationProvider.getApplicationContext()
 
-    /** What tapping [button] on the widget asks the app to capture. */
-    private fun tapped(button: Int): Capture? {
+    /** What tapping the widget asks the app to capture. */
+    private fun tapped(): Capture? {
         val widget = NewNoteWidget.views(context).apply(context, FrameLayout(context))
-        widget.findViewById<android.view.View>(button).performClick()
+        widget.findViewById<android.view.View>(R.id.widget_new_note).performClick()
         return shadowOf(context).nextStartedActivity?.let(CaptureIntents::capture)
     }
 
     @Test
-    fun The_widget_buttons_open_a_new_note_and_a_new_checklist() {
-        assertEquals(Capture.EmptyNote, tapped(R.id.widget_new_note))
-        assertEquals(Capture.EmptyChecklist, tapped(R.id.widget_new_checklist))
+    fun Tapping_the_widget_opens_a_new_note() {
+        assertEquals(Capture.EmptyNote, tapped())
     }
 }
