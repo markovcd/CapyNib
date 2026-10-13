@@ -194,12 +194,26 @@ class CapynibRootTest {
     fun Signing_in_with_the_browser_keeps_the_access_token_the_server_makes() {
         compose.onNodeWithTag(Tags.SETTINGS).performClick()
         compose.onNodeWithTag(Tags.SERVER).performTextReplacement("https://memos.example.com")
+        val crashes = CopyOnWriteArrayList<Throwable>()
+        val previous = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { _, e -> crashes += e }
         compose.onNodeWithTag(Tags.SIGN_IN).performScrollTo().performClick()
 
         try {
             compose.waitUntil(timeoutMillis = 5_000) { browser.opened.isNotEmpty() }
         } catch (e: ComposeTimeoutException) {
-            throw AssertionError("no sign-in page was opened; settings say '${settingsMessage()}'", e)
+            val direct = try {
+                kotlinx.coroutines.runBlocking {
+                    val signIn = graph.browserSignIn(io.github.markovcd.capynib.core.memos.ServerAddress.parse("https://memos.example.com")!!)
+                    val provider = (signIn.providers() as io.github.markovcd.capynib.core.memos.ApiResult.Ok).value.first()
+                    kotlinx.coroutines.withTimeoutOrNull(2_000) { signIn.signIn(provider) { throw IllegalStateException("opened $it") } }
+                }.toString()
+            } catch (t: Throwable) {
+                t.stackTraceToString().take(1500)
+            }
+            throw AssertionError("no sign-in page was opened; settings say '${settingsMessage()}'; crashes $crashes; direct: $direct", e)
+        } finally {
+            Thread.setDefaultUncaughtExceptionHandler(previous)
         }
         val page = browser.opened.single().toHttpUrl()
         assertEquals("accounts.example.com", page.host)
