@@ -1,7 +1,8 @@
 package io.github.markovcd.quicknib.ui
 
-import android.app.Application
-import android.content.Intent
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -10,8 +11,8 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
-import androidx.test.core.app.ApplicationProvider
 import io.github.markovcd.quicknib.AppGraph
 import io.github.markovcd.quicknib.TestGraphs
 import io.github.markovcd.quicknib.core.memos.FakeMemosServer
@@ -26,8 +27,8 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import java.util.concurrent.CopyOnWriteArrayList
 
 /** The app's screens driven the way a person uses them, over a real store and a fake server. */
 @RunWith(RobolectricTestRunner::class)
@@ -39,10 +40,19 @@ class QuickNibRootTest {
     private val server = FakeMemosServer()
     private lateinit var graph: AppGraph
 
+    /** Pages the app asked the browser to open. */
+    private val browser = object : UriHandler {
+        val opened = CopyOnWriteArrayList<String>()
+
+        override fun openUri(uri: String) {
+            opened += uri
+        }
+    }
+
     @Before
     fun start() {
         graph = TestGraphs.create(server)
-        compose.setContent { QuickNibRoot(graph) }
+        compose.setContent { CompositionLocalProvider(LocalUriHandler provides browser) { QuickNibRoot(graph) } }
     }
 
     // The store answers on a background thread, so the screen catches up a moment after a change.
@@ -169,7 +179,7 @@ class QuickNibRootTest {
 
         compose.onNodeWithTag(Tags.SERVER).performTextReplacement("https://memos.example.com")
         compose.onNodeWithTag(Tags.TOKEN).performTextReplacement("memos_pat_test")
-        compose.onNodeWithTag(Tags.CONNECT).performClick()
+        compose.onNodeWithTag(Tags.CONNECT).performScrollTo().performClick()
 
         compose.waitUntil(timeoutMillis = 5_000) { server.memos.values.any { it.state.content == "written offline" } }
         awaitText("Connected as tester")
@@ -179,17 +189,10 @@ class QuickNibRootTest {
     fun Signing_in_with_the_browser_keeps_the_access_token_the_server_makes() {
         compose.onNodeWithTag(Tags.SETTINGS).performClick()
         compose.onNodeWithTag(Tags.SERVER).performTextReplacement("https://memos.example.com")
-        compose.onNodeWithTag(Tags.SIGN_IN).performClick()
+        compose.onNodeWithTag(Tags.SIGN_IN).performScrollTo().performClick()
 
-        val started = shadowOf(ApplicationProvider.getApplicationContext<Application>())
-        var next: Intent? = null
-        compose.waitUntil(timeoutMillis = 5_000) {
-            next = started.nextStartedActivity
-            next != null
-        }
-        val opened = next!!
-        val page = opened.data.toString().toHttpUrl()
-        assertEquals(Intent.ACTION_VIEW, opened.action)
+        compose.waitUntil(timeoutMillis = 5_000) { browser.opened.isNotEmpty() }
+        val page = browser.opened.single().toHttpUrl()
         assertEquals("accounts.example.com", page.host)
         awaitText("Finish signing in with Google in the browser, then come back.")
 
@@ -211,7 +214,7 @@ class QuickNibRootTest {
 
         compose.onNodeWithTag(Tags.SERVER).performTextReplacement("not a url")
         compose.onNodeWithTag(Tags.TOKEN).performTextReplacement("t")
-        compose.onNodeWithTag(Tags.CONNECT).performClick()
+        compose.onNodeWithTag(Tags.CONNECT).performScrollTo().performClick()
 
         compose.onNodeWithTag(Tags.SETTINGS_MESSAGE).assertTextContains("That is not a server address")
         assertEquals(false, graph.settings.settings.value.isConfigured)
