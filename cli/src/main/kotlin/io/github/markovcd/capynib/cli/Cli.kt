@@ -1,6 +1,7 @@
 package io.github.markovcd.capynib.cli
 
 import io.github.markovcd.capynib.core.board.BoardContent
+import io.github.markovcd.capynib.core.board.Shelf
 import io.github.markovcd.capynib.core.memos.ApiResult
 import io.github.markovcd.capynib.core.memos.BrowserSignIn
 import io.github.markovcd.capynib.core.memos.LoopbackReceiver
@@ -54,7 +55,15 @@ class Cli(
             "edit" -> withNote(store, operands, err) { note -> edit(store, note, parsed, out, err) }
             "check" -> withNote(store, operands, err) { note -> check(store, note, operands, parsed, out, err) }
             "delete" -> withNote(store, operands, err) { note ->
-                store.delete(note.id, clock())
+                if (parsed.flag("forever")) store.deleteForever(note.id, clock()) else store.trash(note.id, clock())
+                ExitCode.OK
+            }
+            "restore" -> withNote(store, operands, err) { note ->
+                store.restore(note.id, clock())
+                print(store.get(note.id)!!, parsed, out)
+            }
+            "empty-trash" -> {
+                out.appendLine(store.emptyTrash(clock()).toString())
                 ExitCode.OK
             }
             "sync" -> sync(store, parsed, out, err)
@@ -68,7 +77,12 @@ class Cli(
     }
 
     private fun list(store: NoteStore, args: Arguments, out: Appendable): Int {
-        val content = BoardContent.of(store.visible(), args.option("search").orEmpty(), args.flag("archived"))
+        val shelf = when {
+            args.flag("trashed") -> Shelf.Trash
+            args.flag("archived") -> Shelf.Archive
+            else -> Shelf.Notes
+        }
+        val content = BoardContent.of(store.visible(), args.option("search").orEmpty(), shelf)
         val notes = content.pinned + content.others
         if (args.flag("json")) {
             out.appendLine(json.encodeToString(notes.map(NoteJson::of)))
@@ -229,24 +243,28 @@ class Cli(
     private companion object {
         val VALUED = setOf("db", "title", "body", "color", "search", "server")
         val COMMANDS = mapOf(
-            "list" to Command(setOf("search"), setOf("archived", "json")),
+            "list" to Command(setOf("search"), setOf("archived", "trashed", "json")),
             "show" to Command(flags = setOf("json")),
             "add" to Command(setOf("title", "body", "color"), setOf("checklist", "pinned", "json")),
             "edit" to Command(setOf("title", "body", "color"), setOf("pin", "unpin", "archive", "unarchive", "json")),
             "check" to Command(flags = setOf("json")),
-            "delete" to Command(),
+            "delete" to Command(flags = setOf("forever")),
+            "restore" to Command(flags = setOf("json")),
+            "empty-trash" to Command(),
             "sync" to Command(setOf("server"), setOf("json")),
             "login" to Command(setOf("server"), setOf("json")),
             "colors" to Command(),
         )
         val USAGE = """
             |usage: capynib [--db FILE] COMMAND
-            |  list [--archived] [--search TEXT] [--json]
+            |  list [--archived|--trashed] [--search TEXT] [--json]
             |  show ID [--json]
             |  add [--title T] [--body B] [--color C] [--checklist] [--pinned] [--json]
             |  edit ID [--title T] [--body B] [--color C] [--pin|--unpin] [--archive|--unarchive] [--json]
             |  check ID LINE [--json]        tick or untick a checklist item
-            |  delete ID
+            |  delete ID [--forever]         move to the trash, or delete for good
+            |  restore ID [--json]           take out of the trash
+            |  empty-trash                   delete notes a week in the trash; prints how many
             |  sync [--server URL] [--json]  token from CAPYNIB_TOKEN
             |  login [--server URL] [--json] sign in in the browser; prints a new access token
             |  colors

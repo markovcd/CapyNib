@@ -110,6 +110,44 @@ class NoteEditorTest {
     }
 
     @Test
+    fun Deleting_moves_the_note_to_the_trash() = runTest {
+        val editor = editor("x")
+
+        editor.trash()
+        editor.flush()
+
+        assertEquals(0L, store.get(editor.note.value.id)!!.trashedAt)
+    }
+
+    @Test
+    fun A_note_in_the_trash_cannot_be_edited_until_it_is_restored() = runTest {
+        val editor = editor("- [ ] milk")
+        editor.trash()
+
+        editor.setBody("changed")
+        editor.toggleItem(0)
+        editor.flush()
+        assertEquals("- [ ] milk", store.get(editor.note.value.id)!!.body)
+
+        editor.restore()
+        editor.toggleItem(0)
+        editor.flush()
+        val restored = store.get(editor.note.value.id)!!
+        assertEquals(listOf(null, "- [x] milk"), listOf(restored.trashedAt, restored.body))
+    }
+
+    @Test
+    fun Deleting_forever_leaves_nothing_to_restore() = runTest {
+        val editor = editor("x")
+        editor.trash()
+
+        editor.deleteForever()
+        editor.flush()
+
+        assertNull(store.get(editor.note.value.id))
+    }
+
+    @Test
     fun Leaving_a_note_with_text_keeps_it() = runTest {
         val editor = editor()
         editor.setBody("keep me")

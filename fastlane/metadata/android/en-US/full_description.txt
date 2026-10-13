@@ -10,5 +10,6 @@ Each note is one private memo: its title is the memo's first-line heading and it
 <li>Notes with a title, a body and a color</li>
 <li>Checklists with items you can tick</li>
 <li>Pinning, archive and search</li>
+<li>A trash that keeps deleted notes for a week</li>
 <li>Sync with a self-hosted memos server, offline until the server is back</li>
 </ul>

@@ -44,7 +44,8 @@ class NoteEditor(
     init {
         scope.launch {
             store.observe(initial.id).filterNotNull().collect { stored ->
-                if (unsaved.value == 0 && !stored.sameContentAs(current.value)) current.value = stored
+                val changed = !stored.sameContentAs(current.value) || stored.trashedAt != current.value.trashedAt
+                if (unsaved.value == 0 && changed) current.value = stored
             }
         }
     }
@@ -83,15 +84,30 @@ class NoteEditor(
 
     fun removeItem(index: Int) = change { it.copy(body = Checklist.remove(it.body, index)) }
 
-    fun delete() {
+    /** Moves the note to the trash. */
+    fun trash() {
         val id = current.value.id
-        write { store.delete(id, clock()) }
+        val now = clock()
+        current.value = current.value.copy(trashedAt = now)
+        write { store.trash(id, now) }
     }
 
-    /** Leaves the note; a note with nothing written in it is thrown away. Returns whether it was. */
+    /** Takes the note out of the trash. */
+    fun restore() {
+        val id = current.value.id
+        current.value = current.value.copy(trashedAt = null)
+        write { store.restore(id, clock()) }
+    }
+
+    fun deleteForever() {
+        val id = current.value.id
+        write { store.deleteForever(id, clock()) }
+    }
+
+    /** Leaves the note; a note with nothing written in it is deleted for good. Returns whether it was. */
     fun close(): Boolean {
         if (!current.value.isBlank) return false
-        delete()
+        deleteForever()
         return true
     }
 
@@ -100,7 +116,9 @@ class NoteEditor(
         unsaved.first { it == 0 }
     }
 
+    /** A note in the trash is read-only until it is restored. */
     private fun change(edit: (Note) -> Note) {
+        if (current.value.inTrash) return
         val edited = edit(current.value)
         if (edited == current.value) return
         current.value = edited

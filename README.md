@@ -36,7 +36,7 @@ Each note is one private memo. The title is the memo's first-line heading and th
 | The command line | `./gradlew :cli:installDist` then `cli/build/install/capynib/bin/capynib --help` |
 
 The command line works on the same notes and sync as the app (`list`, `add`, `edit`, `check`,
-`sync`, with `--json`), against a local database file. `capynib login --server URL` signs in with
+`delete`, `restore`, `empty-trash`, `sync`, with `--json`), against a local database file. `capynib login --server URL` signs in with
 the browser the same way and prints the new access token, for `CAPYNIB_TOKEN`.
 
 ## Design

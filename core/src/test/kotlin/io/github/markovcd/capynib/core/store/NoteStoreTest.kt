@@ -1,5 +1,6 @@
 package io.github.markovcd.capynib.core.store
 
+import io.github.markovcd.capynib.core.note.Note
 import io.github.markovcd.capynib.core.note.NoteColor
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -10,6 +11,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.sql.DriverManager
 
 class NoteStoreTest {
     @get:Rule
@@ -69,11 +71,69 @@ class NoteStoreTest {
         val store = stores.open()
         val note = store.create(now = 1)
 
-        store.delete(note.id, now = 2)
+        store.deleteForever(note.id, now = 2)
 
         assertNull(store.get(note.id))
         assertEquals(emptyList<String>(), store.visible().map { it.id })
         assertTrue(store.stored(note.id)!!.deleted)
+    }
+
+    @Test
+    fun A_trashed_note_is_kept_until_it_has_been_in_the_trash_a_week() {
+        val store = stores.open()
+        val note = store.create(now = 1)
+        store.trash(note.id, now = 10)
+        val week = Trash.KEPT_FOR.inWholeMilliseconds
+
+        assertEquals(0, store.emptyTrash(now = 10 + week - 1))
+        assertEquals(10L, store.get(note.id)!!.trashedAt)
+
+        assertEquals(1, store.emptyTrash(now = 10 + week))
+        assertNull(store.get(note.id))
+        assertTrue(store.stored(note.id)!!.deleted)
+    }
+
+    @Test
+    fun A_restored_note_comes_back_where_it_was() {
+        val store = stores.open()
+        val note = store.create(now = 1, body = "x")
+        store.save(note.copy(archived = true), now = 2)
+
+        store.trash(note.id, now = 3)
+        store.restore(note.id, now = 4)
+
+        val back = store.get(note.id)!!
+        assertEquals(listOf(null, true), listOf(back.trashedAt, back.archived))
+        assertEquals(0, store.emptyTrash(now = 4 + Trash.KEPT_FOR.inWholeMilliseconds))
+    }
+
+    @Test
+    fun Trashing_a_note_again_keeps_when_it_first_went_to_the_trash() {
+        val store = stores.open()
+        val note = store.create(now = 1)
+
+        store.trash(note.id, now = 2)
+        store.trash(note.id, now = 3)
+
+        assertEquals(2L, store.get(note.id)!!.trashedAt)
+    }
+
+    @Test
+    fun A_database_from_before_the_trash_opens_with_its_notes() {
+        val path = folder.newFile("v1.db").absolutePath
+        DriverManager.getConnection("jdbc:sqlite:$path").use { db ->
+            db.createStatement().use { sql ->
+                sql.executeUpdate(V1_SCHEMA)
+                sql.executeUpdate("INSERT INTO note(id, title, body, color, pinned, archived, created_at, updated_at) VALUES ('old', 'Kept', 'body', 'sand', 0, 0, 5, 6)")
+                sql.executeUpdate("PRAGMA user_version = 1")
+            }
+        }
+
+        val store = TempStores.open(path, { "new" })
+
+        assertEquals(Note("old", "Kept", "body", NoteColor.Sand, pinned = false, archived = false, createdAt = 5, updatedAt = 6), store.get("old"))
+        store.trash("old", now = 7)
+        assertEquals(7L, store.get("old")!!.trashedAt)
     }
 
     @Test
@@ -89,5 +149,28 @@ class NoteStoreTest {
     @Test
     fun An_unknown_color_from_a_newer_version_reads_as_default() {
         assertEquals(NoteColor.Default, NoteColor.fromKey("ultraviolet"))
+    }
+
+    private companion object {
+        /** The note table as the first released schema (`databases/1.db`) made it. */
+        const val V1_SCHEMA = """
+            CREATE TABLE note (
+                id TEXT NOT NULL PRIMARY KEY,
+                title TEXT NOT NULL,
+                body TEXT NOT NULL,
+                color TEXT NOT NULL,
+                pinned INTEGER NOT NULL,
+                archived INTEGER NOT NULL,
+                deleted INTEGER NOT NULL DEFAULT 0,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL,
+                version INTEGER NOT NULL DEFAULT 1,
+                synced_version INTEGER NOT NULL DEFAULT 0,
+                on_server INTEGER NOT NULL DEFAULT 0,
+                synced_content TEXT,
+                synced_pinned INTEGER,
+                synced_archived INTEGER
+            )
+        """
     }
 }

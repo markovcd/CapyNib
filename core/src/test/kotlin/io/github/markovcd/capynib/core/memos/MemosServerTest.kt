@@ -34,21 +34,26 @@ class MemosServerTest {
     }
 
     @Test
-    fun Edits_archives_and_deletes_reach_the_server() = runTest {
+    fun Edits_archives_trash_and_deletes_reach_the_server() = runTest {
         val live = LiveMemos.connect()
         val api = live.api()
         val store = stores.open("e-")
         val engine = SyncEngine(store, api) { now }
         val kept = store.create(++now, "", "first draft")
+        val trashed = store.create(++now, "", "trash me")
         val gone = store.create(++now, "", "delete me")
         engine.sync()
 
         store.save(store.get(kept.id)!!.copy(body = "second draft", archived = true), ++now)
-        store.delete(gone.id, ++now)
+        store.trash(trashed.id, ++now)
+        store.deleteForever(gone.id, ++now)
         assertEquals(null, engine.sync().failure)
 
         val memos = (api.listAll() as ApiResult.Ok).value
-        assertEquals(listOf(MemoState("second draft", pinned = false, archived = true)), memos.map { it.state })
+        assertEquals(
+            setOf(MemoState("second draft", pinned = false, archived = true), MemoState("trash me", pinned = false, archived = true)),
+            memos.map { it.state }.toSet(),
+        )
     }
 
     @Test

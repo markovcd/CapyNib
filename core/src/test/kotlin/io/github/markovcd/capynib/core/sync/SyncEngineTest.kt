@@ -5,6 +5,7 @@ import io.github.markovcd.capynib.core.memos.MemoState
 import io.github.markovcd.capynib.core.memos.SyncFailure
 import io.github.markovcd.capynib.core.note.NoteColor
 import io.github.markovcd.capynib.core.store.TempStores
+import io.github.markovcd.capynib.core.store.Trash
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -91,7 +92,7 @@ class SyncEngineTest {
         val note = note(body = "bye")
         engine.sync()
 
-        store.delete(note.id, ++now)
+        store.deleteForever(note.id, ++now)
         val report = engine.sync()
 
         assertEquals(1, report.deletedThere)
@@ -102,12 +103,73 @@ class SyncEngineTest {
     @Test
     fun A_note_deleted_before_it_was_ever_sent_never_reaches_the_server() = runTest {
         val note = note(body = "oops")
-        store.delete(note.id, ++now)
+        store.deleteForever(note.id, ++now)
 
         engine.sync()
 
         assertEquals(0, server.memos.size)
         assertNull(store.stored(note.id))
+    }
+
+    @Test
+    fun A_note_in_the_trash_is_archived_on_the_server_and_deleted_there_a_week_later() = runTest {
+        val note = note(body = "bye")
+        engine.sync()
+
+        store.trash(note.id, ++now)
+        engine.sync()
+        assertEquals(MemoState("bye", false, true), server.memos.getValue(note.id).state)
+
+        now += Trash.KEPT_FOR.inWholeMilliseconds
+        val report = engine.sync()
+
+        assertEquals(1, report.deletedThere)
+        assertTrue(note.id !in server.memos)
+        assertNull(store.stored(note.id))
+    }
+
+    @Test
+    fun A_note_restored_from_the_trash_is_back_on_the_server_as_it_was() = runTest {
+        val plain = note(body = "plain")
+        val archived = note(body = "archived")
+        store.save(archived.copy(archived = true), ++now)
+        engine.sync()
+
+        for (id in listOf(plain.id, archived.id)) store.trash(id, ++now)
+        engine.sync()
+        for (id in listOf(plain.id, archived.id)) store.restore(id, ++now)
+        engine.sync()
+
+        assertEquals(listOf(false, true), listOf(plain.id, archived.id).map { server.memos.getValue(it).state.archived })
+        assertEquals(emptyList<String>(), store.pending().map { it.note.id })
+    }
+
+    @Test
+    fun A_trashed_note_whose_memo_is_unarchived_elsewhere_leaves_the_trash() = runTest {
+        val note = note(body = "wanted after all")
+        store.trash(note.id, ++now)
+        engine.sync()
+
+        server.put(note.id, "wanted after all", archived = false)
+        engine.sync()
+
+        val back = store.get(note.id)!!
+        assertEquals(listOf(null, false), listOf(back.trashedAt, back.archived))
+    }
+
+    @Test
+    fun A_trashed_note_edited_on_the_server_stays_in_the_trash_and_keeps_its_own_archive_state() = runTest {
+        val note = note(body = "v1")
+        store.trash(note.id, ++now)
+        engine.sync()
+
+        server.put(note.id, "v2 from web", archived = true)
+        engine.sync()
+
+        val stored = store.get(note.id)!!
+        assertEquals(listOf("v2 from web", false), listOf(stored.body, stored.archived))
+        assertTrue(stored.inTrash)
+        assertEquals(emptyList<String>(), store.pending().map { it.note.id })
     }
 
     @Test

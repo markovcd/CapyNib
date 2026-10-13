@@ -1,7 +1,8 @@
 -- One row per note. A deleted note stays as a tombstone (deleted = 1) until the server has
 -- forgotten it too. version counts local edits; synced_version is the version the server holds,
 -- so a row with version > synced_version has edits to push. synced_* hold the memo as last seen
--- on the server, to tell a server-side edit from a local one.
+-- on the server, to tell a server-side edit from a local one. trashed_at is when the note went to
+-- the trash; its memo is archived on the server until the trash is emptied of it (ADR 0006).
 CREATE TABLE note (
     id TEXT NOT NULL PRIMARY KEY,
     title TEXT NOT NULL,
@@ -17,7 +18,8 @@ CREATE TABLE note (
     on_server INTEGER AS kotlin.Boolean NOT NULL DEFAULT 0,
     synced_content TEXT,
     synced_pinned INTEGER AS kotlin.Boolean,
-    synced_archived INTEGER AS kotlin.Boolean
+    synced_archived INTEGER AS kotlin.Boolean,
+    trashed_at INTEGER
 );
 
 CREATE INDEX note_created_at ON note(created_at);
@@ -46,6 +48,15 @@ updateLocal:
 UPDATE note SET title = ?, body = ?, color = ?, pinned = ?, archived = ?, updated_at = ?, version = version + 1
 WHERE id = ?;
 
+trash:
+UPDATE note SET trashed_at = :now, updated_at = :now, version = version + 1 WHERE id = :id AND trashed_at IS NULL;
+
+restore:
+UPDATE note SET trashed_at = NULL, updated_at = :now, version = version + 1 WHERE id = :id AND trashed_at IS NOT NULL;
+
+trashedBefore:
+SELECT id FROM note WHERE deleted = 0 AND trashed_at <= ?;
+
 markDeleted:
 UPDATE note SET deleted = 1, updated_at = ?, version = version + 1 WHERE id = ?;
 
@@ -53,8 +64,13 @@ markPushed:
 UPDATE note SET synced_version = :pushed_version, on_server = 1, synced_content = :content, synced_pinned = :pinned, synced_archived = :archived
 WHERE id = :id;
 
+-- A trashed note's memo is archived, so an archived memo leaves the note's own archived flag alone,
+-- and a memo taken out of the archive elsewhere takes the note out of the trash.
 applyServer:
-UPDATE note SET title = :title, body = :body, color = :color, pinned = :pinned, archived = :archived, updated_at = :updated_at,
+UPDATE note SET title = :title, body = :body, color = :color, pinned = :pinned,
+    archived = CASE WHEN trashed_at IS NOT NULL AND :archived THEN archived ELSE :archived END,
+    trashed_at = CASE WHEN :archived THEN trashed_at ELSE NULL END,
+    updated_at = :updated_at,
     version = version + 1, synced_version = version + 1, synced_content = :synced_content, synced_pinned = :pinned, synced_archived = :archived
 WHERE id = :id AND version = :expected_version;
 

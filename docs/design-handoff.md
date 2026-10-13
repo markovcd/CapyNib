@@ -10,7 +10,7 @@ comes from the [Capynib identity canvas](https://claude.ai/artifact/RQR8sA3JUE7e
 Capynib is a quick-notes app for Android in the spirit of Google Keep. The board shows notes as
 colored cards in a staggered grid; tapping one opens it full screen in its color. A note has a
 title and a body; the body can be plain text or a checklist whose items tick off. Notes can be
-pinned to the top, archived, searched and deleted. Everything is saved on the phone as you type and
+pinned to the top, archived, searched and deleted; deleted notes wait a week in a trash. Everything is saved on the phone as you type and
 synced to the user's own [memos](https://usememos.com) server when one is set up. The first version
 has no text formatting on purpose: just text and checklists.
 
@@ -40,7 +40,9 @@ quiet.
 
 **Board** (`ui/board/BoardScreen.kt`, `NoteCard.kt`)
 - Top bar: a rounded search field ("Search your notes"), a sync status icon, an archive toggle
-  (archive box; a light bulb when showing the archive), and a settings gear.
+  (archive box; a light bulb when showing the archive), a trash toggle (trash can; a light bulb
+  when showing the trash), and a settings gear. The trash opens with one line saying notes there
+  are deleted after 7 days.
 - Body: a staggered grid of note cards, about 160 dp wide columns. Sections "Pinned" and
   "Others" get small labels when there are pinned notes. An empty board shows one centered line
   ("Notes you add appear here").
@@ -52,7 +54,8 @@ quiet.
 
 **Note** (`ui/editor/EditorScreen.kt`)
 - The whole screen takes the note's color.
-- Top bar, transparent: back, pin (outlined or filled pin), archive or unarchive, delete.
+- Top bar, transparent: back, pin (outlined or filled pin), archive or unarchive, delete. A note
+  in the trash is read-only, with no bottom bar, and its top bar has restore and delete forever.
 - A borderless title field ("Title") and either a borderless body field ("Note") or a checklist:
   rows of checkbox, item text and a remove (x) button; an "+ List item" row; then "N checked
   items" and the ticked rows, struck through.

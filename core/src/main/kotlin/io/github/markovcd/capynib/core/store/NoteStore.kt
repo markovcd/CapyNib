@@ -54,8 +54,26 @@ class NoteStore(
         }
     }
 
-    fun delete(id: String, now: Long) {
+    /** Moves the note to the trash, where it stays for [Trash.KEPT_FOR] before it is deleted for good. */
+    fun trash(id: String, now: Long) {
+        queries.trash(now, id)
+    }
+
+    /** Takes the note out of the trash, back where it was. */
+    fun restore(id: String, now: Long) {
+        queries.restore(now, id)
+    }
+
+    /** Deletes the note for good; it stays as a tombstone until sync has deleted its memo. */
+    fun deleteForever(id: String, now: Long) {
         queries.markDeleted(now, id)
+    }
+
+    /** Deletes for good every note that has been in the trash for [Trash.KEPT_FOR]; returns how many. */
+    fun emptyTrash(now: Long): Int = queries.transactionWithResult {
+        val expired = queries.trashedBefore(now - Trash.KEPT_FOR.inWholeMilliseconds).executeAsList()
+        expired.forEach { queries.markDeleted(now, it) }
+        expired.size
     }
 
     fun stored(id: String): StoredNote? = queries.byId(id).executeAsOneOrNull()?.toStored()
@@ -125,6 +143,7 @@ private fun NoteRow.toNote() = Note(
     archived = archived,
     createdAt = created_at,
     updatedAt = updated_at,
+    trashedAt = trashed_at,
 )
 
 private fun NoteRow.toStored(): StoredNote {

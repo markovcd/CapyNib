@@ -7,14 +7,16 @@ import io.github.markovcd.capynib.core.memos.SyncFailure
 import io.github.markovcd.capynib.core.note.MemoCodec
 import io.github.markovcd.capynib.core.store.NoteStore
 import io.github.markovcd.capynib.core.store.StoredNote
+import io.github.markovcd.capynib.core.store.Trash
 
 /**
  * Two-way sync between the [store] and a memos server.
  *
- * Pull first: a memo that changed on the server replaces a note with no local edits; when both
- * sides changed, the local edit wins and the server's version is kept as a new note, so nothing is
- * lost. Then push every note with local edits. Notes are created on the server under their own id,
- * so a create that is retried after a lost reply updates instead of duplicating.
+ * Notes that have been in the trash for [Trash.KEPT_FOR] are deleted first. Then pull: a memo that
+ * changed on the server replaces a note with no local edits; when both sides changed, the local edit
+ * wins and the server's version is kept as a new note, so nothing is lost. Then push every note with
+ * local edits. Notes are created on the server under their own id, so a create that is retried after
+ * a lost reply updates instead of duplicating.
  */
 class SyncEngine(
     private val store: NoteStore,
@@ -22,6 +24,7 @@ class SyncEngine(
     private val clock: () -> Long,
 ) {
     suspend fun sync(): SyncReport {
+        store.emptyTrash(clock())
         val serverMemos = when (val listed = api.listAll()) {
             is ApiResult.Ok -> listed.value
             is ApiResult.Failed -> return SyncReport(failure = listed.failure)

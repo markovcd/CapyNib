@@ -30,7 +30,9 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material.icons.outlined.PushPin
+import androidx.compose.material.icons.outlined.RestoreFromTrash
 import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -78,7 +80,7 @@ private const val TICKED_ALPHA = 0.62f
 private const val RULE_ALPHA = 0.12f
 private const val SWATCHES_PER_ROW = 6
 
-/** The open note. Leaving it (back, archive, delete) calls [onClose]. */
+/** The open note. Leaving it (back, archive, delete) calls [onClose]. A note in the trash is read-only until restored. */
 @Composable
 fun EditorScreen(editor: NoteEditor, onClose: () -> Unit) {
     val note by editor.note.collectAsStateWithLifecycle()
@@ -88,6 +90,7 @@ fun EditorScreen(editor: NoteEditor, onClose: () -> Unit) {
     }
     BackHandler(onBack = leave)
     val checklist = Checklist.isChecklist(note.body)
+    val editable = !note.inTrash
     val fill = NoteColors.background(note.color)
 
     Scaffold(
@@ -103,45 +106,62 @@ fun EditorScreen(editor: NoteEditor, onClose: () -> Unit) {
                     }
                 },
                 actions = {
-                    IconButton(onClick = editor::togglePinned, modifier = Modifier.testTag(Tags.PIN)) {
-                        if (note.pinned) {
-                            Icon(Icons.Filled.PushPin, contentDescription = stringResource(R.string.editor_unpin))
-                        } else {
-                            Icon(Icons.Outlined.PushPin, contentDescription = stringResource(R.string.editor_pin))
+                    if (!editable) {
+                        IconButton(onClick = editor::restore, modifier = Modifier.testTag(Tags.RESTORE)) {
+                            Icon(Icons.Outlined.RestoreFromTrash, contentDescription = stringResource(R.string.editor_restore))
                         }
-                    }
-                    IconButton(
-                        onClick = {
-                            editor.setArchived(!note.archived)
-                            leave()
-                        },
-                        modifier = Modifier.testTag(Tags.ARCHIVE),
-                    ) {
-                        if (note.archived) {
-                            Icon(Icons.Outlined.Unarchive, contentDescription = stringResource(R.string.editor_unarchive))
-                        } else {
-                            Icon(Icons.Outlined.Archive, contentDescription = stringResource(R.string.editor_archive))
+                        IconButton(
+                            onClick = {
+                                editor.deleteForever()
+                                onClose()
+                            },
+                            modifier = Modifier.testTag(Tags.DELETE_FOREVER),
+                        ) {
+                            Icon(Icons.Outlined.DeleteForever, contentDescription = stringResource(R.string.editor_delete_forever))
                         }
-                    }
-                    IconButton(
-                        onClick = {
-                            editor.delete()
-                            onClose()
-                        },
-                        modifier = Modifier.testTag(Tags.DELETE),
-                    ) {
-                        Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.editor_delete))
+                    } else {
+                        IconButton(onClick = editor::togglePinned, modifier = Modifier.testTag(Tags.PIN)) {
+                            if (note.pinned) {
+                                Icon(Icons.Filled.PushPin, contentDescription = stringResource(R.string.editor_unpin))
+                            } else {
+                                Icon(Icons.Outlined.PushPin, contentDescription = stringResource(R.string.editor_pin))
+                            }
+                        }
+                        IconButton(
+                            onClick = {
+                                editor.setArchived(!note.archived)
+                                leave()
+                            },
+                            modifier = Modifier.testTag(Tags.ARCHIVE),
+                        ) {
+                            if (note.archived) {
+                                Icon(Icons.Outlined.Unarchive, contentDescription = stringResource(R.string.editor_unarchive))
+                            } else {
+                                Icon(Icons.Outlined.Archive, contentDescription = stringResource(R.string.editor_archive))
+                            }
+                        }
+                        IconButton(
+                            onClick = {
+                                editor.trash()
+                                onClose()
+                            },
+                            modifier = Modifier.testTag(Tags.DELETE),
+                        ) {
+                            Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.editor_delete))
+                        }
                     }
                 },
             )
         },
         bottomBar = {
-            EditorBottomBar(
-                selected = note.color,
-                checklist = checklist,
-                onColor = editor::setColor,
-                onToggleCheckboxes = { if (checklist) editor.hideCheckboxes() else editor.showCheckboxes() },
-            )
+            if (editable) {
+                EditorBottomBar(
+                    selected = note.color,
+                    checklist = checklist,
+                    onColor = editor::setColor,
+                    onToggleCheckboxes = { if (checklist) editor.hideCheckboxes() else editor.showCheckboxes() },
+                )
+            }
         },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxWidth().verticalScroll(rememberScrollState())) {
@@ -151,9 +171,10 @@ fun EditorScreen(editor: NoteEditor, onClose: () -> Unit) {
                 placeholder = stringResource(R.string.editor_title_hint),
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 14.dp).testTag(Tags.TITLE),
+                readOnly = !editable,
             )
             if (checklist) {
-                ChecklistEditor(note.body, editor)
+                ChecklistEditor(note.body, editor, editable)
             } else {
                 PlainTextField(
                     value = note.body,
@@ -161,6 +182,7 @@ fun EditorScreen(editor: NoteEditor, onClose: () -> Unit) {
                     placeholder = stringResource(R.string.editor_body_hint),
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp).testTag(Tags.BODY),
+                    readOnly = !editable,
                 )
             }
         }
@@ -169,21 +191,23 @@ fun EditorScreen(editor: NoteEditor, onClose: () -> Unit) {
 
 /** Unticked items and text in their order, then the ticked items under a count, as Keep does. */
 @Composable
-private fun ChecklistEditor(body: String, editor: NoteEditor) {
+private fun ChecklistEditor(body: String, editor: NoteEditor, editable: Boolean) {
     val lines = Checklist.parse(body).withIndex().toList()
     val (checked, open) = lines.partition { (it.value as? ChecklistLine.Item)?.checked == true }
     var focus by remember { mutableStateOf<Int?>(null) }
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
 
-    open.forEach { (index, line) -> key(index) { ChecklistRow(index, line, editor, focus) { focus = it } } }
-    Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { focus = editor.addItemAfter(open.lastOrNull()?.index ?: -1) }
-            .padding(horizontal = 18.dp).testTag(Tags.ADD_ITEM),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(22.dp), tint = muted)
-        Text(stringResource(R.string.editor_add_item), style = MaterialTheme.typography.bodyLarge, color = muted)
+    open.forEach { (index, line) -> key(index) { ChecklistRow(index, line, editor, editable, focus) { focus = it } } }
+    if (editable) {
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { focus = editor.addItemAfter(open.lastOrNull()?.index ?: -1) }
+                .padding(horizontal = 18.dp).testTag(Tags.ADD_ITEM),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Outlined.Add, contentDescription = null, modifier = Modifier.size(22.dp), tint = muted)
+            Text(stringResource(R.string.editor_add_item), style = MaterialTheme.typography.bodyLarge, color = muted)
+        }
     }
     if (checked.isNotEmpty()) {
         HorizontalDivider(
@@ -196,12 +220,12 @@ private fun ChecklistEditor(body: String, editor: NoteEditor) {
             style = MaterialTheme.typography.titleSmall,
             color = muted,
         )
-        checked.forEach { (index, line) -> key(index) { ChecklistRow(index, line, editor, focus) { focus = it } } }
+        checked.forEach { (index, line) -> key(index) { ChecklistRow(index, line, editor, editable, focus) { focus = it } } }
     }
 }
 
 @Composable
-private fun ChecklistRow(index: Int, line: ChecklistLine, editor: NoteEditor, focus: Int?, onFocus: (Int?) -> Unit) {
+private fun ChecklistRow(index: Int, line: ChecklistLine, editor: NoteEditor, editable: Boolean, focus: Int?, onFocus: (Int?) -> Unit) {
     val requester = remember { FocusRequester() }
     LaunchedEffect(focus) {
         if (focus == index) {
@@ -212,7 +236,7 @@ private fun ChecklistRow(index: Int, line: ChecklistLine, editor: NoteEditor, fo
     val ticked = (line as? ChecklistLine.Item)?.checked == true
     Row(Modifier.heightIn(min = 48.dp).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         if (line is ChecklistLine.Item) {
-            ItemCheckbox(line.checked, onToggle = { editor.toggleItem(index) }, modifier = Modifier.testTag(Tags.itemCheck(index)))
+            ItemCheckbox(line.checked, editable, onToggle = { editor.toggleItem(index) }, modifier = Modifier.testTag(Tags.itemCheck(index)))
         } else {
             Box(Modifier.size(44.dp))
         }
@@ -226,24 +250,27 @@ private fun ChecklistRow(index: Int, line: ChecklistLine, editor: NoteEditor, fo
             style = MaterialTheme.typography.bodyLarge.copy(textDecoration = if (ticked) TextDecoration.LineThrough else null),
             modifier = Modifier.weight(1f).padding(start = 4.dp).focusRequester(requester).testTag(Tags.item(index))
                 .then(if (ticked) Modifier.alpha(TICKED_ALPHA) else Modifier),
+            readOnly = !editable,
         )
-        IconButton(onClick = { editor.removeItem(index) }, modifier = Modifier.size(44.dp).testTag(Tags.itemRemove(index))) {
-            Icon(
-                Icons.Outlined.Close,
-                contentDescription = stringResource(R.string.editor_remove_item),
-                modifier = Modifier.size(18.dp).alpha(0.7f),
-            )
+        if (editable) {
+            IconButton(onClick = { editor.removeItem(index) }, modifier = Modifier.size(44.dp).testTag(Tags.itemRemove(index))) {
+                Icon(
+                    Icons.Outlined.Close,
+                    contentDescription = stringResource(R.string.editor_remove_item),
+                    modifier = Modifier.size(18.dp).alpha(0.7f),
+                )
+            }
         }
     }
 }
 
 /** A 20 dp box with soft corners, filled with the accent when ticked. */
 @Composable
-private fun ItemCheckbox(checked: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
+private fun ItemCheckbox(checked: Boolean, enabled: Boolean, onToggle: () -> Unit, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(6.dp)
     Box(
-        modifier.size(44.dp).toggleable(value = checked, role = Role.Checkbox, onValueChange = { onToggle() }),
+        modifier.size(44.dp).toggleable(value = checked, enabled = enabled, role = Role.Checkbox, onValueChange = { onToggle() }),
         contentAlignment = Alignment.Center,
     ) {
         val box = Modifier.size(20.dp)

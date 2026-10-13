@@ -18,6 +18,7 @@ fun PlainTextField(
     style: TextStyle,
     modifier: Modifier = Modifier,
     singleLine: Boolean = false,
+    readOnly: Boolean = false,
 ) {
     val colors = MaterialTheme.colorScheme
     BasicTextField(
@@ -26,6 +27,7 @@ fun PlainTextField(
         modifier = modifier,
         textStyle = style.copy(color = colors.onSurface),
         singleLine = singleLine,
+        readOnly = readOnly,
         cursorBrush = SolidColor(colors.primary),
         decorationBox = { field ->
             Box {

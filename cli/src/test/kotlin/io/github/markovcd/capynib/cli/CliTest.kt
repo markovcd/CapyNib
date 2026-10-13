@@ -3,6 +3,7 @@ package io.github.markovcd.capynib.cli
 import io.github.markovcd.capynib.core.memos.BrowserSignIn
 import io.github.markovcd.capynib.core.memos.FakeMemosServer
 import io.github.markovcd.capynib.core.memos.LiveMemos
+import io.github.markovcd.capynib.core.store.Trash
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -118,8 +119,35 @@ class CliTest {
         assertEquals("", run("list").out)
         assertTrue(run("list", "--archived").out.startsWith(id))
 
-        run("delete", id)
+        run("delete", id, "--forever")
         assertEquals(ExitCode.NOT_FOUND, run("show", id).code)
+    }
+
+    @Test
+    fun Delete_moves_a_note_to_the_trash_and_restore_brings_it_back() {
+        val id = run("add", "--body", "x").out.trim()
+
+        run("delete", id)
+        assertEquals("", run("list").out)
+        assertTrue(run("list", "--trashed").out.startsWith(id))
+
+        assertEquals(ExitCode.OK, run("restore", id).code)
+        assertTrue(run("list").out.startsWith(id))
+        assertEquals("", run("list", "--trashed").out)
+    }
+
+    @Test
+    fun Empty_trash_deletes_only_notes_a_week_in_the_trash() {
+        val old = run("add", "--body", "old").out.trim()
+        val recent = run("add", "--body", "recent").out.trim()
+        run("delete", old)
+        now += Trash.KEPT_FOR.inWholeMilliseconds
+        run("delete", recent)
+
+        assertEquals("1", run("empty-trash").out.trim())
+
+        assertEquals(ExitCode.NOT_FOUND, run("show", old).code)
+        assertTrue(json(run("show", recent, "--json").out).jsonObject["trashedAt"]!!.jsonPrimitive.content.toLong() > 0)
     }
 
     @Test

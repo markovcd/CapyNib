@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.CheckBox
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.Search
@@ -37,13 +38,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.markovcd.capynib.R
 import io.github.markovcd.capynib.core.board.BoardContent
+import io.github.markovcd.capynib.core.board.Shelf
 import io.github.markovcd.capynib.core.note.Note
+import io.github.markovcd.capynib.core.store.Trash
 import io.github.markovcd.capynib.core.sync.SyncStatus
 import io.github.markovcd.capynib.ui.PlainTextField
 import io.github.markovcd.capynib.ui.SyncStatusLabel
@@ -54,15 +59,15 @@ import io.github.markovcd.capynib.ui.theme.color
 fun BoardScreen(model: BoardViewModel, onOpen: (String) -> Unit, onSettings: () -> Unit) {
     val content by model.content.collectAsStateWithLifecycle()
     val query by model.query.collectAsStateWithLifecycle()
-    val archive by model.archive.collectAsStateWithLifecycle()
+    val shelf by model.shelf.collectAsStateWithLifecycle()
     val status by model.status.collectAsStateWithLifecycle()
     BoardLayout(
         content = content,
         query = query,
-        archive = archive,
+        shelf = shelf,
         status = status,
         onQuery = { model.query.value = it },
-        onToggleArchive = { model.archive.value = !archive },
+        onShelf = { model.shelf.value = it },
         onOpen = onOpen,
         onNew = { checklist -> onOpen(model.newNote(checklist)) },
         onSettings = onSettings,
@@ -73,20 +78,20 @@ fun BoardScreen(model: BoardViewModel, onOpen: (String) -> Unit, onSettings: () 
 fun BoardLayout(
     content: BoardContent?,
     query: String,
-    archive: Boolean,
+    shelf: Shelf,
     status: SyncStatus,
     onQuery: (String) -> Unit,
-    onToggleArchive: () -> Unit,
+    onShelf: (Shelf) -> Unit,
     onOpen: (String) -> Unit,
     onNew: (checklist: Boolean) -> Unit,
     onSettings: () -> Unit,
 ) {
     Scaffold(
         topBar = {
-            SearchBar(query, archive, status, onQuery, onToggleArchive, onSettings)
+            SearchBar(query, shelf, status, onQuery, onShelf, onSettings)
         },
         floatingActionButton = {
-            if (!archive) {
+            if (shelf == Shelf.Notes) {
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     SmallFloatingActionButton(
                         onClick = { onNew(true) },
@@ -109,7 +114,13 @@ fun BoardLayout(
         if (content.isEmpty) {
             Box(Modifier.fillMaxSize().padding(padding).testTag(Tags.EMPTY_BOARD), contentAlignment = Alignment.Center) {
                 Text(
-                    stringResource(if (archive) R.string.board_archive_empty else R.string.board_empty),
+                    stringResource(
+                        when (shelf) {
+                            Shelf.Notes -> R.string.board_empty
+                            Shelf.Archive -> R.string.board_archive_empty
+                            Shelf.Trash -> R.string.board_trash_empty
+                        },
+                    ),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -123,20 +134,21 @@ fun BoardLayout(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalItemSpacing = 8.dp,
         ) {
+            if (shelf == Shelf.Trash) trashNotice()
             section(R.string.board_pinned.takeIf { content.pinned.isNotEmpty() }, Tags.PINNED, content.pinned, onOpen)
             section(R.string.board_others.takeIf { content.pinned.isNotEmpty() && content.others.isNotEmpty() }, Tags.OTHERS, content.others, onOpen)
         }
     }
 }
 
-/** The pill at the top: search, then the sync status, the archive toggle and settings. */
+/** The pill at the top: search, then the sync status, the archive and trash toggles, and settings. */
 @Composable
 private fun SearchBar(
     query: String,
-    archive: Boolean,
+    shelf: Shelf,
     status: SyncStatus,
     onQuery: (String) -> Unit,
-    onToggleArchive: () -> Unit,
+    onShelf: (Shelf) -> Unit,
     onSettings: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -149,22 +161,48 @@ private fun SearchBar(
         PlainTextField(
             value = query,
             onValueChange = onQuery,
-            placeholder = stringResource(if (archive) R.string.board_archive_title else R.string.board_search_hint),
+            placeholder = stringResource(
+                when (shelf) {
+                    Shelf.Notes -> R.string.board_search_hint
+                    Shelf.Archive -> R.string.board_archive_title
+                    Shelf.Trash -> R.string.board_trash_title
+                },
+            ),
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.weight(1f).padding(start = 10.dp).testTag(Tags.SEARCH),
             singleLine = true,
         )
         SyncStatusIcon(status, onClick = onSettings)
-        IconButton(onClick = onToggleArchive, modifier = Modifier.testTag(Tags.ARCHIVE_TOGGLE)) {
-            if (archive) {
-                Icon(Icons.Outlined.Lightbulb, contentDescription = stringResource(R.string.board_show_notes), tint = colors.onSurfaceVariant)
-            } else {
-                Icon(Icons.Outlined.Archive, contentDescription = stringResource(R.string.board_show_archive), tint = colors.onSurfaceVariant)
-            }
-        }
+        ShelfToggle(Shelf.Archive, shelf, Tags.ARCHIVE_TOGGLE, Icons.Outlined.Archive, R.string.board_show_archive, onShelf)
+        ShelfToggle(Shelf.Trash, shelf, Tags.TRASH_TOGGLE, Icons.Outlined.Delete, R.string.board_show_trash, onShelf)
         IconButton(onClick = onSettings, modifier = Modifier.testTag(Tags.SETTINGS)) {
             Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.board_settings), tint = colors.onSurfaceVariant)
         }
+    }
+}
+
+/** Shows [target], or the notes again (a light bulb) while [target] is shown. */
+@Composable
+private fun ShelfToggle(target: Shelf, shelf: Shelf, tag: String, icon: ImageVector, label: Int, onShelf: (Shelf) -> Unit) {
+    val tint = MaterialTheme.colorScheme.onSurfaceVariant
+    IconButton(onClick = { onShelf(if (shelf == target) Shelf.Notes else target) }, modifier = Modifier.testTag(tag)) {
+        if (shelf == target) {
+            Icon(Icons.Outlined.Lightbulb, contentDescription = stringResource(R.string.board_show_notes), tint = tint)
+        } else {
+            Icon(icon, contentDescription = stringResource(label), tint = tint)
+        }
+    }
+}
+
+private fun LazyStaggeredGridScope.trashNotice() {
+    item(span = StaggeredGridItemSpan.FullLine, key = "trash-notice") {
+        val days = Trash.KEPT_FOR.inWholeDays.toInt()
+        Text(
+            pluralStringResource(R.plurals.board_trash_notice, days, days),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 4.dp, top = 12.dp, bottom = 4.dp).testTag(Tags.TRASH_NOTICE),
+        )
     }
 }
 

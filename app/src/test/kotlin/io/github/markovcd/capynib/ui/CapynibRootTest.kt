@@ -145,14 +145,36 @@ class CapynibRootTest {
     }
 
     @Test
-    fun Deleting_a_note_removes_it() {
+    fun Deleting_a_note_moves_it_to_the_trash_where_it_can_be_restored() {
         val id = graph.store.create(graph.clock(), title = "bye").id
         open(id)
 
         compose.onNodeWithTag(Tags.DELETE).performClick()
 
-        waitForStore { graph.store.get(id) == null }
+        waitForStore { graph.store.get(id)?.inTrash == true }
         awaitNoTag(Tags.card(id))
+
+        compose.onNodeWithTag(Tags.TRASH_TOGGLE).performClick()
+        awaitTag(Tags.TRASH_NOTICE)
+        open(id)
+        awaitNoTag(Tags.PIN)
+        compose.onNodeWithTag(Tags.RESTORE).performClick()
+
+        waitForStore { graph.store.get(id)?.inTrash == false }
+        awaitTag(Tags.PIN)
+    }
+
+    @Test
+    fun Deleting_forever_from_the_trash_leaves_nothing_behind() {
+        val id = graph.store.create(graph.clock(), title = "gone").id
+        graph.store.trash(id, graph.clock())
+        compose.onNodeWithTag(Tags.TRASH_TOGGLE).performClick()
+        open(id)
+
+        compose.onNodeWithTag(Tags.DELETE_FOREVER).performClick()
+
+        waitForStore { graph.store.get(id) == null }
+        awaitTag(Tags.EMPTY_BOARD)
     }
 
     @Test

@@ -16,6 +16,7 @@ data class NoteJson(
     val archived: Boolean,
     val createdAt: Long,
     val updatedAt: Long,
+    val trashedAt: Long?,
     val lines: List<LineJson>,
 ) {
     @Serializable
@@ -31,6 +32,7 @@ data class NoteJson(
             archived = note.archived,
             createdAt = note.createdAt,
             updatedAt = note.updatedAt,
+            trashedAt = note.trashedAt,
             lines = Checklist.parse(note.body).map { line ->
                 when (line) {
                     is ChecklistLine.Text -> LineJson(line.text)
