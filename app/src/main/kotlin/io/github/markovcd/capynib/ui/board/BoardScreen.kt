@@ -56,10 +56,11 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxDefaults
+import androidx.compose.material3.SwipeToDismissBoxState
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -551,7 +552,10 @@ private fun LazyStaggeredGridScope.section(heading: Int?, tag: String, notes: Li
     items(notes, key = { it.id }) { note ->
         val dragged = card.drag.dragged == note.id
         DisposableEffect(note.id) { onDispose { card.drag.forget(note.id) } }
-        val swipe = rememberSwipeToDismissBoxState()
+        // Not saved: the grid restores a returning card's saved state, and a card swiped off one shelf
+        // would come back dismissed on the next and be swiped again.
+        val threshold = SwipeToDismissBoxDefaults.positionalThreshold
+        val swipe = remember(note.id) { SwipeToDismissBoxState(SwipeToDismissBoxValue.Settled, threshold) }
         val scope = rememberCoroutineScope()
         // One callback per card: the box calls it again whenever it changes while still dismissed.
         val onDismiss: (SwipeToDismissBoxValue) -> Unit = remember(note.id) {
