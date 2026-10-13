@@ -1,29 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The foreground's shapes in one tone for themed icons; the nib's slit and hole are cut out. -->
+<!-- The foreground's shapes in one tone for themed icons; the eye, nose, mouth and the nib's slit are cut out. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
     <path
-        android:pathData="M51,32a18,18 0,1 1,0 36a18,18 0,1 1,0 -36z"
-        android:strokeColor="#FF000000"
-        android:strokeWidth="9" />
+        android:fillColor="#FF000000"
+        android:pathData="M20,108L22,82C23,71 31,64 41,64L58,69L66,108Z" />
     <path
-        android:pathData="M45,57V43L57,57V43"
-        android:strokeColor="#FF000000"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:strokeWidth="4" />
+        android:fillColor="#FF000000"
+        android:pathData="M39.8,45a5.2,5.2 0,1 0,10.4 0a5.2,5.2 0,1 0,-10.4 0z" />
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="evenOdd"
+        android:pathData="M36,55C36,48 42,43 50,43L67,43C76,43 82,49 82,58L82,66C82,72 78,75.5 72,75.5L48,75.5C41,75.5 36,70.5 36,64Z M56.2,53.5a2.8,2.8 0,1 0,5.6 0a2.8,2.8 0,1 0,-5.6 0z M76.3,57a1.7,2.3 0,1 0,3.4 0a1.7,2.3 0,1 0,-3.4 0z M72.5,68Q76,69.6 79.5,67.6L79.5,69.6Q76,71.6 72.5,70Z" />
     <group
-        android:rotation="-45"
-        android:scaleX="1.15"
-        android:scaleY="1.15"
-        android:translateX="77"
-        android:translateY="76">
+        android:rotation="180"
+        android:scaleX="0.85"
+        android:scaleY="0.85"
+        android:translateX="61"
+        android:translateY="25">
         <path
             android:fillColor="#FF000000"
             android:fillType="evenOdd"
-            android:pathData="M0,0L-7.5,-14V-21H7.5V-14Z M-1,-2V-8.6a1,1 0,0 1,2 0V-2a1,1 0,0 1,-2 0z M-2.1,-11.8a2.1,2.1 0,1 0,4.2 0a2.1,2.1 0,1 0,-4.2 0z" />
+            android:pathData="M0,0L-7.5,-14V-21H7.5V-14Z M-1.1,-2.5V-8.6a1.1,1.1 0,0 1,2.2 0V-2.5a1.1,1.1 0,0 1,-2.2 0z M-2.3,-12a2.3,2.3 0,1 0,4.6 0a2.3,2.3 0,1 0,-4.6 0z" />
     </group>
 </vector>

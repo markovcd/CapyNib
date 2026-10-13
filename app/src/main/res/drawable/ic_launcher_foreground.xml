@@ -1,27 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- QN: an N inside the Q, with a nib for its tail, in the 72dp safe zone of a 108dp icon. -->
+<!-- A capybara balancing a pen nib on its head. The body bleeds off the bottom edge on purpose. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
     <path
-        android:pathData="M51,32a18,18 0,1 1,0 36a18,18 0,1 1,0 -36z"
-        android:strokeColor="#FFFFE2A0"
-        android:strokeWidth="9" />
+        android:fillColor="#FFA86F48"
+        android:pathData="M20,108L22,82C23,71 31,64 41,64L58,69L66,108Z" />
     <path
-        android:pathData="M45,57V43L57,57V43"
-        android:strokeColor="#FF81D5CC"
+        android:fillColor="#FF7E5033"
+        android:pathData="M39.8,45a5.2,5.2 0,1 0,10.4 0a5.2,5.2 0,1 0,-10.4 0z" />
+    <path
+        android:fillColor="#FFC68C5E"
+        android:pathData="M36,55C36,48 42,43 50,43L67,43C76,43 82,49 82,58L82,66C82,72 78,75.5 72,75.5L48,75.5C41,75.5 36,70.5 36,64Z" />
+    <path
+        android:fillColor="#FF10302C"
+        android:pathData="M56.2,53.5a2.8,2.8 0,1 0,5.6 0a2.8,2.8 0,1 0,-5.6 0z" />
+    <path
+        android:fillColor="#FF5E3B25"
+        android:pathData="M76.3,57a1.7,2.3 0,1 0,3.4 0a1.7,2.3 0,1 0,-3.4 0z" />
+    <path
+        android:pathData="M72.5,69Q76,70.6 79.5,68.6"
+        android:strokeColor="#FF5E3B25"
         android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:strokeWidth="4" />
+        android:strokeWidth="2" />
     <group
-        android:rotation="-45"
-        android:scaleX="1.15"
-        android:scaleY="1.15"
-        android:translateX="77"
-        android:translateY="76">
-        <!-- The background color drawn under the nib cuts it free of the ring. -->
+        android:rotation="180"
+        android:scaleX="0.85"
+        android:scaleY="0.85"
+        android:translateX="61"
+        android:translateY="25">
+        <!-- The background color drawn under the nib cuts it free of the head. -->
         <path
             android:pathData="M0,0L-7.5,-14V-21H7.5V-14Z"
             android:strokeColor="#FF006A63"
@@ -31,12 +41,12 @@
             android:fillColor="#FFFFE2A0"
             android:pathData="M0,0L-7.5,-14V-21H7.5V-14Z" />
         <path
-            android:pathData="M0,-2V-10"
+            android:pathData="M0,-2.5V-10"
             android:strokeColor="#FF00504A"
             android:strokeLineCap="round"
-            android:strokeWidth="2" />
+            android:strokeWidth="2.2" />
         <path
             android:fillColor="#FF00504A"
-            android:pathData="M-2.1,-11.8a2.1,2.1 0,1 0,4.2 0a2.1,2.1 0,1 0,-4.2 0z" />
+            android:pathData="M-2.3,-12a2.3,2.3 0,1 0,4.6 0a2.3,2.3 0,1 0,-4.6 0z" />
     </group>
 </vector>
