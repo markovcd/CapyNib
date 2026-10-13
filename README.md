@@ -24,6 +24,7 @@ Each note is one private memo. The title is the memo's first-line heading and th
 | Unit and UI tests, no server | `./gradlew check` |
 | Include the live memos tests | `docker run -d -p 5230:5230 neosmemo/memos:stable` then `MEMOS_TEST_URL=http://localhost:5230 ./gradlew check` |
 | Debug APK | `./gradlew :app:assembleDebug` |
+| Release APK, as F-Droid builds it | `./gradlew :app:assembleRelease` |
 | The command line | `./gradlew :cli:installDist` then `cli/build/install/quicknib/bin/quicknib --help` |
 
 The command line works on the same notes and sync as the app (`list`, `add`, `edit`, `check`,

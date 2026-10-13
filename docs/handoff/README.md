@@ -6,6 +6,7 @@ Planned work that has its own document is not repeated here; link to it instead.
 
 | # | Issue | Severity | Status |
 |---|---|---|---|
+| [01](01-f-droid-submission.md) | QuickNib is not on F-Droid yet | Low | Open |
 
 Severity: **Critical**, act now; **High**, security or data problem in production; **Medium**, wrong behavior or real risk; **Low**, friction or latent risk.
 

@@ -11,8 +11,21 @@ android {
         applicationId = "io.github.markovcd.quicknib"
         minSdk = 26
         targetSdk = 36
+        // A release commit raises both; the tag v<versionName> marks it (docs/adr/0004).
         versionCode = 1
-        versionName = "0.1.0-dev"
+        versionName = "0.1.0"
+    }
+
+    buildTypes {
+        debug {
+            versionNameSuffix = "-dev"
+        }
+    }
+
+    // The dependency block is encrypted with Google's key, which F-Droid cannot read or verify.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
     }
 
     buildFeatures {
@@ -27,7 +40,13 @@ android {
     testOptions {
         // Robolectric needs the merged resources and manifest.
         unitTests.isIncludeAndroidResources = true
-        unitTests.all { it.environment("MEMOS_TEST_URL", System.getenv("MEMOS_TEST_URL") ?: "") }
+        unitTests.all {
+            it.environment("MEMOS_TEST_URL", System.getenv("MEMOS_TEST_URL") ?: "")
+            it.systemProperty("quicknib.versionCode", defaultConfig.versionCode.toString())
+            val listing = rootProject.file("fastlane/metadata/android")
+            it.inputs.dir(listing).withPropertyName("listing")
+            it.systemProperty("quicknib.listing", listing.path)
+        }
     }
 }
 

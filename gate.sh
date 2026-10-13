@@ -31,4 +31,4 @@ docker run --rm --network "$run_id" \
     "$ANDROID_IMAGE" \
     bash -c 'trap "chown -R \$HOST_OWNER /work" EXIT
              for i in $(seq 1 30); do curl -sf http://memos:5230/api/v1/instance/profile >/dev/null && break; sleep 1; done
-             ./gradlew --no-daemon --stacktrace check :app:assembleDebug "$@"' gate "$@"
+             ./gradlew --no-daemon --stacktrace check :app:assembleDebug :app:assembleRelease "$@"' gate "$@"

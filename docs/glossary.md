@@ -22,6 +22,7 @@ the docs, ADRs, comments, test names and commit messages.
 | **board** | The screen of all notes as cards. | `BoardContent`, `BoardScreen` | home, list, grid |
 | **memos server** | The user's self-hosted [memos](https://usememos.com) instance. | `MemosApi`, `ServerAddress` | cloud, backend |
 | **memo** | A note's copy on the memos server. | `ServerMemo`, `MemoState` | |
+| **store listing** | The name, descriptions, icon, screenshots and per-version changelogs F-Droid shows for the app, kept under `fastlane/`. | `StoreListingTest` | metadata (that is F-Droid's build recipe for the app) |
 | **sync** | Making the device's notes and the server's memos agree. | `SyncEngine` | backup, upload |
 | **access token** | The memos personal access token the app signs in with. | `token` | password, key |
 | **conflict copy** | A new note holding the server's version when both sides changed a note. | `keepServerCopy` | duplicate |
