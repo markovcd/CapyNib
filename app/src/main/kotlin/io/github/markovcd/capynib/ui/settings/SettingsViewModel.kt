@@ -79,7 +79,7 @@ class SettingsViewModel(private val graph: AppGraph) : ViewModel() {
                     token.value = result.accessToken
                     graph.settings.save(SyncSettings(address, result.accessToken))
                     graph.scheduler.requestSync(immediate = true)
-                    SettingsMessage.Connected(address.url.host, result.username)
+                    SettingsMessage.Connected(address.host, result.username)
                 }
                 is SignInResult.Refused -> SettingsMessage.SignInRefused(result.reason)
                 is SignInResult.Failed -> SettingsMessage.Failed(result.failure)
@@ -110,7 +110,7 @@ class SettingsViewModel(private val graph: AppGraph) : ViewModel() {
         viewModelScope.launch {
             val result = api.currentUser()
             mutableMessage.value = when (result) {
-                is ApiResult.Ok -> SettingsMessage.Connected(settings.server?.url?.host.orEmpty(), result.value)
+                is ApiResult.Ok -> SettingsMessage.Connected(settings.server?.host.orEmpty(), result.value)
                 is ApiResult.Failed -> SettingsMessage.Failed(result.failure)
                 ApiResult.NotFound, ApiResult.AlreadyExists -> SettingsMessage.Failed(SyncFailure.Server(404, "not a memos server"))
             }

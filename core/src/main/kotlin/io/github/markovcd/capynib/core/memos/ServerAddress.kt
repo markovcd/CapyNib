@@ -6,6 +6,8 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 /** A checked memos server address, such as `https://memos.example.com`. */
 @JvmInline
 value class ServerAddress private constructor(val url: HttpUrl) {
+    val host: String get() = url.host
+
     override fun toString(): String = url.toString().trimEnd('/')
 
     companion object {
