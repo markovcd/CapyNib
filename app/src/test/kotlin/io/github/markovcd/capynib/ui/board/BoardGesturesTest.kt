@@ -75,6 +75,23 @@ class BoardGesturesTest {
     }
 
     @Test
+    fun A_long_press_leaves_the_board_where_it_was_so_the_pressed_note_stays_picked() {
+        val (a, b) = listOf("a", "b").map { graph.store.create(graph.clock(), title = it, body = "#travel").id }
+        awaitTag(Tags.card(a))
+        awaitTag(Tags.TAG_BAR)
+        val before = center(a)
+
+        longPress(a)
+        awaitTag(Tags.SELECTION_BAR)
+        compose.waitForIdle()
+
+        assertEquals(before, center(a))
+        compose.onNodeWithTag(Tags.TAG_BAR).assertExists()
+        compose.onNodeWithTag(Tags.card(a)).assertIsSelected()
+        compose.onNodeWithTag(Tags.card(b)).assertIsNotSelected()
+    }
+
+    @Test
     fun Archiving_the_picked_notes_archives_them_all_and_undo_brings_them_back() {
         val (a, b, c) = notes("a", "b", "c")
         longPress(a)

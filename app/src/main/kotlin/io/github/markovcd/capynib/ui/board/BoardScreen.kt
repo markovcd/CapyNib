@@ -187,16 +187,18 @@ fun BoardLayout(
     if (deleting.isNotEmpty()) ConfirmDeleteForever(deleting.size, onConfirmDelete, onCancelDelete)
     BackHandler(enabled = selection.isActive) { actions.clear() }
     Scaffold(
+        // The selection bar takes the search bar's place at its height, and the tags stay, so the board
+        // does not move under the finger that picked a note.
         topBar = {
-            if (selection.isActive) {
-                val notes = content?.let { it.pinned + it.others }.orEmpty()
-                SelectionBar(selection, pins = selection.pins(notes), shelf, actions)
-            } else {
-                Column {
+            Column {
+                if (selection.isActive) {
+                    val notes = content?.let { it.pinned + it.others }.orEmpty()
+                    SelectionBar(selection, pins = selection.pins(notes), shelf, actions)
+                } else {
                     SearchBar(query, shelf, status, onQuery, onShelf, onSettings)
-                    val tags = content?.tags.orEmpty()
-                    if (tags.isNotEmpty()) TagBar(tags, content?.tag, onTag)
                 }
+                val tags = content?.tags.orEmpty()
+                if (tags.isNotEmpty()) TagBar(tags, content?.tag, onTag)
             }
         },
         snackbarHost = {
