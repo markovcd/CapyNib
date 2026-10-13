@@ -92,4 +92,8 @@
     <string name="settings_trash_days">Days deleted notes stay in the trash</string>
     <string name="settings_trash_days_help">From %1$d to %2$d days</string>
     <string name="settings_not_connected">Not connected. Notes stay on this phone.</string>
+
+    <string name="capture_new_note">New note</string>
+    <string name="capture_new_checklist">New checklist</string>
+    <string name="capture_widget_description">Start a note or a checklist from the home screen</string>
 </resources>

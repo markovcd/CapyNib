@@ -1,6 +1,8 @@
 package io.github.markovcd.capynib.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -14,8 +16,11 @@ import androidx.compose.ui.test.performTextReplacement
 import io.github.markovcd.capynib.AppGraph
 import io.github.markovcd.capynib.TestGraphs
 import io.github.markovcd.capynib.core.memos.FakeMemosServer
+import io.github.markovcd.capynib.core.note.Capture
 import io.github.markovcd.capynib.core.note.NoteColor
 import io.github.markovcd.capynib.core.sync.SyncStatus
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -44,10 +49,13 @@ class CapynibRootTest {
     /** Whether the phone has a browser to open them in. */
     @Volatile private var hasBrowser = true
 
+    /** Notes made by quick captures, as the activity hands them to the screen. */
+    private val captured = Channel<String>(Channel.UNLIMITED)
+
     @Before
     fun start() {
         graph = TestGraphs.create(server) { if (hasBrowser) opened += it; hasBrowser }
-        compose.setContent { CapynibRoot(graph) }
+        compose.setContent { CapynibRoot(graph, captured.receiveAsFlow()) }
     }
 
     // The store answers on a background thread, so the screen catches up a moment after a change.
@@ -80,6 +88,51 @@ class CapynibRootTest {
 
         awaitText("Groceries")
         assertEquals("Groceries", graph.store.visible().single().title)
+    }
+
+    @Test
+    fun A_new_note_opens_ready_to_type() {
+        compose.onNodeWithTag(Tags.NEW_NOTE).performClick()
+
+        awaitTag(Tags.BODY)
+        compose.onNodeWithTag(Tags.BODY).assertIsFocused()
+    }
+
+    @Test
+    fun A_new_list_opens_ready_to_type_its_first_item() {
+        compose.onNodeWithTag(Tags.NEW_LIST).performClick()
+
+        awaitTag(Tags.item(0))
+        compose.onNodeWithTag(Tags.item(0)).assertIsFocused()
+    }
+
+    @Test
+    fun Opening_a_note_from_the_board_does_not_bring_up_the_keyboard() {
+        val id = graph.store.create(graph.clock(), body = "just reading").id
+        open(id)
+
+        awaitTag(Tags.BODY)
+        compose.onNodeWithTag(Tags.BODY).assertIsNotFocused()
+    }
+
+    @Test
+    fun A_shared_link_opens_as_a_note_titled_with_the_page_ready_to_type() {
+        captured.trySend(graph.capture(Capture.shared("https://example.com/capybaras", "Capybaras")!!))
+
+        awaitTag(Tags.BODY)
+        compose.onNodeWithTag(Tags.TITLE).assertTextEquals("Capybaras")
+        compose.onNodeWithTag(Tags.BODY).assertTextEquals("https://example.com/capybaras").assertIsFocused()
+    }
+
+    @Test
+    fun A_capture_while_settings_are_open_opens_the_new_note() {
+        compose.onNodeWithTag(Tags.SETTINGS).performClick()
+        awaitTag(Tags.SERVER)
+
+        captured.trySend(graph.capture(Capture.EmptyChecklist))
+
+        awaitTag(Tags.item(0))
+        compose.onNodeWithTag(Tags.item(0)).assertIsFocused()
     }
 
     @Test

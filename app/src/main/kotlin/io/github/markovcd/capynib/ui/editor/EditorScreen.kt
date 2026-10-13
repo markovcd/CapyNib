@@ -74,9 +74,12 @@ import io.github.markovcd.capynib.ui.theme.NoteColors
 private const val TICKED_ALPHA = 0.62f
 private const val RULE_ALPHA = 0.12f
 
-/** The open note. Leaving it (back, archive, delete) calls [onClose]. A note in the trash is read-only until restored. */
+/**
+ * The open note. Leaving it (back, archive, delete) calls [onClose]. A note in the trash is read-only until restored.
+ * With [startTyping] the body, or a checklist's first item, takes focus and the keyboard comes up.
+ */
 @Composable
-fun EditorScreen(editor: NoteEditor, onClose: () -> Unit) {
+fun EditorScreen(editor: NoteEditor, startTyping: Boolean, onClose: () -> Unit) {
     val note by editor.note.collectAsStateWithLifecycle()
     val leave = {
         editor.close()
@@ -176,14 +179,16 @@ fun EditorScreen(editor: NoteEditor, onClose: () -> Unit) {
                 readOnly = !editable,
             )
             if (checklist) {
-                ChecklistEditor(note.body, editor, editable)
+                ChecklistEditor(note.body, editor, editable, startTyping)
             } else {
+                val body = remember { FocusRequester() }
+                LaunchedEffect(Unit) { if (startTyping && editable) body.requestFocus() }
                 PlainTextField(
                     value = note.body,
                     onValueChange = editor::setBody,
                     placeholder = stringResource(R.string.editor_body_hint),
                     style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp).testTag(Tags.BODY),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp).focusRequester(body).testTag(Tags.BODY),
                     readOnly = !editable,
                 )
             }
@@ -212,10 +217,10 @@ private fun ConfirmDeleteForever(onConfirm: () -> Unit, onDismiss: () -> Unit) {
 
 /** Unticked items and text in their order, then the ticked items under a count, as Keep does. */
 @Composable
-private fun ChecklistEditor(body: String, editor: NoteEditor, editable: Boolean) {
+private fun ChecklistEditor(body: String, editor: NoteEditor, editable: Boolean, startTyping: Boolean) {
     val lines = Checklist.parse(body).withIndex().toList()
     val (checked, open) = lines.partition { (it.value as? ChecklistLine.Item)?.checked == true }
-    var focus by remember { mutableStateOf<Int?>(null) }
+    var focus by remember { mutableStateOf(open.firstOrNull()?.index?.takeIf { startTyping && editable }) }
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
 
     open.forEach { (index, line) -> key(index) { ChecklistRow(index, line, editor, editable, focus) { focus = it } } }

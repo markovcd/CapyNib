@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The launcher's long-press menu. The actions are CaptureIntents.NEW_NOTE and NEW_CHECKLIST. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:icon="@drawable/ic_shortcut_note"
+        android:shortcutId="new_note"
+        android:shortcutShortLabel="@string/capture_new_note">
+        <intent
+            android:action="io.github.markovcd.capynib.action.NEW_NOTE"
+            android:targetClass="io.github.markovcd.capynib.ui.MainActivity"
+            android:targetPackage="io.github.markovcd.capynib" />
+    </shortcut>
+    <shortcut
+        android:icon="@drawable/ic_shortcut_checklist"
+        android:shortcutId="new_checklist"
+        android:shortcutShortLabel="@string/capture_new_checklist">
+        <intent
+            android:action="io.github.markovcd.capynib.action.NEW_CHECKLIST"
+            android:targetClass="io.github.markovcd.capynib.ui.MainActivity"
+            android:targetPackage="io.github.markovcd.capynib" />
+    </shortcut>
+</shortcuts>

@@ -10,6 +10,7 @@ import io.github.markovcd.capynib.core.memos.BrowserSignIn
 import io.github.markovcd.capynib.core.memos.HttpMemosApi
 import io.github.markovcd.capynib.core.memos.MemosApi
 import io.github.markovcd.capynib.core.memos.ServerAddress
+import io.github.markovcd.capynib.core.note.Capture
 import io.github.markovcd.capynib.core.store.NoteStore
 import io.github.markovcd.capynib.core.sync.SyncEngine
 import io.github.markovcd.capynib.core.sync.SyncScheduler
@@ -55,6 +56,13 @@ class AppGraph(
 
     /** Opens [page] in the browser; false when the phone has none. */
     fun openPage(page: String): Boolean = browser(page)
+
+    /** Makes a note from [capture] and returns its id to open it; one that already holds text is synced at once. */
+    fun capture(capture: Capture): String {
+        val note = store.create(clock(), title = capture.title, body = capture.body)
+        if (!note.isBlank) scheduler.requestSync()
+        return note.id
+    }
 
     /** Deletes for good the notes that have been in the trash as long as the user chose; asks for a sync when any were. */
     fun emptyTrash() {

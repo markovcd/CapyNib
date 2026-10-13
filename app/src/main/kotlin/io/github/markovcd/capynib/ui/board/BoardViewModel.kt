@@ -7,7 +7,7 @@ import io.github.markovcd.capynib.core.board.BoardChange
 import io.github.markovcd.capynib.core.board.BoardContent
 import io.github.markovcd.capynib.core.board.Selection
 import io.github.markovcd.capynib.core.board.Shelf
-import io.github.markovcd.capynib.core.note.Checklist
+import io.github.markovcd.capynib.core.note.Capture
 import io.github.markovcd.capynib.core.note.NoteColor
 import io.github.markovcd.capynib.core.sync.SyncStatus
 import kotlinx.coroutines.Dispatchers
@@ -46,8 +46,7 @@ class BoardViewModel(private val graph: AppGraph) : ViewModel() {
     val trashDays: StateFlow<Int> = graph.trash.days
 
     /** Makes an empty note, or a list with one empty item, and returns its id to open it. */
-    fun newNote(checklist: Boolean): String =
-        graph.store.create(graph.clock(), body = if (checklist) Checklist.toChecklist("") else "").id
+    fun newNote(checklist: Boolean): String = graph.capture(if (checklist) Capture.EmptyChecklist else Capture.EmptyNote)
 
     fun showShelf(shelf: Shelf) {
         picked.value = Selection()

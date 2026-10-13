@@ -110,7 +110,7 @@ import kotlinx.coroutines.launch
 private val SCROLL_EDGE = 48.dp
 
 @Composable
-fun BoardScreen(model: BoardViewModel, onOpen: (String) -> Unit, onSettings: () -> Unit) {
+fun BoardScreen(model: BoardViewModel, onOpen: (String) -> Unit, onNew: (String) -> Unit, onSettings: () -> Unit) {
     val content by model.content.collectAsStateWithLifecycle()
     val query by model.query.collectAsStateWithLifecycle()
     val shelf by model.shelf.collectAsStateWithLifecycle()
@@ -130,7 +130,7 @@ fun BoardScreen(model: BoardViewModel, onOpen: (String) -> Unit, onSettings: () 
         onShelf = model::showShelf,
         onTag = { model.tag.value = it },
         onOpen = onOpen,
-        onNew = { checklist -> onOpen(model.newNote(checklist)) },
+        onNew = { checklist -> onNew(model.newNote(checklist)) },
         onSettings = onSettings,
         actions = SelectionActions(
             toggle = model::toggle,

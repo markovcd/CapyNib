@@ -76,6 +76,12 @@ quiet.
 - Both: a message line ("Connected to ... as ...") and the sync status with its icon, then a
   Trash section with a number field for the days deleted notes stay in the trash (1 to 365).
 
+**Quick capture** (`capture/`, `res/layout/widget_new_note.xml`)
+- Home screen widget: a rounded bar with a "New note" button (pencil and label) and a "New
+  checklist" button (checkbox icon).
+- Launcher shortcuts "New note" and "New checklist", each an adaptive icon of the same glyph on
+  a container color, and a "New note" Quick Settings tile.
+
 **Sync status icons** (`ui/SyncStatusLabel.kt`): phone (notes only on this phone), plain cloud
 (waiting), sync arrows (syncing), cloud with check (synced), crossed cloud (offline), error
 circle (token refused or server error). Icons come from Material Icons (outlined); a different
@@ -112,6 +118,7 @@ icon set is fine if it covers the same meanings.
 | Card corner radius, outline | `ui/board/NoteCard.kt` (16 dp, 1 dp `outlineVariant` outline on default notes) |
 | Window color before the UI draws | `app/src/main/res/values/colors.xml`, `values-night/colors.xml` (`window_background`) |
 | Launcher icon | `app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml`, `res/drawable/ic_launcher_foreground.xml`, `ic_launcher_monochrome.xml`, `res/values/colors.xml` (`ic_launcher_background`) |
+| Widget and shortcut colors | `res/values/colors.xml`, `values-night/colors.xml` (`capture_*`, copies of the scheme's primary and container colors, since a home screen widget cannot read the Compose theme) |
 | UI text | `app/src/main/res/values/strings.xml` |
 
 ## How to deliver
