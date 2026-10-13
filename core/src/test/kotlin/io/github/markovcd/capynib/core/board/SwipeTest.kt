@@ -4,16 +4,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class SwipeTest {
-    private fun seen(shelf: Shelf, pinned: Boolean = false) = Swipe.of(shelf, right = false, pinned) to Swipe.of(shelf, right = true, pinned)
+    private fun seen(shelf: Shelf) = Swipe.of(shelf, right = false) to Swipe.of(shelf, right = true)
 
     @Test
     fun On_the_board_left_archives_and_right_pins() {
         assertEquals(Swipe.Archive to Swipe.Pin, seen(Shelf.Notes))
-    }
-
-    @Test
-    fun On_the_board_either_way_unpins_a_pinned_note() {
-        assertEquals(Swipe.Pin to Swipe.Pin, seen(Shelf.Notes, pinned = true))
     }
 
     @Test

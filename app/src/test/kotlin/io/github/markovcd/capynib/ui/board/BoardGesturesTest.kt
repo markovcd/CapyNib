@@ -160,19 +160,6 @@ class BoardGesturesTest {
     }
 
     @Test
-    fun Swiping_a_pinned_note_left_unpins_it_instead_of_archiving_it() {
-        val (a) = notes("a")
-        graph.store.save(graph.store.get(a)!!.copy(pinned = true), graph.clock())
-        awaitTag(Tags.PINNED)
-
-        compose.onNodeWithTag(Tags.card(a)).performTouchInput { swipeLeft() }
-
-        waitForStore { !graph.store.get(a)!!.pinned }
-        compose.waitForIdle()
-        assertEquals(false, graph.store.get(a)!!.archived)
-    }
-
-    @Test
     fun A_note_swiped_into_the_archive_stays_there_when_the_archive_is_opened() {
         // The other note keeps the board, and its grid, on screen while the archive opens.
         val (a, _) = notes("a", "b")

@@ -576,10 +576,9 @@ private fun LazyStaggeredGridScope.section(heading: Int?, tag: String, notes: Li
         val swipe = remember(note.id) { SwipeToDismissBoxState(SwipeToDismissBoxValue.Settled, threshold) }
         val scope = rememberCoroutineScope()
         // One callback per card: the box calls it again whenever it changes while still dismissed.
-        val pinned by rememberUpdatedState(note.pinned)
         val onDismiss: (SwipeToDismissBoxValue) -> Unit = remember(note.id, card.shelf) {
             { direction ->
-                val done = Swipe.of(card.shelf, right = direction == SwipeToDismissBoxValue.StartToEnd, pinned)
+                val done = Swipe.of(card.shelf, right = direction == SwipeToDismissBoxValue.StartToEnd)
                 card.onSwiped(note.id, done)
                 if (done.keepsCard) scope.launch { swipe.reset() }
             }
