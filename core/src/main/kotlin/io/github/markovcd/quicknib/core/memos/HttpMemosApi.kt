@@ -1,27 +1,21 @@
 package io.github.markovcd.quicknib.core.memos
 
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import kotlinx.serialization.SerializationException
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import okhttp3.HttpUrl
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.io.IOException
 import java.time.Instant
 import java.time.format.DateTimeParseException
-import java.util.concurrent.TimeUnit
 
 /** [MemosApi] over the memos v1 REST API, authenticated with an access token. */
 class HttpMemosApi(
-    private val server: ServerAddress,
+    server: ServerAddress,
     private val accessToken: String,
-    private val client: OkHttpClient = defaultClient,
+    client: OkHttpClient = MemosHttp.defaultClient,
 ) : MemosApi {
+    private val http = MemosHttp(server, client)
     private var creator: String? = null
 
     override suspend fun listAll(): ApiResult<List<ServerMemo>> {
@@ -109,41 +103,9 @@ class HttpMemosApi(
         }
     }
 
-    private fun api(path: String): HttpUrl = server.url.newBuilder().addPathSegments("api/v1/$path").build()
+    private fun api(path: String): HttpUrl = http.api(path)
 
-    private suspend inline fun <reified T> call(request: Request.Builder): ApiResult<T> = withContext(Dispatchers.IO) {
-        val built = request.header("Authorization", "Bearer $accessToken").header("Accept", "application/json").build()
-        val where = "${built.method} ${built.url.encodedPath}"
-        try {
-            client.newCall(built).execute().use { response ->
-                val text = response.body.string()
-                when {
-                    response.isSuccessful -> try {
-                        ApiResult.Ok(json.decodeFromString<T>(text.ifEmpty { "{}" }))
-                    } catch (e: SerializationException) {
-                        ApiResult.Failed(SyncFailure.Server(response.code, "$where: not a memos reply (${e.message})"))
-                    } catch (e: IllegalArgumentException) {
-                        ApiResult.Failed(SyncFailure.Server(response.code, "$where: not a memos reply (${e.message})"))
-                    }
-                    response.code == 401 -> ApiResult.Failed(SyncFailure.Unauthorized("$where: ${errorMessage(text)}"))
-                    response.code == 404 -> ApiResult.NotFound
-                    response.code == 409 -> ApiResult.AlreadyExists
-                    else -> ApiResult.Failed(SyncFailure.Server(response.code, "$where: ${errorMessage(text)}"))
-                }
-            }
-        } catch (e: IOException) {
-            ApiResult.Failed(SyncFailure.Unreachable("$where: ${e.message ?: e.javaClass.simpleName}"))
-        }
-    }
-
-    private fun errorMessage(text: String): String =
-        try {
-            json.decodeFromString<ErrorDto>(text).message.ifEmpty { text.take(200) }
-        } catch (e: SerializationException) {
-            text.take(200)
-        } catch (e: IllegalArgumentException) {
-            text.take(200)
-        }
+    private suspend inline fun <reified T> call(request: Request.Builder): ApiResult<T> = http.call(request, accessToken)
 
     private fun MemoDto.toServerMemo(): ApiResult<ServerMemo> {
         val id = name.removePrefix("memos/")
@@ -167,18 +129,12 @@ class HttpMemosApi(
         is ApiResult.Failed -> this
     }
 
-    private fun unexpected(what: String): ApiResult.Failed =
-        ApiResult.Failed(SyncFailure.Server(200, "unexpected reply from ${server}: $what"))
+    private fun unexpected(what: String): ApiResult.Failed = http.unexpected(what)
 
     private companion object {
         const val STATE_NORMAL = "NORMAL"
         const val STATE_ARCHIVED = "ARCHIVED"
         const val PAGE_SIZE = 1000
-        val jsonType = "application/json".toMediaType()
-        val json = Json { ignoreUnknownKeys = true }
-        val defaultClient: OkHttpClient = OkHttpClient.Builder()
-            .connectTimeout(10, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .build()
+        val jsonType = MemosHttp.jsonType
     }
 }
