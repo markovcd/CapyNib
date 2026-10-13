@@ -12,9 +12,16 @@ class FakeMemosServer : MemosApi {
         private set
     private var clock = 1_000L
 
-    /** A memo created on the server by someone else, such as the memos web UI. */
+    /** A memo created or edited on the server by someone else, such as the memos web UI. An edit keeps its position; a new memo goes on top. */
     fun put(id: String, content: String, pinned: Boolean = false, archived: Boolean = false) {
-        memos[id] = ServerMemo(id, MemoState(content, pinned, archived), ++clock, clock)
+        val position = memos[id]?.state?.position ?: ++clock
+        memos[id] = ServerMemo(id, MemoState(content, pinned, archived, position), ++clock, clock)
+    }
+
+    /** A memo moved on the server by someone else: its create time changed. */
+    fun move(id: String, position: Long) {
+        val memo = memos.getValue(id)
+        memos[id] = memo.copy(state = memo.state.copy(position = position), updatedAt = ++clock)
     }
 
     override suspend fun listAll(): ApiResult<List<ServerMemo>> {

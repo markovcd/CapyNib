@@ -1,5 +1,6 @@
 package io.github.markovcd.capynib.core.sync
 
+import io.github.markovcd.capynib.core.board.BoardContent
 import io.github.markovcd.capynib.core.memos.FakeMemosServer
 import io.github.markovcd.capynib.core.memos.MemoState
 import io.github.markovcd.capynib.core.memos.SyncFailure
@@ -35,7 +36,7 @@ class SyncEngineTest {
         val report = engine.sync()
 
         assertEquals(1, report.sent)
-        assertEquals(MemoState("# Shopping\n\n- [ ] milk\n\n#color/sand", false, false), server.memos.getValue(note.id).state)
+        assertEquals(MemoState("# Shopping\n\n- [ ] milk\n\n#color/sand", false, false, note.position), server.memos.getValue(note.id).state)
         assertEquals(emptyList<String>(), store.pending().map { it.note.id })
     }
 
@@ -89,6 +90,65 @@ class SyncEngineTest {
     }
 
     @Test
+    fun A_note_moved_here_is_moved_on_the_server_and_on_another_device() = runTest {
+        val bottom = note(body = "bottom")
+        note(body = "middle")
+        note(body = "top")
+        val tabletStore = stores.open("t")
+        engine.sync()
+        SyncEngine(tabletStore, server) { now }.sync()
+
+        store.move(BoardContent.of(store.visible()).move(bottom.id, 0))
+        engine.sync()
+        SyncEngine(tabletStore, server) { now }.sync()
+
+        assertEquals(listOf("bottom", "top", "middle"), tabletStore.visible().map { it.body })
+        assertEquals(store.get(bottom.id)!!.position, server.memos.getValue(bottom.id).state.position)
+    }
+
+    @Test
+    fun A_note_moved_on_the_server_moves_here() = runTest {
+        val note = note(body = "sinks")
+        note(body = "stays")
+        engine.sync()
+
+        server.move(note.id, -5)
+        engine.sync()
+
+        assertEquals(listOf("stays", "sinks"), store.visible().map { it.body })
+    }
+
+    @Test
+    fun A_note_moved_on_the_server_and_edited_here_keeps_both_without_a_conflict_copy() = runTest {
+        val note = note(body = "v1")
+        note(body = "other")
+        engine.sync()
+        server.move(note.id, 50)
+        store.save(store.get(note.id)!!.copy(body = "local edit"), ++now)
+
+        val report = engine.sync()
+
+        assertEquals(0, report.conflicts)
+        assertEquals(MemoState("local edit", false, false, 50), server.memos.getValue(note.id).state)
+        assertEquals(listOf("local edit", "other"), store.visible().map { it.body })
+    }
+
+    @Test
+    fun A_note_moved_here_and_edited_on_the_server_keeps_both_without_a_conflict_copy() = runTest {
+        val note = note(body = "v1")
+        note(body = "other")
+        engine.sync()
+        store.move(mapOf(note.id to 50L))
+        server.put(note.id, "server edit")
+
+        val report = engine.sync()
+
+        assertEquals(0, report.conflicts)
+        assertEquals(MemoState("server edit", false, false, 50), server.memos.getValue(note.id).state)
+        assertEquals(listOf("server edit", "other"), store.visible().map { it.body })
+    }
+
+    @Test
     fun A_note_deleted_here_is_deleted_on_the_server() = runTest {
         val note = note(body = "bye")
         engine.sync()
@@ -119,7 +179,7 @@ class SyncEngineTest {
 
         store.trash(note.id, ++now)
         engine.sync()
-        assertEquals(MemoState("bye", false, true), server.memos.getValue(note.id).state)
+        assertEquals(MemoState("bye", false, true, note.position), server.memos.getValue(note.id).state)
 
         now += Trash.DEFAULT_DAYS.days.inWholeMilliseconds
         val report = engine.sync()
@@ -258,7 +318,7 @@ class SyncEngineTest {
         store.save(note.copy(pinned = true, archived = true), ++now)
         engine.sync()
 
-        assertEquals(MemoState("keep", true, true), server.memos.getValue(note.id).state)
+        assertEquals(MemoState("keep", true, true, note.position), server.memos.getValue(note.id).state)
 
         server.put(note.id, "keep", pinned = false, archived = false)
         engine.sync()

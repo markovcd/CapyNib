@@ -14,7 +14,8 @@ import io.github.markovcd.capynib.core.store.Trash
  *
  * Notes that have been in the trash for [trashDays] are deleted first. Then pull: a memo that
  * changed on the server replaces a note with no local edits; when both sides changed, the local edit
- * wins and the server's version is kept as a new note, so nothing is lost. Then push every note with
+ * wins and the server's version is kept as a new note, so nothing is lost. A move is not an edit
+ * that conflicts: a note moved on one side and edited on the other keeps both. Then push every note with
  * local edits. Notes are created on the server under their own id, so a create that is retried after
  * a lost reply updates instead of duplicating.
  */
@@ -58,6 +59,21 @@ class SyncEngine(
                         report.copy(received = report.received + 1)
                     } else {
                         // Edited while this sync ran: treat as both sides changed on the next sync.
+                        report
+                    }
+                }
+                local.synced != null && memo.state.sameContentAs(local.synced) -> {
+                    // Only moved there: the local edit goes out at the server's place, unless it was moved here too.
+                    if (local.note.position == local.synced.position) store.move(mapOf(memo.id to memo.state.position))
+                    store.acceptServer(memo.id, memo.state)
+                    report
+                }
+                local.synced != null && local.note.toMemoState().sameContentAs(local.synced) -> {
+                    // Only moved here: the server's edit is taken, and the move goes out after it.
+                    if (store.applyServer(memo.id, local.version, MemoCodec.decode(memo.state.content), memo.state, memo.updatedAt)) {
+                        store.move(mapOf(memo.id to local.note.position))
+                        report.copy(received = report.received + 1)
+                    } else {
                         report
                     }
                 }

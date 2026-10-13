@@ -59,7 +59,7 @@ class NoteStoreTest {
     fun Every_edit_leaves_the_note_waiting_to_be_sent() {
         val store = stores.open()
         val note = store.create(now = 1)
-        store.markPushed(note.id, 1, io.github.markovcd.capynib.core.memos.MemoState("", false, false))
+        store.markPushed(note.id, 1, io.github.markovcd.capynib.core.memos.MemoState("", false, false, note.position))
         assertEquals(emptyList<StoredNote>(), store.pending())
 
         store.save(note.copy(body = "x"), now = 2)
@@ -132,9 +132,69 @@ class NoteStoreTest {
 
         val store = TempStores.open(path, { "new" })
 
-        assertEquals(Note("old", "Kept", "body", NoteColor.Sand, pinned = false, archived = false, createdAt = 5, updatedAt = 6), store.get("old"))
+        assertEquals(Note("old", "Kept", "body", NoteColor.Sand, pinned = false, archived = false, createdAt = 5, updatedAt = 6, position = 0), store.get("old"))
         store.trash("old", now = 7)
         assertEquals(7L, store.get("old")!!.trashedAt)
+    }
+
+    @Test
+    fun A_database_from_before_notes_could_be_moved_keeps_them_newest_first() {
+        val path = folder.newFile("v2.db").absolutePath
+        DriverManager.getConnection("jdbc:sqlite:$path").use { db ->
+            db.createStatement().use { sql ->
+                sql.executeUpdate(V1_SCHEMA)
+                sql.executeUpdate("ALTER TABLE note ADD COLUMN trashed_at INTEGER")
+                sql.executeUpdate("INSERT INTO note(id, title, body, color, pinned, archived, created_at, updated_at) VALUES ('older', 'a', '', 'sand', 0, 0, 5000, 5000)")
+                sql.executeUpdate(
+                    "INSERT INTO note(id, title, body, color, pinned, archived, created_at, updated_at, version, synced_version, on_server, synced_content, synced_pinned, synced_archived) " +
+                        "VALUES ('newer', 'b', '', 'sand', 0, 0, 9000, 9000, 1, 1, 1, '# b', 0, 0)",
+                )
+                sql.executeUpdate("PRAGMA user_version = 2")
+            }
+        }
+
+        val store = TempStores.open(path, { "new" })
+
+        assertEquals(listOf("newer" to 9L, "older" to 5L), store.visible().map { it.id to it.position })
+        assertEquals(9L, store.stored("newer")!!.synced!!.position)
+        assertEquals(listOf("older"), store.pending().map { it.note.id })
+    }
+
+    @Test
+    fun A_new_note_goes_on_top_even_of_a_note_moved_above_the_present() {
+        val store = stores.open()
+        val moved = store.create(now = 1_000)
+        store.move(mapOf(moved.id to 5_000L))
+
+        val new = store.create(now = 2_000)
+
+        assertEquals(listOf(new.id, moved.id), store.visible().map { it.id })
+    }
+
+    @Test
+    fun A_moved_note_waits_to_be_sent_and_a_note_left_in_place_does_not() {
+        val store = stores.open()
+        val moved = store.create(now = 1_000)
+        val still = store.create(now = 2_000)
+        listOf(moved, still).forEach { store.markPushed(it.id, 1, io.github.markovcd.capynib.core.memos.MemoState("", false, false, it.position)) }
+
+        store.move(mapOf(moved.id to 9L, still.id to still.position))
+
+        assertEquals(listOf(moved.id), store.pending().map { it.note.id })
+        assertEquals(1_000L, store.get(moved.id)!!.updatedAt)
+    }
+
+    @Test
+    fun Saving_several_notes_at_once_changes_only_those_that_differ() {
+        val store = stores.open()
+        val pinned = store.create(now = 1)
+        val plain = store.create(now = 2)
+        store.save(pinned.copy(pinned = true), now = 3)
+
+        val changed = store.saveAll(listOf(pinned.id, plain.id, "gone"), now = 4) { it.copy(pinned = true) }
+
+        assertEquals(1, changed)
+        assertEquals(listOf(true, true), listOf(pinned.id, plain.id).map { store.get(it)!!.pinned })
     }
 
     @Test

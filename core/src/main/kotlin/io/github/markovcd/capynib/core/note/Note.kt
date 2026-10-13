@@ -3,7 +3,8 @@ package io.github.markovcd.capynib.core.note
 /**
  * A note as the user sees it. [body] is plain text in which `- [ ] ` and `- [x] ` lines
  * are checklist items (see [Checklist]). Times are epoch milliseconds; [trashedAt] is set while
- * the note is in the trash.
+ * the note is in the trash. [position] orders the board, highest first; it is the memo's create
+ * time in epoch seconds (ADR 0008).
  */
 data class Note(
     val id: String,
@@ -14,6 +15,7 @@ data class Note(
     val archived: Boolean,
     val createdAt: Long,
     val updatedAt: Long,
+    val position: Long,
     val trashedAt: Long? = null,
 ) {
     /** Nothing written: no title, and no line (checklist items included) with any text. */

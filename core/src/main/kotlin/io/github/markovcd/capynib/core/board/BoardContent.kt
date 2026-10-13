@@ -15,6 +15,31 @@ data class BoardContent(
 ) {
     val isEmpty: Boolean get() = pinned.isEmpty() && others.isEmpty()
 
+    /**
+     * The positions that put note [id] at index [to] of its section, pinned or others, for
+     * [NoteStore.move][io.github.markovcd.capynib.core.store.NoteStore.move]. Only notes whose
+     * position changes are in it: the moved one, and those below it when there is no room.
+     */
+    fun move(id: String, to: Int): Map<String, Long> {
+        val section = listOf(pinned, others).firstOrNull { notes -> notes.any { it.id == id } } ?: return emptyMap()
+        val from = section.indexOfFirst { it.id == id }
+        val target = to.coerceIn(0, section.lastIndex)
+        if (from == target) return emptyMap()
+        val order = section.toMutableList().apply { add(target, removeAt(from)) }
+        val positions = order.map { it.position }.toMutableList()
+        positions[target] = when {
+            target == 0 -> positions[1] + 1
+            target == order.lastIndex -> positions[target - 1] - 1
+            positions[target - 1] - positions[target + 1] >= 2 -> (positions[target - 1] + positions[target + 1]) / 2
+            else -> positions[target - 1] - 1
+        }
+        for (i in target + 1..order.lastIndex) {
+            if (positions[i] < positions[i - 1]) break
+            positions[i] = positions[i - 1] - 1
+        }
+        return order.indices.filter { positions[it] != order[it].position }.associate { order[it].id to positions[it] }
+    }
+
     companion object {
         /**
          * The notes on [shelf], narrowed to those whose title or text contains [query] and that have

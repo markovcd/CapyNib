@@ -124,6 +124,27 @@ class CliTest {
     }
 
     @Test
+    fun Move_puts_a_note_at_the_place_given_among_its_section() {
+        val first = run("add", "--body", "first").out.trim()
+        val second = run("add", "--body", "second").out.trim()
+        val third = run("add", "--body", "third").out.trim()
+
+        assertEquals(ExitCode.OK, run("move", third, "2").code)
+
+        assertEquals(listOf(second, first, third), json(run("list", "--json").out).jsonArray.map { it.jsonObject["id"]!!.jsonPrimitive.content })
+    }
+
+    @Test
+    fun Move_to_a_place_past_the_end_says_how_many_places_there_are() {
+        val id = run("add", "--body", "only").out.trim()
+
+        val ran = run("move", id, "3")
+
+        assertEquals(ExitCode.USAGE, ran.code)
+        assertTrue(ran.err, ran.err.contains("from 0 to 0 among the other notes"))
+    }
+
+    @Test
     fun Delete_moves_a_note_to_the_trash_and_restore_brings_it_back() {
         val id = run("add", "--body", "x").out.trim()
 

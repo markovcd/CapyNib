@@ -38,10 +38,12 @@ class NoteStore(
 
     fun get(id: String): Note? = queries.byId(id).executeAsOneOrNull()?.takeUnless { it.deleted }?.toNote()
 
-    fun create(now: Long, title: String = "", body: String = "", color: NoteColor = NoteColor.Default): Note {
-        val note = Note(newId(), title, body, color, pinned = false, archived = false, createdAt = now, updatedAt = now)
-        queries.insertLocal(note.id, note.title, note.body, note.color.key, note.pinned, note.archived, now, now)
-        return note
+    /** Makes a note at the top of the board. */
+    fun create(now: Long, title: String = "", body: String = "", color: NoteColor = NoteColor.Default): Note = queries.transactionWithResult {
+        val position = maxOf(now / 1000, queries.nextPosition().executeAsOne())
+        val note = Note(newId(), title, body, color, pinned = false, archived = false, createdAt = now, updatedAt = now, position = position)
+        queries.insertLocal(note.id, note.title, note.body, note.color.key, note.pinned, note.archived, now, now, position)
+        note
     }
 
     /** Writes the user-editable fields of [note]; returns false when nothing differed or the note is gone. */
@@ -55,9 +57,25 @@ class NoteStore(
         }
     }
 
+    /** Applies [change] to each note of [ids] that still exists, as [save] would; returns how many it changed. */
+    fun saveAll(ids: Collection<String>, now: Long, change: (Note) -> Note): Int = queries.transactionWithResult {
+        ids.count { id -> get(id)?.let { save(change(it), now) } ?: false }
+    }
+
+    /** Gives each note the position it is mapped to; a note that moves has a local edit for sync to send. */
+    fun move(positions: Map<String, Long>) {
+        queries.transaction {
+            positions.forEach { (id, position) -> queries.move(position, id) }
+        }
+    }
+
     /** Moves the note to the trash, where it stays until [emptyTrash] deletes it for good. */
     fun trash(id: String, now: Long) {
         queries.trash(now, id)
+    }
+
+    fun trashAll(ids: Collection<String>, now: Long) {
+        queries.transaction { ids.forEach { queries.trash(now, it) } }
     }
 
     /** Takes the note out of the trash, back where it was. */
@@ -84,7 +102,7 @@ class NoteStore(
     fun onServer(): List<StoredNote> = queries.onServer().executeAsList().map { it.toStored() }
 
     fun markPushed(id: String, pushedVersion: Long, state: MemoState) {
-        queries.markPushed(pushedVersion, state.content, state.pinned, state.archived, id)
+        queries.markPushed(pushedVersion, state.content, state.pinned, state.archived, state.position, id)
     }
 
     /** Replaces the note with the server's copy, unless it was edited after [expectedVersion]; returns whether it did. */
@@ -96,6 +114,7 @@ class NoteStore(
             pinned = state.pinned,
             archived = state.archived,
             updated_at = updatedAt,
+            position = state.position,
             synced_content = state.content,
             id = id,
             expected_version = expectedVersion,
@@ -111,13 +130,14 @@ class NoteStore(
             archived = state.archived,
             created_at = createdAt,
             updated_at = updatedAt,
+            position = state.position,
             synced_content = state.content,
         )
     }
 
     /** Records [state] as the server's copy without touching the note. */
     fun acceptServer(id: String, state: MemoState) {
-        queries.acceptServer(state.content, state.pinned, state.archived, id)
+        queries.acceptServer(state.content, state.pinned, state.archived, state.position, id)
     }
 
     /** The server no longer has this note; it will be created again on the next push. */
@@ -144,6 +164,7 @@ private fun NoteRow.toNote() = Note(
     archived = archived,
     createdAt = created_at,
     updatedAt = updated_at,
+    position = position,
     trashedAt = trashed_at,
 )
 
@@ -155,6 +176,6 @@ private fun NoteRow.toStored(): StoredNote {
         version = version,
         syncedVersion = synced_version,
         onServer = on_server,
-        synced = if (content == null) null else MemoState(content, synced_pinned ?: false, synced_archived ?: false),
+        synced = if (content == null) null else MemoState(content, synced_pinned ?: false, synced_archived ?: false, synced_position ?: position),
     )
 }

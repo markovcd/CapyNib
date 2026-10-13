@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
 
 /**
  * A note as `--json` prints it. `lines` is the body split into text lines and checklist items;
- * `tags` are the tags written in the title and body.
+ * `tags` are the tags written in the title and body; a higher `position` is nearer the top.
  */
 @Serializable
 data class NoteJson(
@@ -21,6 +21,7 @@ data class NoteJson(
     val createdAt: Long,
     val updatedAt: Long,
     val trashedAt: Long?,
+    val position: Long,
     val lines: List<LineJson>,
     val tags: List<String>,
 ) {
@@ -38,6 +39,7 @@ data class NoteJson(
             createdAt = note.createdAt,
             updatedAt = note.updatedAt,
             trashedAt = note.trashedAt,
+            position = note.position,
             lines = Checklist.parse(note.body).map { line ->
                 when (line) {
                     is ChecklistLine.Text -> LineJson(line.text)

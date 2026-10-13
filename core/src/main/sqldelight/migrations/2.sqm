@@ -1,0 +1,4 @@
+-- A note keeps its place on the board: newest first, as before, until it is moved (ADR 0008).
+ALTER TABLE note ADD COLUMN position INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE note ADD COLUMN synced_position INTEGER;
+UPDATE note SET position = created_at / 1000, synced_position = CASE WHEN synced_content IS NULL THEN NULL ELSE created_at / 1000 END;

@@ -58,20 +58,23 @@ class HttpMemosApi(
         val body = buildJsonObject {
             put("content", state.content)
             put("visibility", "PRIVATE")
+            put("createTime", Instant.ofEpochSecond(state.position).toString())
         }
         val created = call<MemoDto>(Request.Builder().url(url).post(body.toString().toRequestBody(jsonType)))
         if (created !is ApiResult.Ok) return created.mapError()
         // Create ignores pinned and state, so a pinned or archived note needs a second call.
-        return if (state.pinned || state.archived) update(id, state) else created.value.toServerMemo()
+        val memo = created.value.toServerMemo()
+        return if (memo is ApiResult.Ok && memo.value.state != state) update(id, state) else memo
     }
 
     override suspend fun update(id: String, state: MemoState): ApiResult<ServerMemo> {
-        val url = api("memos/$id").newBuilder().addQueryParameter("updateMask", "content,pinned,state").build()
+        val url = api("memos/$id").newBuilder().addQueryParameter("updateMask", "content,pinned,state,create_time").build()
         val body = buildJsonObject {
             put("name", "memos/$id")
             put("content", state.content)
             put("pinned", state.pinned)
             put("state", if (state.archived) STATE_ARCHIVED else STATE_NORMAL)
+            put("createTime", Instant.ofEpochSecond(state.position).toString())
         }
         return when (val result = call<MemoDto>(Request.Builder().url(url).patch(body.toString().toRequestBody(jsonType)))) {
             is ApiResult.Ok -> result.value.toServerMemo()
@@ -112,7 +115,7 @@ class HttpMemosApi(
         if (id == name || id.isEmpty()) return unexpected("memo name '$name'")
         val created = parseTime(createTime) ?: return unexpected("memo $name createTime '$createTime'")
         val updated = parseTime(updateTime) ?: return unexpected("memo $name updateTime '$updateTime'")
-        return ApiResult.Ok(ServerMemo(id, MemoState(content, pinned, state == STATE_ARCHIVED), created, updated))
+        return ApiResult.Ok(ServerMemo(id, MemoState(content, pinned, state == STATE_ARCHIVED, created / 1000), created, updated))
     }
 
     private fun parseTime(text: String): Long? =

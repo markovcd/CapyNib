@@ -165,7 +165,7 @@ class NoteEditorTest {
             stored.note.id,
             stored.version,
             io.github.markovcd.capynib.core.note.MemoContent("", "from server", NoteColor.Default),
-            io.github.markovcd.capynib.core.memos.MemoState("from server", pinned = false, archived = false),
+            io.github.markovcd.capynib.core.memos.MemoState("from server", pinned = false, archived = false, position = 0),
             updatedAt = 5,
         )
         runCurrent()

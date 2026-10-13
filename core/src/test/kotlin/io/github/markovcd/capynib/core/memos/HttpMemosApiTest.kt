@@ -33,6 +33,9 @@ class HttpMemosApiTest {
         """{"name":"memos/$id","state":"$state","creator":"$creator","createTime":"2026-10-12T20:00:00Z",""" +
             """"updateTime":"2026-10-12T20:00:01Z","content":"$content","pinned":$pinned,"extra":{"ignored":true}}"""
 
+    /** The create time [memoJson] answers with, which is the memo's position. */
+    private val created = java.time.Instant.parse("2026-10-12T20:00:00Z").epochSecond
+
     private val me = """{"user":{"name":"users/me","username":"me"}}"""
 
     @Test
@@ -47,6 +50,7 @@ class HttpMemosApiTest {
         assertEquals(listOf("a", "b", "c"), (listed as ApiResult.Ok).value.map { it.id })
         assertTrue(listed.value.last().state.archived)
         assertEquals(java.time.Instant.parse("2026-10-12T20:00:01Z").toEpochMilli(), listed.value.first().updatedAt)
+        assertEquals(created, listed.value.first().state.position)
         assertEquals("/api/v1/auth/me", heard().url.encodedPath)
         assertEquals("NORMAL", heard().url.queryParameter("state"))
         assertEquals("p2", heard().url.queryParameter("pageToken"))
@@ -63,16 +67,17 @@ class HttpMemosApiTest {
     }
 
     @Test
-    fun A_note_is_created_under_its_own_id_as_a_private_memo() = runTest {
+    fun A_note_is_created_under_its_own_id_as_a_private_memo_with_its_position_as_create_time() = runTest {
         reply(200, memoJson("n1", content = "hi"))
 
-        val created = api.create("n1", MemoState("hi", pinned = false, archived = false))
+        val memo = api.create("n1", MemoState("hi", pinned = false, archived = false, position = created))
 
-        assertEquals("n1", (created as ApiResult.Ok).value.id)
+        assertEquals("n1", (memo as ApiResult.Ok).value.id)
         val request = heard()
         assertEquals("POST", request.method)
         assertEquals("n1", request.url.queryParameter("memoId"))
-        assertEquals("""{"content":"hi","visibility":"PRIVATE"}""", request.body!!.utf8())
+        assertEquals("""{"content":"hi","visibility":"PRIVATE","createTime":"2026-10-12T20:00:00Z"}""", request.body!!.utf8())
+        assertEquals(1, web.requestCount)
     }
 
     @Test
@@ -80,15 +85,18 @@ class HttpMemosApiTest {
         reply(200, memoJson("n1"))
         reply(200, memoJson("n1", state = "ARCHIVED", pinned = true))
 
-        val created = api.create("n1", MemoState("c", pinned = true, archived = true))
+        val memo = api.create("n1", MemoState("c", pinned = true, archived = true, position = created))
 
-        assertEquals(MemoState("c", pinned = true, archived = true), (created as ApiResult.Ok).value.state)
+        assertEquals(MemoState("c", pinned = true, archived = true, position = created), (memo as ApiResult.Ok).value.state)
         heard()
         val update = heard()
         assertEquals("PATCH", update.method)
         assertEquals("/api/v1/memos/n1", update.url.encodedPath)
-        assertEquals("content,pinned,state", update.url.queryParameter("updateMask"))
-        assertEquals("""{"name":"memos/n1","content":"c","pinned":true,"state":"ARCHIVED"}""", update.body!!.utf8())
+        assertEquals("content,pinned,state,create_time", update.url.queryParameter("updateMask"))
+        assertEquals(
+            """{"name":"memos/n1","content":"c","pinned":true,"state":"ARCHIVED","createTime":"2026-10-12T20:00:00Z"}""",
+            update.body!!.utf8(),
+        )
     }
 
     @Test
@@ -108,8 +116,8 @@ class HttpMemosApiTest {
         reply(409, """{"code":6,"message":"memo with ID \"x\" already exists"}""")
         reply(500, """{"code":13,"message":"database is locked"}""")
 
-        assertEquals(ApiResult.NotFound, api.update("x", MemoState("", false, false)))
-        assertEquals(ApiResult.AlreadyExists, api.create("x", MemoState("", false, false)))
+        assertEquals(ApiResult.NotFound, api.update("x", MemoState("", false, false, 0)))
+        assertEquals(ApiResult.AlreadyExists, api.create("x", MemoState("", false, false, 0)))
         assertEquals(
             ApiResult.Failed(SyncFailure.Server(500, "DELETE /api/v1/memos/x: database is locked")),
             api.delete("x"),

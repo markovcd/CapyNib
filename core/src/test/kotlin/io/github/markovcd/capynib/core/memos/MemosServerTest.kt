@@ -1,5 +1,6 @@
 package io.github.markovcd.capynib.core.memos
 
+import io.github.markovcd.capynib.core.board.BoardContent
 import io.github.markovcd.capynib.core.note.MemoCodec
 import io.github.markovcd.capynib.core.note.MemoContent
 import io.github.markovcd.capynib.core.note.NoteColor
@@ -58,9 +59,26 @@ class MemosServerTest {
 
         val memos = (api.listAll() as ApiResult.Ok).value
         assertEquals(
-            setOf(MemoState("second draft", pinned = false, archived = true), MemoState("trash me", pinned = false, archived = true)),
+            setOf(MemoState("second draft", pinned = false, archived = true, kept.position), MemoState("trash me", pinned = false, archived = true, trashed.position)),
             memos.map { it.state }.toSet(),
         )
+    }
+
+    @Test
+    fun A_note_moved_on_one_device_is_in_the_same_place_on_another_through_memos() = runTest {
+        val live = LiveMemos.connect()
+        val phone = stores.open("phone-")
+        val tablet = stores.open("tablet-")
+        val bottom = phone.create(++now, "", "bottom")
+        phone.create(++now, "", "middle")
+        phone.create(++now, "", "top")
+        SyncEngine(phone, live.api()) { now }.sync()
+
+        phone.move(BoardContent.of(phone.visible()).move(bottom.id, 0))
+        assertEquals(null, SyncEngine(phone, live.api()) { now }.sync().failure)
+        assertEquals(null, SyncEngine(tablet, live.api()) { now }.sync().failure)
+
+        assertEquals(listOf("bottom", "top", "middle"), tablet.visible().map { it.body })
     }
 
     @Test
@@ -68,7 +86,7 @@ class MemosServerTest {
         val api = LiveMemos.connect().api()
         val content = "# Title\n\n  indented\n- [ ] \n\ttab\n\n#color/fog"
 
-        api.create("bytes-1", MemoState(content, pinned = false, archived = false))
+        api.create("bytes-1", MemoState(content, pinned = false, archived = false, position = 1_000_000))
 
         assertEquals(content, (api.listAll() as ApiResult.Ok).value.single().state.content)
     }

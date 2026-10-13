@@ -60,6 +60,7 @@ class Cli(
                 if (parsed.flag("forever")) store.deleteForever(note.id, clock()) else store.trash(note.id, clock())
                 ExitCode.OK
             }
+            "move" -> withNote(store, operands, err) { note -> move(store, note, operands, err) }
             "restore" -> withNote(store, operands, err) { note ->
                 store.restore(note.id, clock())
                 print(store.get(note.id)!!, parsed, out)
@@ -135,6 +136,23 @@ class Cli(
         )
         store.save(edited, clock())
         return print(store.get(note.id)!!, args, out)
+    }
+
+    private fun move(store: NoteStore, note: Note, operands: List<String>, err: Appendable): Int {
+        val shelf = when {
+            note.inTrash -> Shelf.Trash
+            note.archived -> Shelf.Archive
+            else -> Shelf.Notes
+        }
+        val content = BoardContent.of(store.visible(), shelf = shelf)
+        val section = if (note.pinned) content.pinned else content.others
+        val index = operands.getOrNull(1)?.toIntOrNull()
+        if (shelf == Shelf.Trash || index == null || index !in section.indices) {
+            err.appendLine("move: ${note.id} goes to a place from 0 to ${section.lastIndex} among the ${if (note.pinned) "pinned" else "other"} notes, not '${operands.getOrNull(1)}'")
+            return ExitCode.USAGE
+        }
+        store.move(content.move(note.id, index))
+        return ExitCode.OK
     }
 
     private fun check(store: NoteStore, note: Note, operands: List<String>, args: Arguments, out: Appendable, err: Appendable): Int {
@@ -266,6 +284,7 @@ class Cli(
             "edit" to Command(setOf("title", "body", "color"), setOf("pin", "unpin", "archive", "unarchive", "json")),
             "check" to Command(flags = setOf("json")),
             "delete" to Command(flags = setOf("forever")),
+            "move" to Command(),
             "restore" to Command(flags = setOf("json")),
             "empty-trash" to Command(setOf("trash-days")),
             "sync" to Command(setOf("server", "trash-days"), setOf("json")),
@@ -280,6 +299,7 @@ class Cli(
             |  add [--title T] [--body B] [--color C] [--checklist] [--pinned] [--json]
             |  edit ID [--title T] [--body B] [--color C] [--pin|--unpin] [--archive|--unarchive] [--json]
             |  check ID LINE [--json]        tick or untick a checklist item
+            |  move ID PLACE                 put at PLACE (0 is first) among the pinned or the other notes
             |  delete ID [--forever]         move to the trash, or delete for good
             |  restore ID [--json]           take out of the trash
             |  empty-trash [--trash-days N]  delete notes N days (default 7) in the trash; prints how many

@@ -7,7 +7,7 @@ import org.junit.Test
 
 class NoteTagsTest {
     private fun note(title: String = "", body: String = "", color: NoteColor = NoteColor.Default) =
-        Note("n", title, body, color, pinned = false, archived = false, createdAt = 0, updatedAt = 0)
+        Note("n", title, body, color, pinned = false, archived = false, createdAt = 0, updatedAt = 0, position = 0)
 
     /** The cases of memos v0.31's `TestExtractTags` and `TestExtractTagsMemosTagV1` (`markdown/markdown_test.go`). */
     private val memosCases = listOf(
