@@ -175,15 +175,19 @@ class BoardGesturesTest {
     }
 
     @Test
-    fun Swiping_a_note_in_the_archive_takes_it_out() {
-        val (a) = notes("a")
-        graph.store.save(graph.store.get(a)!!.copy(archived = true), graph.clock())
+    fun Swiping_a_note_right_in_the_archive_takes_it_out_and_left_moves_it_to_the_trash() {
+        val (a, b) = notes("a", "b")
+        graph.store.saveAll(setOf(a, b), graph.clock()) { it.copy(archived = true) }
         compose.onNodeWithTag(Tags.ARCHIVE_TOGGLE).performClick()
         awaitTag(Tags.card(a))
+        awaitTag(Tags.card(b))
 
-        compose.onNodeWithTag(Tags.card(a)).performTouchInput { swipeLeft() }
+        compose.onNodeWithTag(Tags.card(a)).performTouchInput { swipeRight() }
+        compose.onNodeWithTag(Tags.card(b)).performTouchInput { swipeLeft() }
 
-        waitForStore { !graph.store.get(a)!!.archived }
+        waitForStore { !graph.store.get(a)!!.archived && graph.store.get(b)!!.inTrash }
+        assertEquals(false, graph.store.get(a)!!.pinned)
+        assertEquals(false, graph.store.get(a)!!.inTrash)
     }
 
     @Test
@@ -250,13 +254,32 @@ class BoardGesturesTest {
     }
 
     @Test
-    fun Swiping_a_note_in_the_trash_either_way_restores_it() {
-        val (a, b) = trashed("a", "b")
+    fun Swiping_a_note_right_in_the_trash_restores_it_and_undo_puts_it_back() {
+        val (a) = trashed("a")
+
+        compose.onNodeWithTag(Tags.card(a)).performTouchInput { swipeRight() }
+
+        waitForStore { !graph.store.get(a)!!.inTrash }
+        assertEquals(false, graph.store.get(a)!!.pinned)
+        awaitTag(Tags.UNDO)
+        compose.onNodeWithTag(Tags.UNDO).performClick()
+        waitForStore { graph.store.get(a)!!.inTrash }
+    }
+
+    @Test
+    fun Swiping_a_note_left_in_the_trash_asks_before_deleting_it_forever() {
+        val (a) = trashed("a")
 
         compose.onNodeWithTag(Tags.card(a)).performTouchInput { swipeLeft() }
-        compose.onNodeWithTag(Tags.card(b)).performTouchInput { swipeRight() }
+        awaitTag(Tags.CANCEL_DELETE_FOREVER)
+        compose.onNodeWithTag(Tags.CANCEL_DELETE_FOREVER).performClick()
+        awaitNoTag(Tags.CANCEL_DELETE_FOREVER)
+        assertEquals(true, graph.store.get(a)!!.inTrash)
 
-        waitForStore { !graph.store.get(a)!!.inTrash && !graph.store.get(b)!!.inTrash }
-        assertEquals(false, graph.store.get(b)!!.pinned)
+        compose.onNodeWithTag(Tags.card(a)).performTouchInput { swipeLeft() }
+        awaitTag(Tags.CONFIRM_DELETE_FOREVER)
+        compose.onNodeWithTag(Tags.CONFIRM_DELETE_FOREVER).performClick()
+
+        waitForStore { graph.store.get(a) == null }
     }
 }

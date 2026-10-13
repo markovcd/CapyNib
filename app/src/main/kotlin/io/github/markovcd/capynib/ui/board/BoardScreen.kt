@@ -99,6 +99,7 @@ import io.github.markovcd.capynib.core.board.BoardChange
 import io.github.markovcd.capynib.core.board.BoardContent
 import io.github.markovcd.capynib.core.board.Selection
 import io.github.markovcd.capynib.core.board.Shelf
+import io.github.markovcd.capynib.core.board.Swipe
 import io.github.markovcd.capynib.core.note.Note
 import io.github.markovcd.capynib.core.note.NoteColor
 import io.github.markovcd.capynib.core.sync.SyncStatus
@@ -120,6 +121,7 @@ fun BoardScreen(model: BoardViewModel, onOpen: (String) -> Unit, onNew: (String)
     val shelf by model.shelf.collectAsStateWithLifecycle()
     val selection by model.selection.collectAsStateWithLifecycle()
     val lastChange by model.lastChange.collectAsStateWithLifecycle()
+    val deleting by model.deleting.collectAsStateWithLifecycle()
     val status by model.status.collectAsStateWithLifecycle()
     val trashDays by model.trashDays.collectAsStateWithLifecycle()
     BoardLayout(
@@ -128,6 +130,7 @@ fun BoardScreen(model: BoardViewModel, onOpen: (String) -> Unit, onNew: (String)
         shelf = shelf,
         selection = selection,
         lastChange = lastChange,
+        deleting = deleting,
         status = status,
         trashDays = trashDays,
         onQuery = { model.query.value = it },
@@ -147,7 +150,8 @@ fun BoardScreen(model: BoardViewModel, onOpen: (String) -> Unit, onNew: (String)
             deleteForever = model::deleteSelectedForever,
         ),
         onSwiped = model::swiped,
-        onSwipedToPin = model::swipedToPin,
+        onConfirmDelete = model::confirmDeleteForever,
+        onCancelDelete = model::cancelDeleteForever,
         onMove = model::move,
         onUndo = model::undo,
         onChangeShown = model::changeShown,
@@ -161,6 +165,7 @@ fun BoardLayout(
     shelf: Shelf,
     selection: Selection,
     lastChange: BoardChange?,
+    deleting: Set<String>,
     status: SyncStatus,
     trashDays: Int,
     onQuery: (String) -> Unit,
@@ -170,14 +175,16 @@ fun BoardLayout(
     onNew: (checklist: Boolean) -> Unit,
     onSettings: () -> Unit,
     actions: SelectionActions,
-    onSwiped: (String) -> Unit,
-    onSwipedToPin: (String) -> Unit,
+    onSwiped: (String, Swipe) -> Unit,
+    onConfirmDelete: () -> Unit,
+    onCancelDelete: () -> Unit,
     onMove: (String, Int) -> Unit,
     onUndo: (BoardChange) -> Unit,
     onChangeShown: (BoardChange) -> Unit,
 ) {
     val snackbar = remember { SnackbarHostState() }
     ChangeSnackbar(snackbar, lastChange, onUndo, onChangeShown)
+    if (deleting.isNotEmpty()) ConfirmDeleteForever(deleting.size, onConfirmDelete, onCancelDelete)
     BackHandler(enabled = selection.isActive) { actions.clear() }
     Scaffold(
         topBar = {
@@ -240,7 +247,7 @@ fun BoardLayout(
             }
             return@Scaffold
         }
-        NoteGrid(content, query, shelf, selection, trashDays, onOpen, actions, onSwiped, onSwipedToPin, onMove, Modifier.padding(padding))
+        NoteGrid(content, query, shelf, selection, trashDays, onOpen, actions, onSwiped, onMove, Modifier.padding(padding))
     }
 }
 
@@ -258,8 +265,7 @@ private fun NoteGrid(
     trashDays: Int,
     onOpen: (String) -> Unit,
     actions: SelectionActions,
-    onSwiped: (String) -> Unit,
-    onSwipedToPin: (String) -> Unit,
+    onSwiped: (String, Swipe) -> Unit,
     onMove: (String, Int) -> Unit,
     modifier: Modifier,
 ) {
@@ -321,15 +327,10 @@ private fun NoteGrid(
             drag,
             selection,
             swipeable = !selection.isActive,
-            rightSwipe = when (shelf) {
-                Shelf.Notes -> RightSwipe.Pin
-                Shelf.Archive -> RightSwipe.None
-                Shelf.Trash -> RightSwipe.Same
-            },
+            shelf,
             onOpen,
             actions.toggle,
             onSwiped,
-            onSwipedToPin,
         )
         section(R.string.board_pinned.takeIf { content.pinned.isNotEmpty() }, Tags.PINNED, drag.shown(content.pinned), card)
         section(R.string.board_others.takeIf { content.pinned.isNotEmpty() && content.others.isNotEmpty() }, Tags.OTHERS, drag.shown(content.others), card)
@@ -452,17 +453,6 @@ private fun TagBar(tags: List<String>, picked: String?, onTag: (String?) -> Unit
 private fun SelectionBar(selection: Selection, pins: Boolean, shelf: Shelf, actions: SelectionActions) {
     val colors = MaterialTheme.colorScheme
     var palette by remember { mutableStateOf(false) }
-    var confirmingDelete by remember { mutableStateOf(false) }
-    if (confirmingDelete) {
-        ConfirmDeleteForever(
-            count = selection.ids.size,
-            onConfirm = {
-                confirmingDelete = false
-                actions.deleteForever()
-            },
-            onDismiss = { confirmingDelete = false },
-        )
-    }
     Row(
         Modifier.statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 8.dp).fillMaxWidth().height(52.dp)
             .clip(CircleShape).background(colors.secondaryContainer).padding(horizontal = 4.dp).testTag(Tags.SELECTION_BAR),
@@ -481,7 +471,7 @@ private fun SelectionBar(selection: Selection, pins: Boolean, shelf: Shelf, acti
             IconButton(onClick = actions.restore, modifier = Modifier.testTag(Tags.RESTORE_SELECTED)) {
                 Icon(Icons.Outlined.RestoreFromTrash, contentDescription = stringResource(R.string.editor_restore), tint = colors.onSecondaryContainer)
             }
-            IconButton(onClick = { confirmingDelete = true }, modifier = Modifier.testTag(Tags.DELETE_FOREVER_SELECTED)) {
+            IconButton(onClick = actions.deleteForever, modifier = Modifier.testTag(Tags.DELETE_FOREVER_SELECTED)) {
                 Icon(Icons.Outlined.DeleteForever, contentDescription = stringResource(R.string.editor_delete_forever), tint = colors.onSecondaryContainer)
             }
         } else {
@@ -586,14 +576,11 @@ private fun LazyStaggeredGridScope.section(heading: Int?, tag: String, notes: Li
         val swipe = remember(note.id) { SwipeToDismissBoxState(SwipeToDismissBoxValue.Settled, threshold) }
         val scope = rememberCoroutineScope()
         // One callback per card: the box calls it again whenever it changes while still dismissed.
-        val onDismiss: (SwipeToDismissBoxValue) -> Unit = remember(note.id) {
+        val onDismiss: (SwipeToDismissBoxValue) -> Unit = remember(note.id, card.shelf) {
             { direction ->
-                if (direction == SwipeToDismissBoxValue.StartToEnd && card.rightSwipe == RightSwipe.Pin) {
-                    card.onSwipedToPin(note.id)
-                    scope.launch { swipe.reset() }
-                } else {
-                    card.onSwiped(note.id)
-                }
+                val done = Swipe.of(card.shelf, right = direction == SwipeToDismissBoxValue.StartToEnd)
+                card.onSwiped(note.id, done)
+                if (done.keepsCard) scope.launch { swipe.reset() }
             }
         }
         SwipeToDismissBox(
@@ -609,7 +596,6 @@ private fun LazyStaggeredGridScope.section(heading: Int?, tag: String, notes: Li
                     translationY = offset.y
                     if (dragged) shadowElevation = 8.dp.toPx()
                 },
-            enableDismissFromStartToEnd = card.rightSwipe != RightSwipe.None,
             gesturesEnabled = card.swipeable && !dragged,
             onDismiss = onDismiss,
         ) {

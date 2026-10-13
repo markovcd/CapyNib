@@ -55,8 +55,9 @@ quiet.
 - Gestures: a long press picks a card and the top bar becomes the selection bar (close, "N
   selected", pin, color, archive, delete, on `secondaryContainer`); moving the finger after the long
   press drags the card to a new place instead, lifted with a shadow. A swipe left archives a
-  card, a swipe right pins or unpins it. In the trash the selection bar offers restore and delete
-  forever (which asks first), and a swipe either way restores. Archive, unarchive, delete and restore
+  card, a swipe right pins or unpins it. In the archive a swipe right unarchives and left deletes; in
+  the trash a swipe right restores and left deletes forever, after asking. The trash's selection bar
+  offers restore and delete forever. Archive, unarchive, delete and restore
   from the board show a snackbar with Undo.
 - Floating buttons: an extended "New note" button with a pencil, and a small "New list" button
   with a checkbox above it.

@@ -7,6 +7,7 @@ import io.github.markovcd.capynib.core.board.BoardChange
 import io.github.markovcd.capynib.core.board.BoardContent
 import io.github.markovcd.capynib.core.board.Selection
 import io.github.markovcd.capynib.core.board.Shelf
+import io.github.markovcd.capynib.core.board.Swipe
 import io.github.markovcd.capynib.core.note.Capture
 import io.github.markovcd.capynib.core.note.NoteColor
 import io.github.markovcd.capynib.core.sync.SyncStatus
@@ -35,6 +36,9 @@ class BoardViewModel(private val graph: AppGraph) : ViewModel() {
 
     /** The last change a swipe or the selection made, for the snackbar to offer to undo. */
     val lastChange = MutableStateFlow<BoardChange?>(null)
+
+    /** The notes waiting for a yes before they are deleted forever; empty when nothing is asked. */
+    val deleting = MutableStateFlow<Set<String>>(emptySet())
 
     init {
         // Without a server nothing else empties the trash.
@@ -89,22 +93,29 @@ class BoardViewModel(private val graph: AppGraph) : ViewModel() {
         clearSelection()
     }
 
-    /** Deletes the picked notes for good; the screen asks first, since nothing undoes it. */
+    /** Asks to delete the picked notes for good. */
     fun deleteSelectedForever() {
-        val ids = selection.value.ids
+        deleting.value = selection.value.ids
+    }
+
+    /** Deletes for good the notes [deleting] asked about. */
+    fun confirmDeleteForever() {
+        val ids = deleting.value
+        deleting.value = emptySet()
+        picked.value = Selection(picked.value.ids - ids)
         write { ids.forEach { graph.store.deleteForever(it, graph.clock()) } }
-        clearSelection()
     }
 
-    /** A swiped note goes to the archive, out of it when the archive is shown, or out of the trash when that is. */
-    fun swiped(id: String) {
-        val kind = if (shelf.value == Shelf.Trash) BoardChange.Kind.Restore else archiveKind()
-        change(BoardChange(kind, setOf(id)))
+    fun cancelDeleteForever() {
+        deleting.value = emptySet()
     }
 
-    /** A note swiped right is pinned, or unpinned when it was. */
-    fun swipedToPin(id: String) {
-        write { graph.store.saveAll(setOf(id), graph.clock()) { it.copy(pinned = !it.pinned) } }
+    fun swiped(id: String, swipe: Swipe) {
+        when (swipe) {
+            Swipe.Pin -> write { graph.store.saveAll(setOf(id), graph.clock()) { it.copy(pinned = !it.pinned) } }
+            Swipe.DeleteForever -> deleting.value = setOf(id)
+            else -> swipe.change?.let { change(BoardChange(it, setOf(id))) }
+        }
     }
 
     fun undo(change: BoardChange) {
