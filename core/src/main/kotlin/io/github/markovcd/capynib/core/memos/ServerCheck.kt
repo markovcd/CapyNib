@@ -29,7 +29,12 @@ class ServerCheck(private val api: MemosApi, private val probeId: String = UUID.
         val createdOk = record(Capability.CreateWithId, problem(api.create(probeId, created)) { it.id == probeId && it.state == created })
         if (!createdOk) {
             for (rest in listOf(Capability.Update, Capability.ListArchived, Capability.Delete)) record(rest, NEEDS_CREATE)
-            return ApiResult.Ok(ServerReport(version, results, leftover = null))
+            // A create can write the memo and still fail, such as when the call that sets its place is refused.
+            val cleared = when (api.delete(probeId)) {
+                is ApiResult.Ok, ApiResult.NotFound -> true
+                is ApiResult.Failed, ApiResult.AlreadyExists -> false
+            }
+            return ApiResult.Ok(ServerReport(version, results, leftover = probeId.takeUnless { cleared }))
         }
 
         val changed = MemoState("$PROBE_TEXT Changed.", pinned = true, archived = true, position = PROBE_POSITION + 3_600)

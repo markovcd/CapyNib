@@ -56,6 +56,36 @@ class ServerCheckTest {
     }
 
     @Test
+    fun A_create_that_wrote_the_memo_and_then_failed_still_deletes_it() = runTest {
+        val halfCreating = object : MemosApi by server {
+            override suspend fun create(id: String, state: MemoState): ApiResult<ServerMemo> {
+                server.create(id, state)
+                return ApiResult.Failed(SyncFailure.Server(400, "create_time is not supported"))
+            }
+        }
+
+        val report = checked(halfCreating)
+
+        assertEquals("create_time is not supported", report.problems()[Capability.CreateWithId])
+        assertEquals(null, report.leftover)
+        assertEquals(emptyMap<String, ServerMemo>(), server.memos)
+    }
+
+    @Test
+    fun A_check_memo_a_failed_create_left_that_cannot_be_deleted_is_named_as_left_over() = runTest {
+        val stuck = object : MemosApi by server {
+            override suspend fun create(id: String, state: MemoState): ApiResult<ServerMemo> {
+                server.create(id, state)
+                return ApiResult.Failed(SyncFailure.Server(400, "create_time is not supported"))
+            }
+
+            override suspend fun delete(id: String): ApiResult<Unit> = ApiResult.Failed(SyncFailure.Server(400, "delete is not supported"))
+        }
+
+        assertEquals("probe", checked(stuck).leftover)
+    }
+
+    @Test
     fun A_check_memo_that_cannot_be_deleted_is_named_as_left_over() = runTest {
         val report = checked(Refusing(server, "delete"))
 
