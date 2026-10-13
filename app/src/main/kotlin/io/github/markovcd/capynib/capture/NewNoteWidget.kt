@@ -1,27 +1,4 @@
 package io.github.markovcd.capynib.capture
 
-import android.app.PendingIntent
-import android.appwidget.AppWidgetManager
-import android.appwidget.AppWidgetProvider
-import android.content.Context
-import android.widget.RemoteViews
-import io.github.markovcd.capynib.R
-
-/** The home screen widget: one tile with a pen that opens a new note. */
-class NewNoteWidget : AppWidgetProvider() {
-    override fun onUpdate(context: Context, manager: AppWidgetManager, widgetIds: IntArray) {
-        manager.updateAppWidget(widgetIds, views(context))
-    }
-
-    companion object {
-        fun views(context: Context): RemoteViews = RemoteViews(context.packageName, R.layout.widget_new_note).apply {
-            val launch = PendingIntent.getActivity(
-                context,
-                0,
-                CaptureIntents.newNote(context, checklist = false),
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-            )
-            setOnClickPendingIntent(R.id.widget_new_note, launch)
-        }
-    }
-}
+/** The pen widget. Its class name is saved by launchers with every placed widget, so it stays. */
+class NewNoteWidget : CaptureWidget(checklist = false)

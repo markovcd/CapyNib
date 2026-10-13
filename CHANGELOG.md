@@ -4,7 +4,7 @@
 
 ### Features
 
-- The home screen widget is a single pen on a see-through circle, one tile wide.
+- The home screen widgets are one tile each: a pen for a new note and a checkbox for a new checklist, on a see-through circle.
 
 ## 0.1.1 - 2026-10-13
 
