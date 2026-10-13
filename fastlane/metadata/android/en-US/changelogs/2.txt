@@ -1,0 +1,1 @@
+The download is smaller and the app starts faster: the release build is now optimized with R8.

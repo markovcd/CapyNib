@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.1 - 2026-10-13
+
+### Features
+
+- A smaller, faster app: the release build is optimized with R8.
+
 ## 0.1.0 - 2026-10-13
 
 ### Features
