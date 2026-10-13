@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.util.UUID
+import kotlin.time.Duration.Companion.days
 
 /**
  * The notes on this device: the source of truth the UI reads and writes, whether or not a server
@@ -54,7 +55,7 @@ class NoteStore(
         }
     }
 
-    /** Moves the note to the trash, where it stays for [Trash.KEPT_FOR] before it is deleted for good. */
+    /** Moves the note to the trash, where it stays until [emptyTrash] deletes it for good. */
     fun trash(id: String, now: Long) {
         queries.trash(now, id)
     }
@@ -69,9 +70,9 @@ class NoteStore(
         queries.markDeleted(now, id)
     }
 
-    /** Deletes for good every note that has been in the trash for [Trash.KEPT_FOR]; returns how many. */
-    fun emptyTrash(now: Long): Int = queries.transactionWithResult {
-        val expired = queries.trashedBefore(now - Trash.KEPT_FOR.inWholeMilliseconds).executeAsList()
+    /** Deletes for good every note that has been in the trash for [days]; returns how many. */
+    fun emptyTrash(now: Long, days: Int): Int = queries.transactionWithResult {
+        val expired = queries.trashedBefore(now - days.days.inWholeMilliseconds).executeAsList()
         expired.forEach { queries.markDeleted(now, it) }
         expired.size
     }

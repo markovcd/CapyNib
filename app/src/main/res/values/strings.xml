@@ -72,5 +72,8 @@
     <string name="settings_token_missing">Enter an access token</string>
     <string name="settings_checking">Checking…</string>
     <string name="settings_connected">Connected to %1$s as %2$s</string>
+    <string name="settings_trash_section">Trash</string>
+    <string name="settings_trash_days">Days deleted notes stay in the trash</string>
+    <string name="settings_trash_days_help">From %1$d to %2$d days</string>
     <string name="settings_not_connected">Not connected. Notes stay on this phone.</string>
 </resources>

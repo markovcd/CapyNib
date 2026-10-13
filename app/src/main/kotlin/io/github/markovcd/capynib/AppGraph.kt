@@ -17,6 +17,7 @@ import io.github.markovcd.capynib.settings.KeystoreTokenCipher
 import io.github.markovcd.capynib.settings.SyncSettings
 import io.github.markovcd.capynib.settings.SyncSettingsStore
 import io.github.markovcd.capynib.settings.TokenCipher
+import io.github.markovcd.capynib.settings.TrashSettingsStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -40,6 +41,8 @@ class AppGraph(
 
     val settings = SyncSettingsStore(context.getSharedPreferences("sync", Context.MODE_PRIVATE), cipher)
 
+    val trash = TrashSettingsStore(context.getSharedPreferences("trash", Context.MODE_PRIVATE))
+
     val scheduler = SyncScheduler(scope, clock) { engine() }
 
     /** A client for [settings], or null when they name no usable server. */
@@ -53,7 +56,12 @@ class AppGraph(
     /** Opens [page] in the browser; false when the phone has none. */
     fun openPage(page: String): Boolean = browser(page)
 
-    private fun engine(): SyncEngine? = api(settings.settings.value)?.let { SyncEngine(store, it, clock) }
+    /** Deletes for good the notes that have been in the trash as long as the user chose; asks for a sync when any were. */
+    fun emptyTrash() {
+        if (store.emptyTrash(clock(), trash.days.value) > 0) scheduler.requestSync()
+    }
+
+    private fun engine(): SyncEngine? = api(settings.settings.value)?.let { SyncEngine(store, it, trash.days.value, clock) }
 }
 
 private fun openInBrowser(context: Context, page: String): Boolean =

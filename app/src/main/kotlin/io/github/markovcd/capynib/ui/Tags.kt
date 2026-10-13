@@ -44,4 +44,5 @@ object Tags {
     const val CONNECT = "connect"
     const val DISCONNECT = "disconnect"
     const val SETTINGS_MESSAGE = "settings-message"
+    const val TRASH_DAYS = "trash-days"
 }

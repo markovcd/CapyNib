@@ -12,7 +12,7 @@ import io.github.markovcd.capynib.core.store.Trash
 /**
  * Two-way sync between the [store] and a memos server.
  *
- * Notes that have been in the trash for [Trash.KEPT_FOR] are deleted first. Then pull: a memo that
+ * Notes that have been in the trash for [trashDays] are deleted first. Then pull: a memo that
  * changed on the server replaces a note with no local edits; when both sides changed, the local edit
  * wins and the server's version is kept as a new note, so nothing is lost. Then push every note with
  * local edits. Notes are created on the server under their own id, so a create that is retried after
@@ -21,10 +21,11 @@ import io.github.markovcd.capynib.core.store.Trash
 class SyncEngine(
     private val store: NoteStore,
     private val api: MemosApi,
+    private val trashDays: Int = Trash.DEFAULT_DAYS,
     private val clock: () -> Long,
 ) {
     suspend fun sync(): SyncReport {
-        store.emptyTrash(clock())
+        store.emptyTrash(clock(), trashDays)
         val serverMemos = when (val listed = api.listAll()) {
             is ApiResult.Ok -> listed.value
             is ApiResult.Failed -> return SyncReport(failure = listed.failure)

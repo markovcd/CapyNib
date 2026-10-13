@@ -3,7 +3,6 @@ package io.github.markovcd.capynib.cli
 import io.github.markovcd.capynib.core.memos.BrowserSignIn
 import io.github.markovcd.capynib.core.memos.FakeMemosServer
 import io.github.markovcd.capynib.core.memos.LiveMemos
-import io.github.markovcd.capynib.core.store.Trash
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -19,6 +18,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import kotlin.concurrent.thread
+import kotlin.time.Duration.Companion.days
 
 class CliTest {
     @get:Rule
@@ -137,17 +137,27 @@ class CliTest {
     }
 
     @Test
-    fun Empty_trash_deletes_only_notes_a_week_in_the_trash() {
+    fun Empty_trash_deletes_only_notes_in_the_trash_for_the_days_given() {
         val old = run("add", "--body", "old").out.trim()
         val recent = run("add", "--body", "recent").out.trim()
         run("delete", old)
-        now += Trash.KEPT_FOR.inWholeMilliseconds
+        now += 2.days.inWholeMilliseconds
         run("delete", recent)
 
-        assertEquals("1", run("empty-trash").out.trim())
+        assertEquals("0", run("empty-trash").out.trim())
+        assertEquals("1", run("empty-trash", "--trash-days", "2").out.trim())
 
         assertEquals(ExitCode.NOT_FOUND, run("show", old).code)
         assertTrue(json(run("show", recent, "--json").out).jsonObject["trashedAt"]!!.jsonPrimitive.content.toLong() > 0)
+    }
+
+    @Test
+    fun A_trash_days_outside_one_to_365_is_refused() {
+        for (days in listOf("0", "366", "week")) {
+            val ran = run("empty-trash", "--trash-days", days)
+            assertEquals(days, ExitCode.USAGE, ran.code)
+            assertTrue(ran.err, ran.err.contains("--trash-days"))
+        }
     }
 
     @Test

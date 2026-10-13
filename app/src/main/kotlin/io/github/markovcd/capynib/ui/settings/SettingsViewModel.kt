@@ -7,8 +7,10 @@ import io.github.markovcd.capynib.core.memos.ApiResult
 import io.github.markovcd.capynib.core.memos.ServerAddress
 import io.github.markovcd.capynib.core.memos.SignInResult
 import io.github.markovcd.capynib.core.memos.SyncFailure
+import io.github.markovcd.capynib.core.store.Trash
 import io.github.markovcd.capynib.core.sync.SyncStatus
 import io.github.markovcd.capynib.settings.SyncSettings
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +30,9 @@ class SettingsViewModel(private val graph: AppGraph) : ViewModel() {
     val status: StateFlow<SyncStatus> = graph.scheduler.status
 
     private var signingIn: Job? = null
+
+    /** The trash days as typed; kept only while it is a number in [Trash.DAYS]. */
+    val trashDays = MutableStateFlow(graph.trash.days.value.toString())
 
     /** What is saved; the screen offers Disconnect while it names a server, and the ways to connect otherwise. */
     val saved: StateFlow<SyncSettings> = graph.settings.settings
@@ -85,6 +90,13 @@ class SettingsViewModel(private val graph: AppGraph) : ViewModel() {
                 is SignInResult.Failed -> SettingsMessage.Failed(result.failure)
             }
         }
+    }
+
+    fun setTrashDays(text: String) {
+        trashDays.value = text
+        val days = Trash.parseDays(text) ?: return
+        graph.trash.save(days)
+        viewModelScope.launch(Dispatchers.IO) { graph.emptyTrash() }
     }
 
     fun disconnect() {

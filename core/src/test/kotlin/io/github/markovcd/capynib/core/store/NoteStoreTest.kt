@@ -12,6 +12,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.sql.DriverManager
+import kotlin.time.Duration.Companion.days
 
 class NoteStoreTest {
     @get:Rule
@@ -79,16 +80,16 @@ class NoteStoreTest {
     }
 
     @Test
-    fun A_trashed_note_is_kept_until_it_has_been_in_the_trash_a_week() {
+    fun A_trashed_note_is_kept_until_it_has_been_in_the_trash_the_days_asked_for() {
         val store = stores.open()
         val note = store.create(now = 1)
         store.trash(note.id, now = 10)
-        val week = Trash.KEPT_FOR.inWholeMilliseconds
+        val threeDays = 3.days.inWholeMilliseconds
 
-        assertEquals(0, store.emptyTrash(now = 10 + week - 1))
+        assertEquals(0, store.emptyTrash(now = 10 + threeDays - 1, days = 3))
         assertEquals(10L, store.get(note.id)!!.trashedAt)
 
-        assertEquals(1, store.emptyTrash(now = 10 + week))
+        assertEquals(1, store.emptyTrash(now = 10 + threeDays, days = 3))
         assertNull(store.get(note.id))
         assertTrue(store.stored(note.id)!!.deleted)
     }
@@ -104,7 +105,7 @@ class NoteStoreTest {
 
         val back = store.get(note.id)!!
         assertEquals(listOf(null, true), listOf(back.trashedAt, back.archived))
-        assertEquals(0, store.emptyTrash(now = 4 + Trash.KEPT_FOR.inWholeMilliseconds))
+        assertEquals(0, store.emptyTrash(now = 4 + 1.days.inWholeMilliseconds, days = 1))
     }
 
     @Test

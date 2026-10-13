@@ -14,6 +14,7 @@ import io.github.markovcd.capynib.core.note.ChecklistLine
 import io.github.markovcd.capynib.core.note.Note
 import io.github.markovcd.capynib.core.note.NoteColor
 import io.github.markovcd.capynib.core.store.NoteStore
+import io.github.markovcd.capynib.core.store.Trash
 import io.github.markovcd.capynib.core.sync.SyncEngine
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.encodeToString
@@ -63,7 +64,8 @@ class Cli(
                 print(store.get(note.id)!!, parsed, out)
             }
             "empty-trash" -> {
-                out.appendLine(store.emptyTrash(clock()).toString())
+                val days = trashDays(parsed) { return usage(err, it) }
+                out.appendLine(store.emptyTrash(clock(), days).toString())
                 ExitCode.OK
             }
             "sync" -> sync(store, parsed, out, err)
@@ -142,7 +144,8 @@ class Cli(
         val server = server("sync", args) { return usage(err, it) }
         val token = env["CAPYNIB_TOKEN"]?.takeIf { it.isNotBlank() }
             ?: return usage(err, "sync needs the memos access token in CAPYNIB_TOKEN")
-        val report = runBlocking { SyncEngine(store, api(server, token), clock).sync() }
+        val days = trashDays(args) { return usage(err, it) }
+        val report = runBlocking { SyncEngine(store, api(server, token), days, clock).sync() }
         if (args.flag("json")) {
             out.appendLine(json.encodeToString(SyncJson.of(report)))
         } else {
@@ -190,6 +193,11 @@ class Cli(
                 ExitCode.LOGIN_FAILED
             }
         }
+    }
+
+    private inline fun trashDays(args: Arguments, problem: (String) -> Nothing): Int {
+        val text = args.option("trash-days") ?: return Trash.DEFAULT_DAYS
+        return Trash.parseDays(text) ?: problem("--trash-days takes a whole number of days from ${Trash.DAYS.first} to ${Trash.DAYS.last}, not '$text'")
     }
 
     private inline fun server(command: String, args: Arguments, problem: (String) -> Nothing): ServerAddress {
@@ -241,7 +249,7 @@ class Cli(
     private data class Command(val options: Set<String> = emptySet(), val flags: Set<String> = emptySet())
 
     private companion object {
-        val VALUED = setOf("db", "title", "body", "color", "search", "server")
+        val VALUED = setOf("db", "title", "body", "color", "search", "server", "trash-days")
         val COMMANDS = mapOf(
             "list" to Command(setOf("search"), setOf("archived", "trashed", "json")),
             "show" to Command(flags = setOf("json")),
@@ -250,8 +258,8 @@ class Cli(
             "check" to Command(flags = setOf("json")),
             "delete" to Command(flags = setOf("forever")),
             "restore" to Command(flags = setOf("json")),
-            "empty-trash" to Command(),
-            "sync" to Command(setOf("server"), setOf("json")),
+            "empty-trash" to Command(setOf("trash-days")),
+            "sync" to Command(setOf("server", "trash-days"), setOf("json")),
             "login" to Command(setOf("server"), setOf("json")),
             "colors" to Command(),
         )
@@ -264,8 +272,8 @@ class Cli(
             |  check ID LINE [--json]        tick or untick a checklist item
             |  delete ID [--forever]         move to the trash, or delete for good
             |  restore ID [--json]           take out of the trash
-            |  empty-trash                   delete notes a week in the trash; prints how many
-            |  sync [--server URL] [--json]  token from CAPYNIB_TOKEN
+            |  empty-trash [--trash-days N]  delete notes N days (default 7) in the trash; prints how many
+            |  sync [--server URL] [--trash-days N] [--json]  token from CAPYNIB_TOKEN
             |  login [--server URL] [--json] sign in in the browser; prints a new access token
             |  colors
             |The database defaults to CAPYNIB_DB, then ./capynib.db.

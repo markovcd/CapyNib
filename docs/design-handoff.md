@@ -10,7 +10,8 @@ comes from the [Capynib identity canvas](https://claude.ai/artifact/RQR8sA3JUE7e
 Capynib is a quick-notes app for Android in the spirit of Google Keep. The board shows notes as
 colored cards in a staggered grid; tapping one opens it full screen in its color. A note has a
 title and a body; the body can be plain text or a checklist whose items tick off. Notes can be
-pinned to the top, archived, searched and deleted; deleted notes wait a week in a trash. Everything is saved on the phone as you type and
+pinned to the top, archived, searched and deleted; deleted notes wait in a trash for a
+week or the days set in settings. Everything is saved on the phone as you type and
 synced to the user's own [memos](https://usememos.com) server when one is set up. The first version
 has no text formatting on purpose: just text and checklists.
 
@@ -41,8 +42,8 @@ quiet.
 **Board** (`ui/board/BoardScreen.kt`, `NoteCard.kt`)
 - Top bar: a rounded search field ("Search your notes"), a sync status icon, an archive toggle
   (archive box; a light bulb when showing the archive), a trash toggle (trash can; a light bulb
-  when showing the trash), and a settings gear. The trash opens with one line saying notes there
-  are deleted after 7 days.
+  when showing the trash), and a settings gear. The trash opens with one line saying how many days
+  notes stay there.
 - Body: a staggered grid of note cards, about 160 dp wide columns. Sections "Pinned" and
   "Others" get small labels when there are pinned notes. An empty board shows one centered line
   ("Notes you add appear here").
@@ -66,7 +67,8 @@ quiet.
 **Settings** (`ui/settings/SettingsScreen.kt`)
 - Not connected: server address field, a full-width Sign in with browser button with a help line
   and the redirect address to allow (selectable, monospace), the access token field (outlined) and a Connect button. Connected: only a Disconnect button.
-- Both: a message line ("Connected to ... as ...") and the sync status with its icon.
+- Both: a message line ("Connected to ... as ...") and the sync status with its icon, then a
+  Trash section with a number field for the days deleted notes stay in the trash (1 to 365).
 
 **Sync status icons** (`ui/SyncStatusLabel.kt`): phone (notes only on this phone), plain cloud
 (waiting), sync arrows (syncing), cloud with check (synced), crossed cloud (offline), error

@@ -280,6 +280,22 @@ class CapynibRootTest {
     }
 
     @Test
+    fun Settings_choose_how_many_days_the_trash_keeps_notes() {
+        compose.onNodeWithTag(Tags.SETTINGS).performClick()
+
+        compose.onNodeWithTag(Tags.TRASH_DAYS).performScrollTo().performTextReplacement("30")
+        compose.waitUntil(timeoutMillis = 5_000) { graph.trash.days.value == 30 }
+
+        compose.onNodeWithTag(Tags.TRASH_DAYS).performTextReplacement("0")
+        assertEquals(30, graph.trash.days.value)
+
+        compose.onNodeWithTag(Tags.BACK).performClick()
+        compose.onNodeWithTag(Tags.TRASH_TOGGLE).performClick()
+        graph.store.trash(graph.store.create(graph.clock(), title = "in the trash").id, graph.clock())
+        awaitText("Notes in the trash are deleted after 30 days")
+    }
+
+    @Test
     fun Without_a_server_the_status_says_notes_are_on_this_phone() {
         assertEquals(SyncStatus.Local, graph.scheduler.status.value)
         compose.onNodeWithTag(Tags.SYNC_STATUS).assertIsDisplayed()

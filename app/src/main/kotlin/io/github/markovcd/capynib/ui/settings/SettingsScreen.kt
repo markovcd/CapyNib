@@ -40,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.markovcd.capynib.R
 import io.github.markovcd.capynib.core.memos.LoopbackReceiver
 import io.github.markovcd.capynib.core.memos.SyncFailure
+import io.github.markovcd.capynib.core.store.Trash
 import io.github.markovcd.capynib.ui.SyncStatusLabel
 import io.github.markovcd.capynib.ui.Tags
 import io.github.markovcd.capynib.ui.theme.color
@@ -51,6 +52,7 @@ fun SettingsScreen(model: SettingsViewModel, onClose: () -> Unit) {
     val message by model.message.collectAsStateWithLifecycle()
     val status by model.status.collectAsStateWithLifecycle()
     val saved by model.saved.collectAsStateWithLifecycle()
+    val trashDays by model.trashDays.collectAsStateWithLifecycle()
     val colors = MaterialTheme.colorScheme
     val fieldShape = RoundedCornerShape(12.dp)
     BackHandler(onBack = onClose)
@@ -135,6 +137,18 @@ fun SettingsScreen(model: SettingsViewModel, onClose: () -> Unit) {
                     Text(stringResource(label.text, label.detail.orEmpty()), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
                 }
             }
+            Text(stringResource(R.string.settings_trash_section).uppercase(), style = MaterialTheme.typography.labelMedium, color = colors.primary)
+            OutlinedTextField(
+                value = trashDays,
+                onValueChange = model::setTrashDays,
+                modifier = Modifier.fillMaxWidth().testTag(Tags.TRASH_DAYS),
+                label = { Text(stringResource(R.string.settings_trash_days)) },
+                supportingText = { Text(stringResource(R.string.settings_trash_days_help, Trash.DAYS.first, Trash.DAYS.last)) },
+                isError = Trash.parseDays(trashDays) == null,
+                singleLine = true,
+                shape = fieldShape,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
         }
     }
 }

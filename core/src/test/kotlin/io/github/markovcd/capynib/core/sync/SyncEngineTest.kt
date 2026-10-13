@@ -13,6 +13,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import kotlin.time.Duration.Companion.days
 
 class SyncEngineTest {
     @get:Rule
@@ -120,11 +121,26 @@ class SyncEngineTest {
         engine.sync()
         assertEquals(MemoState("bye", false, true), server.memos.getValue(note.id).state)
 
-        now += Trash.KEPT_FOR.inWholeMilliseconds
+        now += Trash.DEFAULT_DAYS.days.inWholeMilliseconds
         val report = engine.sync()
 
         assertEquals(1, report.deletedThere)
         assertTrue(note.id !in server.memos)
+        assertNull(store.stored(note.id))
+    }
+
+    @Test
+    fun A_sync_keeps_trashed_notes_for_the_days_it_is_given() = runTest {
+        val note = note(body = "bye")
+        val engine = SyncEngine(store, server, trashDays = 2) { now }
+        store.trash(note.id, now)
+
+        now += 1.days.inWholeMilliseconds
+        engine.sync()
+        assertTrue(store.get(note.id)!!.inTrash)
+
+        now += 1.days.inWholeMilliseconds
+        engine.sync()
         assertNull(store.stored(note.id))
     }
 

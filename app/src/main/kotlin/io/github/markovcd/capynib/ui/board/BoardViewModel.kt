@@ -25,12 +25,12 @@ class BoardViewModel(private val graph: AppGraph) : ViewModel() {
 
     init {
         // Without a server nothing else empties the trash.
-        viewModelScope.launch(Dispatchers.IO) {
-            if (graph.store.emptyTrash(graph.clock()) > 0) graph.scheduler.requestSync()
-        }
+        viewModelScope.launch(Dispatchers.IO) { graph.emptyTrash() }
     }
 
     val status: StateFlow<SyncStatus> = graph.scheduler.status
+
+    val trashDays: StateFlow<Int> = graph.trash.days
 
     /** Makes an empty note, or a list with one empty item, and returns its id to open it. */
     fun newNote(checklist: Boolean): String =

@@ -48,7 +48,6 @@ import io.github.markovcd.capynib.R
 import io.github.markovcd.capynib.core.board.BoardContent
 import io.github.markovcd.capynib.core.board.Shelf
 import io.github.markovcd.capynib.core.note.Note
-import io.github.markovcd.capynib.core.store.Trash
 import io.github.markovcd.capynib.core.sync.SyncStatus
 import io.github.markovcd.capynib.ui.PlainTextField
 import io.github.markovcd.capynib.ui.SyncStatusLabel
@@ -61,11 +60,13 @@ fun BoardScreen(model: BoardViewModel, onOpen: (String) -> Unit, onSettings: () 
     val query by model.query.collectAsStateWithLifecycle()
     val shelf by model.shelf.collectAsStateWithLifecycle()
     val status by model.status.collectAsStateWithLifecycle()
+    val trashDays by model.trashDays.collectAsStateWithLifecycle()
     BoardLayout(
         content = content,
         query = query,
         shelf = shelf,
         status = status,
+        trashDays = trashDays,
         onQuery = { model.query.value = it },
         onShelf = { model.shelf.value = it },
         onOpen = onOpen,
@@ -80,6 +81,7 @@ fun BoardLayout(
     query: String,
     shelf: Shelf,
     status: SyncStatus,
+    trashDays: Int,
     onQuery: (String) -> Unit,
     onShelf: (Shelf) -> Unit,
     onOpen: (String) -> Unit,
@@ -134,7 +136,7 @@ fun BoardLayout(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalItemSpacing = 8.dp,
         ) {
-            if (shelf == Shelf.Trash) trashNotice()
+            if (shelf == Shelf.Trash) trashNotice(trashDays)
             section(R.string.board_pinned.takeIf { content.pinned.isNotEmpty() }, Tags.PINNED, content.pinned, onOpen)
             section(R.string.board_others.takeIf { content.pinned.isNotEmpty() && content.others.isNotEmpty() }, Tags.OTHERS, content.others, onOpen)
         }
@@ -194,9 +196,8 @@ private fun ShelfToggle(target: Shelf, shelf: Shelf, tag: String, icon: ImageVec
     }
 }
 
-private fun LazyStaggeredGridScope.trashNotice() {
+private fun LazyStaggeredGridScope.trashNotice(days: Int) {
     item(span = StaggeredGridItemSpan.FullLine, key = "trash-notice") {
-        val days = Trash.KEPT_FOR.inWholeDays.toInt()
         Text(
             pluralStringResource(R.plurals.board_trash_notice, days, days),
             style = MaterialTheme.typography.bodyMedium,
