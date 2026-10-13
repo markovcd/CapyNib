@@ -3,6 +3,7 @@ package io.github.markovcd.capynib.core.sync
 import io.github.markovcd.capynib.core.board.BoardContent
 import io.github.markovcd.capynib.core.memos.FakeMemosServer
 import io.github.markovcd.capynib.core.memos.MemoState
+import io.github.markovcd.capynib.core.memos.ServerAddress
 import io.github.markovcd.capynib.core.memos.SyncFailure
 import io.github.markovcd.capynib.core.note.NoteColor
 import io.github.markovcd.capynib.core.store.TempStores
@@ -24,7 +25,7 @@ class SyncEngineTest {
     private val server = FakeMemosServer()
     private var now = 100L
     private val store by lazy { stores.open() }
-    private val engine by lazy { SyncEngine(store, server) { now } }
+    private val engine by lazy { SyncEngine(store, server, FakeMemosServer.ADDRESS) { now } }
 
     private fun note(title: String = "", body: String = "", color: NoteColor = NoteColor.Default) =
         store.create(++now, title, body, color)
@@ -96,11 +97,11 @@ class SyncEngineTest {
         note(body = "top")
         val tabletStore = stores.open("t")
         engine.sync()
-        SyncEngine(tabletStore, server) { now }.sync()
+        SyncEngine(tabletStore, server, FakeMemosServer.ADDRESS) { now }.sync()
 
         store.move(BoardContent.of(store.visible()).move(bottom.id, 0))
         engine.sync()
-        SyncEngine(tabletStore, server) { now }.sync()
+        SyncEngine(tabletStore, server, FakeMemosServer.ADDRESS) { now }.sync()
 
         assertEquals(listOf("bottom", "top", "middle"), tabletStore.visible().map { it.body })
         assertEquals(store.get(bottom.id)!!.position, server.memos.getValue(bottom.id).state.position)
@@ -192,7 +193,7 @@ class SyncEngineTest {
     @Test
     fun A_sync_keeps_trashed_notes_for_the_days_it_is_given() = runTest {
         val note = note(body = "bye")
-        val engine = SyncEngine(store, server, trashDays = 2) { now }
+        val engine = SyncEngine(store, server, FakeMemosServer.ADDRESS, trashDays = 2) { now }
         store.trash(note.id, now)
 
         now += 1.days.inWholeMilliseconds
@@ -336,14 +337,14 @@ class SyncEngineTest {
         val report = engine.sync()
 
         assertEquals(SyncReport(), report)
-        assertEquals("only the listing", callsAfterFirst + 1, server.calls)
+        assertEquals("only the user and the listing", callsAfterFirst + 2, server.calls)
     }
 
     @Test
     fun Two_devices_see_each_others_notes() = runTest {
         val phone = engine
         val tabletStore = stores.open("t")
-        val tablet = SyncEngine(tabletStore, server) { now }
+        val tablet = SyncEngine(tabletStore, server, FakeMemosServer.ADDRESS) { now }
         note(title = "from phone")
         tabletStore.create(++now, "from tablet", "")
 
@@ -353,5 +354,41 @@ class SyncEngineTest {
 
         assertEquals(setOf("from phone", "from tablet"), store.visible().map { it.title }.toSet())
         assertEquals(setOf("from phone", "from tablet"), tabletStore.visible().map { it.title }.toSet())
+    }
+
+    @Test
+    fun Notes_synced_with_one_server_are_sent_to_the_next_server_rather_than_deleted() = runTest {
+        val note = note("Keep me", "body")
+        engine.sync()
+        val other = FakeMemosServer()
+
+        val report = SyncEngine(store, other, ServerAddress.parse("https://other.test")!!) { now }.sync()
+
+        assertEquals(1, report.sent)
+        assertEquals("Keep me", store.get(note.id)!!.title)
+        assertEquals(server.memos.getValue(note.id).state, other.memos.getValue(note.id).state)
+    }
+
+    @Test
+    fun Notes_synced_as_one_user_are_sent_to_another_user_on_the_same_server() = runTest {
+        val note = note("Keep me", "body")
+        engine.sync()
+        server.memos.clear()
+        server.user = "someone-else"
+
+        val report = engine.sync()
+
+        assertEquals(1, report.sent)
+        assertEquals("Keep me", store.get(note.id)!!.title)
+    }
+
+    @Test
+    fun Syncing_with_the_same_account_again_sends_nothing() = runTest {
+        note("Keep me", "body")
+        engine.sync()
+
+        val report = SyncEngine(store, server, FakeMemosServer.ADDRESS) { now }.sync()
+
+        assertEquals(0, report.sent)
     }
 }

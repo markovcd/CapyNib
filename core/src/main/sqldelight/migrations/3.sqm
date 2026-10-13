@@ -1,0 +1,5 @@
+-- No account recorded: the next sync records its own without starting the notes over.
+CREATE TABLE account (
+    id INTEGER NOT NULL PRIMARY KEY CHECK (id = 1),
+    name TEXT NOT NULL
+);

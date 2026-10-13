@@ -15,6 +15,9 @@ is one. Memos has no change feed or push; its timestamps have one-second resolut
     local note (a conflict copy), so nothing typed anywhere is lost;
   - a memo gone from the server removes an unedited note, and an edited one is created again;
   - a note deleted here is deleted there.
+- The store records the account (server and user) its notes were last synced with. A sync with
+  another account sends every note to it as new, rather than reading the memos missing there as
+  deleted.
 - Notes are created on the server under their own id (`memoId`), so a create retried after a lost
   reply finds the memo instead of duplicating it.
 - `SyncScheduler` syncs about a second after typing starts and once per second while it continues,

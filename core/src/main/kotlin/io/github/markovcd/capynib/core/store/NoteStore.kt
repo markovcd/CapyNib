@@ -26,7 +26,8 @@ class NoteStore(
     private val newId: () -> String = { UUID.randomUUID().toString() },
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
-    private val queries = CapynibDatabase(driver).noteQueries
+    private val database = CapynibDatabase(driver)
+    private val queries = database.noteQueries
 
     fun observeVisible(): Flow<List<Note>> =
         queries.visible().asFlow().mapToList(dispatcher).map { rows -> rows.map { it.toNote() } }
@@ -143,6 +144,18 @@ class NoteStore(
     /** The server no longer has this note; it will be created again on the next push. */
     fun forgetServer(id: String) {
         queries.forgetServer(id)
+    }
+
+    /**
+     * Records [account] as the one the notes sync with. When they were synced with another, every
+     * note starts over as never sent, so the next push puts each one on [account]'s server.
+     */
+    fun syncWith(account: String) {
+        database.transaction {
+            val previous = database.accountQueries.synced().executeAsOneOrNull()
+            if (previous != null && previous != account) queries.forgetAllServers()
+            database.accountQueries.set(account)
+        }
     }
 
     fun purge(id: String) {

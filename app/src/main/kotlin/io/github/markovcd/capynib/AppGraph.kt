@@ -69,7 +69,11 @@ class AppGraph(
         if (store.emptyTrash(clock(), trash.days.value) > 0) scheduler.requestSync()
     }
 
-    private fun engine(): SyncEngine? = api(settings.settings.value)?.let { SyncEngine(store, it, trash.days.value, clock) }
+    private fun engine(): SyncEngine? {
+        val current = settings.settings.value
+        val server = current.server ?: return null
+        return api(current)?.let { SyncEngine(store, it, server, trash.days.value, clock) }
+    }
 }
 
 private fun openInBrowser(context: Context, page: String): Boolean =

@@ -35,8 +35,8 @@ class MemosServerTest {
         val note = phone.create(++now, "Groceries", "- [ ] milk\n- [x] eggs", NoteColor.Sage)
         phone.save(note.copy(pinned = true), ++now)
 
-        assertEquals(null, SyncEngine(phone, live.api()) { now }.sync().failure)
-        assertEquals(null, SyncEngine(tablet, live.api()) { now }.sync().failure)
+        assertEquals(null, SyncEngine(phone, live.api(), live.server) { now }.sync().failure)
+        assertEquals(null, SyncEngine(tablet, live.api(), live.server) { now }.sync().failure)
 
         val arrived = tablet.get(note.id)!!
         assertEquals(listOf("Groceries", "- [ ] milk\n- [x] eggs", NoteColor.Sage, true), listOf(arrived.title, arrived.body, arrived.color, arrived.pinned))
@@ -47,7 +47,7 @@ class MemosServerTest {
         val live = LiveMemos.connect()
         val api = live.api()
         val store = stores.open("e-")
-        val engine = SyncEngine(store, api) { now }
+        val engine = SyncEngine(store, api, live.server) { now }
         val kept = store.create(++now, "", "first draft")
         val trashed = store.create(++now, "", "trash me")
         val gone = store.create(++now, "", "delete me")
@@ -73,11 +73,11 @@ class MemosServerTest {
         val bottom = phone.create(++now, "", "bottom")
         phone.create(++now, "", "middle")
         phone.create(++now, "", "top")
-        SyncEngine(phone, live.api()) { now }.sync()
+        SyncEngine(phone, live.api(), live.server) { now }.sync()
 
         phone.move(BoardContent.of(phone.visible()).move(bottom.id, 0))
-        assertEquals(null, SyncEngine(phone, live.api()) { now }.sync().failure)
-        assertEquals(null, SyncEngine(tablet, live.api()) { now }.sync().failure)
+        assertEquals(null, SyncEngine(phone, live.api(), live.server) { now }.sync().failure)
+        assertEquals(null, SyncEngine(tablet, live.api(), live.server) { now }.sync().failure)
 
         assertEquals(listOf("bottom", "top", "middle"), tablet.visible().map { it.body })
     }
@@ -108,7 +108,7 @@ class MemosServerTest {
             store.create(++now, "Shopping", "milk, #café, #C++ and #O'Brien's #测试", NoteColor.Mint),
             store.create(++now, "", "[link #text](https://example.com#frag) #after\n\n```\n#fenced\n```"),
         )
-        assertEquals(null, SyncEngine(store, live.api()) { now }.sync().failure)
+        assertEquals(null, SyncEngine(store, live.api(), live.server) { now }.sync().failure)
 
         val listed = live.admin("memos?pageSize=1000", Request.Builder().get())["memos"]!!.jsonArray.map { it.jsonObject }
         val serverTags = listed.associate { memo ->

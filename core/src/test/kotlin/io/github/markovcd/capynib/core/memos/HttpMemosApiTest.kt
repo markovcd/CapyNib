@@ -58,6 +58,18 @@ class HttpMemosApiTest {
     }
 
     @Test
+    fun Asking_for_the_user_then_listing_asks_the_server_for_the_user_once() = runTest {
+        reply(200, me)
+        reply(200, """{"memos":[]}""")
+        reply(200, """{"memos":[]}""")
+
+        assertEquals(ApiResult.Ok("me"), api.currentUser())
+        api.listAll()
+
+        assertEquals(3, web.requestCount)
+    }
+
+    @Test
     fun Every_call_carries_the_access_token() = runTest {
         reply(200, me)
 

@@ -2,6 +2,7 @@ package io.github.markovcd.capynib.core.sync
 
 import io.github.markovcd.capynib.core.memos.ApiResult
 import io.github.markovcd.capynib.core.memos.MemosApi
+import io.github.markovcd.capynib.core.memos.ServerAddress
 import io.github.markovcd.capynib.core.memos.ServerMemo
 import io.github.markovcd.capynib.core.memos.SyncFailure
 import io.github.markovcd.capynib.core.note.MemoCodec
@@ -17,16 +18,23 @@ import io.github.markovcd.capynib.core.store.Trash
  * wins and the server's version is kept as a new note, so nothing is lost. A move is not an edit
  * that conflicts: a note moved on one side and edited on the other keeps both. Then push every note with
  * local edits. Notes are created on the server under their own id, so a create that is retried after
- * a lost reply updates instead of duplicating.
+ * a lost reply updates instead of duplicating. Notes last synced with another [server] or user are
+ * sent to this one as new.
  */
 class SyncEngine(
     private val store: NoteStore,
     private val api: MemosApi,
+    private val server: ServerAddress,
     private val trashDays: Int = Trash.DEFAULT_DAYS,
     private val clock: () -> Long,
 ) {
     suspend fun sync(): SyncReport {
         store.emptyTrash(clock(), trashDays)
+        when (val user = api.currentUser()) {
+            is ApiResult.Ok -> store.syncWith("${user.value}@$server")
+            is ApiResult.Failed -> return SyncReport(failure = user.failure)
+            ApiResult.NotFound, ApiResult.AlreadyExists -> return SyncReport(failure = SyncFailure.Server(404, "$server names no signed-in user"))
+        }
         val serverMemos = when (val listed = api.listAll()) {
             is ApiResult.Ok -> listed.value
             is ApiResult.Failed -> return SyncReport(failure = listed.failure)

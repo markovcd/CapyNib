@@ -16,7 +16,7 @@ class HttpMemosApi(
     client: OkHttpClient = MemosHttp.defaultClient,
 ) : MemosApi {
     private val http = MemosHttp(server, client)
-    private var creator: String? = null
+    private var user: UserDto? = null
 
     override suspend fun listAll(): ApiResult<List<ServerMemo>> {
         val me = when (val user = me()) {
@@ -91,18 +91,26 @@ class HttpMemosApi(
     override suspend fun serverVersion(): ApiResult<String?> = http.serverVersion()
 
     override suspend fun currentUser(): ApiResult<String> =
-        when (val result = call<CurrentUserDto>(Request.Builder().url(api("auth/me")).get())) {
-            is ApiResult.Ok -> result.value.user?.let { ApiResult.Ok(it.username) } ?: unexpected("auth/me")
-            else -> result.mapError()
+        when (val user = signedIn()) {
+            is ApiResult.Ok -> ApiResult.Ok(user.value.username)
+            else -> user.mapError()
         }
 
-    private suspend fun me(): ApiResult<String> {
-        creator?.let { return ApiResult.Ok(it) }
+    /** The user's resource name, such as `users/1`, which memos names as each memo's creator. */
+    private suspend fun me(): ApiResult<String> =
+        when (val user = signedIn()) {
+            is ApiResult.Ok -> ApiResult.Ok(user.value.name)
+            else -> user.mapError()
+        }
+
+    /** The signed-in user, asked once per client. */
+    private suspend fun signedIn(): ApiResult<UserDto> {
+        user?.let { return ApiResult.Ok(it) }
         return when (val result = call<CurrentUserDto>(Request.Builder().url(api("auth/me")).get())) {
             is ApiResult.Ok -> {
-                val name = result.value.user?.name ?: return unexpected("auth/me")
-                creator = name
-                ApiResult.Ok(name)
+                val signedIn = result.value.user ?: return unexpected("auth/me")
+                user = signedIn
+                ApiResult.Ok(signedIn)
             }
             else -> result.mapError()
         }

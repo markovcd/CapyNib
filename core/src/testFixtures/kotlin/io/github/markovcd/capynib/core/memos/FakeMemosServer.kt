@@ -12,6 +12,9 @@ class FakeMemosServer : MemosApi {
     var version: String? = "0.31.0"
     var loseNextCreateReply = false
 
+    /** The signed-in user's name. */
+    var user = "tester"
+
     /** Answers updates as a memos that ignores the archived state would. */
     var ignoresArchive = false
 
@@ -65,7 +68,15 @@ class FakeMemosServer : MemosApi {
 
     override suspend fun serverVersion(): ApiResult<String?> = if (offline) unreachable else ApiResult.Ok(version)
 
-    override suspend fun currentUser(): ApiResult<String> = if (offline) unreachable else ApiResult.Ok("tester")
+    override suspend fun currentUser(): ApiResult<String> {
+        calls++
+        return if (offline) unreachable else ApiResult.Ok(user)
+    }
+
+    companion object {
+        /** The address a test syncs with when it does not matter which. */
+        val ADDRESS = requireNotNull(ServerAddress.parse("https://memos.test"))
+    }
 
     private val unreachable = ApiResult.Failed(SyncFailure.Unreachable("fake server is offline"))
 }

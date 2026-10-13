@@ -94,5 +94,9 @@ WHERE id = :id;
 forgetServer:
 UPDATE note SET on_server = 0, synced_content = NULL, synced_pinned = NULL, synced_archived = NULL, synced_position = NULL WHERE id = :id;
 
+-- Every note as never sent, so the next push creates each one on the server.
+forgetAllServers:
+UPDATE note SET on_server = 0, synced_version = 0, synced_content = NULL, synced_pinned = NULL, synced_archived = NULL, synced_position = NULL;
+
 purge:
 DELETE FROM note WHERE id = ?;

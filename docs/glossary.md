@@ -29,6 +29,7 @@ the docs, ADRs, comments, test names and commit messages.
 | **quick capture** | Starting a note from outside the board: the home screen widget, a launcher shortcut, the Quick Settings tile, or text shared from another app. It opens ready to type. | `Capture`, `CaptureIntents` | quick note, share sheet |
 | **board** | The screen of all notes as cards. | `BoardContent`, `BoardScreen` | home, list, grid |
 | **memos server** | The user's self-hosted [memos](https://usememos.com) instance. | `MemosApi`, `ServerAddress` | cloud, backend |
+| **account** | A user on a memos server; the notes sync with one account at a time. | `NoteStore.syncWith` | profile, login |
 | **server check** | Trying every call sync makes against a memos server, on a test memo of its own, and naming the ones that fail. | `ServerCheck`, `ServerReport`, `Capability` | compatibility check, version check, health check |
 | **memo** | A note's copy on the memos server. | `ServerMemo`, `MemoState` | |
 | **store listing** | The name, descriptions, icon, screenshots and per-version changelogs F-Droid shows for the app, kept under `fastlane/`. | `StoreListingTest` | metadata (that is F-Droid's build recipe for the app) |

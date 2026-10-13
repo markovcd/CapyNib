@@ -15,6 +15,6 @@ interface MemosApi {
     /** The memos version the server reports, or null when it reports none. Shown, never relied on. */
     suspend fun serverVersion(): ApiResult<String?>
 
-    /** The signed-in user's name, to show a working connection. */
+    /** The signed-in user's name, to show a working connection and to tell one account from another. */
     suspend fun currentUser(): ApiResult<String>
 }

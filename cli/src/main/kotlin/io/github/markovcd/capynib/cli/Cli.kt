@@ -172,7 +172,7 @@ class Cli(
         val server = server("sync", args) { return usage(err, it) }
         val token = token("sync") { return usage(err, it) }
         val days = trashDays(args) { return usage(err, it) }
-        val report = runBlocking { SyncEngine(store, api(server, token), days, clock).sync() }
+        val report = runBlocking { SyncEngine(store, api(server, token), server, days, clock).sync() }
         if (args.flag("json")) {
             out.appendLine(json.encodeToString(SyncJson.of(report)))
         } else {

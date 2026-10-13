@@ -1,0 +1,12 @@
+-- The memos account the notes' server state belongs to, as one row: the server and user they
+-- were last synced with. A sync with another account starts the notes over as never sent.
+CREATE TABLE account (
+    id INTEGER NOT NULL PRIMARY KEY CHECK (id = 1),
+    name TEXT NOT NULL
+);
+
+synced:
+SELECT name FROM account WHERE id = 1;
+
+set:
+INSERT OR REPLACE INTO account(id, name) VALUES (1, ?);

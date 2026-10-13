@@ -28,7 +28,7 @@ class SyncSchedulerTest {
         clock = { testScheduler.currentTime },
         typingDelay = 1.seconds,
         retryDelays = listOf(5.seconds, 30.seconds),
-    ) { if (configured) SyncEngine(store, server) { testScheduler.currentTime } else null }
+    ) { if (configured) SyncEngine(store, server, FakeMemosServer.ADDRESS) { testScheduler.currentTime } else null }
 
     @Test
     fun Typing_syncs_about_once_a_second_not_once_a_keystroke() = runTest {
@@ -106,7 +106,7 @@ class SyncSchedulerTest {
                 io.github.markovcd.capynib.core.memos.ApiResult.Failed(SyncFailure.Unauthorized("token refused"))
         }
         val scheduler = SyncScheduler(backgroundScope, { testScheduler.currentTime }, 1.seconds, listOf(5.seconds)) {
-            SyncEngine(store, refusing) { 0 }
+            SyncEngine(store, refusing, FakeMemosServer.ADDRESS) { 0 }
         }
 
         scheduler.requestSync(immediate = true)

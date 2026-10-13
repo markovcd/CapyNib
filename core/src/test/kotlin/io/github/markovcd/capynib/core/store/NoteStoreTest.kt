@@ -161,6 +161,32 @@ class NoteStoreTest {
     }
 
     @Test
+    fun A_database_from_before_accounts_were_recorded_keeps_its_notes_synced_with_the_first_account() {
+        val path = folder.newFile("v3.db").absolutePath
+        DriverManager.getConnection("jdbc:sqlite:$path").use { db ->
+            db.createStatement().use { sql ->
+                sql.executeUpdate(V1_SCHEMA)
+                sql.executeUpdate("ALTER TABLE note ADD COLUMN trashed_at INTEGER")
+                sql.executeUpdate("ALTER TABLE note ADD COLUMN position INTEGER NOT NULL DEFAULT 0")
+                sql.executeUpdate("ALTER TABLE note ADD COLUMN synced_position INTEGER")
+                sql.executeUpdate(
+                    "INSERT INTO note(id, title, body, color, pinned, archived, created_at, updated_at, version, synced_version, on_server, synced_content, synced_pinned, synced_archived, position, synced_position) " +
+                        "VALUES ('synced', 'b', '', 'sand', 0, 0, 9000, 9000, 1, 1, 1, '# b', 0, 0, 9, 9)",
+                )
+                sql.executeUpdate("PRAGMA user_version = 3")
+            }
+        }
+        val store = TempStores.open(path, { "new" })
+
+        store.syncWith("arek@https://memos.test")
+        assertEquals(emptyList<String>(), store.pending().map { it.note.id })
+
+        store.syncWith("arek@https://other.test")
+        assertEquals(listOf("synced"), store.pending().map { it.note.id })
+        assertEquals(false, store.stored("synced")!!.onServer)
+    }
+
+    @Test
     fun A_new_note_goes_on_top_even_of_a_note_moved_above_the_present() {
         val store = stores.open()
         val moved = store.create(now = 1_000)
