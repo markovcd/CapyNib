@@ -1,6 +1,9 @@
 package io.github.markovcd.capynib
 
+import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import io.github.markovcd.capynib.core.memos.BrowserSignIn
@@ -20,7 +23,8 @@ import kotlinx.coroutines.SupervisorJob
 
 /**
  * The app's long-lived objects, made once per process. Tests make their own with an in-memory
- * database (null [databaseName]), a fake cipher, a fake server and canned sign-in replies.
+ * database (null [databaseName]), a fake cipher, a fake server, canned sign-in replies and a browser
+ * that only records the pages it is asked to open.
  */
 class AppGraph(
     context: Context,
@@ -30,6 +34,7 @@ class AppGraph(
     val clock: () -> Long = System::currentTimeMillis,
     private val apiFactory: (ServerAddress, String) -> MemosApi = ::HttpMemosApi,
     private val signInFactory: (ServerAddress) -> BrowserSignIn = { BrowserSignIn(it, "Capynib on ${Build.MODEL}") },
+    private val browser: (String) -> Boolean = { openInBrowser(context, it) },
 ) {
     val store = NoteStore(AndroidSqliteDriver(NoteStore.schema, context, databaseName))
 
@@ -45,5 +50,16 @@ class AppGraph(
 
     fun browserSignIn(server: ServerAddress): BrowserSignIn = signInFactory(server)
 
+    /** Opens [page] in the browser; false when the phone has none. */
+    fun openPage(page: String): Boolean = browser(page)
+
     private fun engine(): SyncEngine? = api(settings.settings.value)?.let { SyncEngine(store, it, clock) }
 }
+
+private fun openInBrowser(context: Context, page: String): Boolean =
+    try {
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(page)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        true
+    } catch (e: ActivityNotFoundException) {
+        false
+    }

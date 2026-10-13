@@ -1,10 +1,5 @@
 package io.github.markovcd.capynib.ui
 
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.platform.UriHandler
-import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -43,18 +38,15 @@ class CapynibRootTest {
     private lateinit var graph: AppGraph
 
     /** Pages the app asked the browser to open. */
-    private val browser = object : UriHandler {
-        val opened = CopyOnWriteArrayList<String>()
+    private val opened = CopyOnWriteArrayList<String>()
 
-        override fun openUri(uri: String) {
-            opened += uri
-        }
-    }
+    /** Whether the phone has a browser to open them in. */
+    @Volatile private var hasBrowser = true
 
     @Before
     fun start() {
-        graph = TestGraphs.create(server)
-        compose.setContent { CompositionLocalProvider(LocalUriHandler provides browser) { CapynibRoot(graph) } }
+        graph = TestGraphs.create(server) { if (hasBrowser) opened += it; hasBrowser }
+        compose.setContent { CapynibRoot(graph) }
     }
 
     // The store answers on a background thread, so the screen catches up a moment after a change.
@@ -65,9 +57,6 @@ class CapynibRootTest {
     private fun awaitNoTag(tag: String) = compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isEmpty() }
 
     private fun awaitText(text: String) = compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty() }
-
-    private fun settingsMessage(): String =
-        compose.onNodeWithTag(Tags.SETTINGS_MESSAGE).fetchSemanticsNode().config.getOrElse(SemanticsProperties.Text) { emptyList() }.joinToString()
 
     private fun open(id: String) {
         awaitTag(Tags.card(id))
@@ -194,28 +183,10 @@ class CapynibRootTest {
     fun Signing_in_with_the_browser_keeps_the_access_token_the_server_makes() {
         compose.onNodeWithTag(Tags.SETTINGS).performClick()
         compose.onNodeWithTag(Tags.SERVER).performTextReplacement("https://memos.example.com")
-        val crashes = CopyOnWriteArrayList<Throwable>()
-        val previous = Thread.getDefaultUncaughtExceptionHandler()
-        Thread.setDefaultUncaughtExceptionHandler { _, e -> crashes += e }
         compose.onNodeWithTag(Tags.SIGN_IN).performScrollTo().performClick()
 
-        try {
-            compose.waitUntil(timeoutMillis = 5_000) { browser.opened.isNotEmpty() }
-        } catch (e: ComposeTimeoutException) {
-            val direct = try {
-                kotlinx.coroutines.runBlocking {
-                    val signIn = graph.browserSignIn(io.github.markovcd.capynib.core.memos.ServerAddress.parse("https://memos.example.com")!!)
-                    val provider = (signIn.providers() as io.github.markovcd.capynib.core.memos.ApiResult.Ok).value.first()
-                    kotlinx.coroutines.withTimeoutOrNull(2_000) { signIn.signIn(provider) { throw IllegalStateException("opened $it") } }
-                }.toString()
-            } catch (t: Throwable) {
-                t.stackTraceToString().take(1500)
-            }
-            throw AssertionError("no sign-in page was opened; settings say '${settingsMessage()}'; crashes $crashes; direct: $direct", e)
-        } finally {
-            Thread.setDefaultUncaughtExceptionHandler(previous)
-        }
-        val page = browser.opened.single().toHttpUrl()
+        compose.waitUntil(timeoutMillis = 5_000) { opened.isNotEmpty() }
+        val page = opened.single().toHttpUrl()
         assertEquals("accounts.example.com", page.host)
         awaitText("Finish signing in with Google in the browser, then come back.")
 
@@ -229,6 +200,17 @@ class CapynibRootTest {
         awaitText("Connected to memos.example.com as tester")
         assertEquals("memos_pat_from_browser", graph.settings.settings.value.token)
         compose.waitUntil(timeoutMillis = 5_000) { graph.scheduler.status.value is SyncStatus.Synced }
+    }
+
+    @Test
+    fun Signing_in_without_a_browser_says_so_and_saves_nothing() {
+        hasBrowser = false
+        compose.onNodeWithTag(Tags.SETTINGS).performClick()
+        compose.onNodeWithTag(Tags.SERVER).performTextReplacement("https://memos.example.com")
+        compose.onNodeWithTag(Tags.SIGN_IN).performScrollTo().performClick()
+
+        awaitText("No browser to sign in with. Use an access token.")
+        assertEquals(false, graph.settings.settings.value.isConfigured)
     }
 
     @Test

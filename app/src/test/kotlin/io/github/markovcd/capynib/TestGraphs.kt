@@ -16,16 +16,18 @@ import okhttp3.ResponseBody.Companion.toResponseBody
 
 /**
  * An [AppGraph] over an in-memory database, a reversible fake cipher, a fake memos server, and
- * browser sign-in against canned memos replies that sign in as `tester`.
+ * browser sign-in against canned memos replies that sign in as `tester`, and [browser] in place of
+ * the phone's browser.
  */
 object TestGraphs {
-    fun create(server: FakeMemosServer = FakeMemosServer()): AppGraph = AppGraph(
+    fun create(server: FakeMemosServer = FakeMemosServer(), browser: (String) -> Boolean = { true }): AppGraph = AppGraph(
         context = ApplicationProvider.getApplicationContext(),
         databaseName = null,
         cipher = ReversingCipher,
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined),
         apiFactory = { _, _ -> server },
         signInFactory = { BrowserSignIn(it, "test", port = 0, client = OkHttpClient.Builder().addInterceptor(CannedSignIn).build()) },
+        browser = browser,
     )
 
     /** The memos replies a browser sign-in reads: one Google provider, a session, then an access token. */

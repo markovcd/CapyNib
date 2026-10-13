@@ -10,6 +10,7 @@ import io.github.markovcd.capynib.core.memos.SyncFailure
 import io.github.markovcd.capynib.core.sync.SyncStatus
 import io.github.markovcd.capynib.settings.SyncSettings
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,11 +26,6 @@ class SettingsViewModel(private val graph: AppGraph) : ViewModel() {
     val message: StateFlow<SettingsMessage> = mutableMessage.asStateFlow()
 
     val status: StateFlow<SyncStatus> = graph.scheduler.status
-
-    private val mutableSignInPage = MutableStateFlow<String?>(null)
-
-    /** A sign-in page for the screen to open in the browser, until it says it has. */
-    val signInPage: StateFlow<String?> = mutableSignInPage.asStateFlow()
 
     private var signingIn: Job? = null
 
@@ -72,8 +68,12 @@ class SettingsViewModel(private val graph: AppGraph) : ViewModel() {
                     return@launch run { mutableMessage.value = SettingsMessage.Failed(SyncFailure.Server(404, "not a memos server")) }
             }
             mutableMessage.value = SettingsMessage.WaitingForBrowser(provider.title)
-            val result = signIn.signIn(provider) { mutableSignInPage.value = it }
-            mutableSignInPage.value = null
+            val result = signIn.signIn(provider) { page ->
+                if (!graph.openPage(page)) {
+                    mutableMessage.value = SettingsMessage.NoBrowser
+                    this@launch.cancel()
+                }
+            }
             mutableMessage.value = when (result) {
                 is SignInResult.SignedIn -> {
                     token.value = result.accessToken
@@ -85,16 +85,6 @@ class SettingsViewModel(private val graph: AppGraph) : ViewModel() {
                 is SignInResult.Failed -> SettingsMessage.Failed(result.failure)
             }
         }
-    }
-
-    fun signInPageOpened() {
-        mutableSignInPage.value = null
-    }
-
-    fun signInPageFailed() {
-        signingIn?.cancel()
-        mutableSignInPage.value = null
-        mutableMessage.value = SettingsMessage.NoBrowser
     }
 
     fun disconnect() {
