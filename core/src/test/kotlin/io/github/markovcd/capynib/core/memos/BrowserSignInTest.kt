@@ -89,6 +89,18 @@ class BrowserSignInTest {
     }
 
     @Test
+    fun The_access_token_a_browser_sign_in_makes_expires_after_30_days() = runTest {
+        reply(200, """{"user":{"name":"users/arek","username":"arek"},"accessToken":"session-jwt"}""")
+        reply(200, """{"token":"memos_pat_new"}""")
+
+        signIn.signIn(provider, browser(mutableListOf()))
+
+        heard()
+        val token = Json.parseToJsonElement(heard().body!!.utf8()).jsonObject
+        assertEquals(30, token["expiresInDays"]!!.jsonPrimitive.content.toInt())
+    }
+
+    @Test
     fun Cancelling_in_the_browser_is_a_refusal_and_asks_the_server_nothing() = runTest {
         val pages = mutableListOf<HttpUrl>()
         val result = signIn.signIn(provider) { url ->

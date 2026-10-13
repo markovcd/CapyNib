@@ -16,8 +16,8 @@ with a short-lived session token, while sync wants a token that lasts.
   It sends a random `state` and a PKCE challenge; a return without the right `state` is answered
   and ignored.
 - The code goes to memos `auth/signin` as SSO credentials with the same redirect URI and the PKCE
-  verifier. With the session token it gets, the app creates a personal access token for itself and
-  keeps only that, as if the user had pasted it.
+  verifier. With the session token it gets, the app creates a personal access token for itself that
+  expires after 30 days, and keeps only that, as if the user had pasted it.
 - The server's first OAuth2 provider is used; the command line's `login` does the same.
 
 ## Consequences
@@ -28,3 +28,5 @@ with a short-lived session token, while sync wants a token that lasts.
 - The port is fixed so it can be registered; if another app holds it, sign-in fails with a message
   and pasting an access token still works.
 - Each sign-in leaves a named access token on the server, visible and revocable in memos settings.
+- Thirty days after signing in, sync stops with the token refused, and the user signs in again. A
+  leaked token is good for at most that long.

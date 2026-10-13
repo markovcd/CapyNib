@@ -80,6 +80,7 @@ class BrowserSignIn(
         val tokenBody = buildJsonObject {
             put("parent", user.name)
             put("description", tokenDescription)
+            put("expiresInDays", TOKEN_LIFETIME_DAYS)
         }
         val create = Request.Builder().url(http.api("${user.name}/personalAccessTokens")).post(tokenBody.toString().toRequestBody(MemosHttp.jsonType))
         return when (val result = http.call<PersonalAccessTokenReplyDto>(create, session.accessToken)) {
@@ -117,6 +118,9 @@ class BrowserSignIn(
 
         /** Bad request and permission denied: the server read the sign-in and turned it down. */
         val REFUSED_STATUSES = setOf(400, 403)
+
+        /** How long the access token lasts; after that the server refuses it and the user signs in again. */
+        const val TOKEN_LIFETIME_DAYS = 30
 
         /** The PKCE S256 challenge for [verifier] (RFC 7636). */
         fun challenge(verifier: String): String =
