@@ -185,10 +185,10 @@ class CapynibRootTest {
         compose.onNodeWithTag(Tags.SERVER).performTextReplacement("https://memos.example.com")
         compose.onNodeWithTag(Tags.SIGN_IN).performScrollTo().performClick()
 
-        compose.waitUntil(timeoutMillis = 5_000) { opened.isNotEmpty() }
+        // The page opens on the main thread right after this text shows; waiting on the screen lets that thread run.
+        awaitText("Finish signing in with Google in the browser, then come back.")
         val page = opened.single().toHttpUrl()
         assertEquals("accounts.example.com", page.host)
-        awaitText("Finish signing in with Google in the browser, then come back.")
 
         // The provider sends the browser back to the app with a code.
         val back = page.queryParameter("redirect_uri")!!.toHttpUrl().newBuilder()
