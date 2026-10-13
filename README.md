@@ -23,6 +23,12 @@ Cloud Console, APIs & Services, Credentials). Settings shows the address under t
 and `capynib login` prints it. Capynib then asks memos for an access token of its
 own, which expires after 30 days; sign in again when Settings says the token was refused. See [docs/adr/0005-browser-sign-in-comes-back-to-the-phone-over-loopback.md](docs/adr/0005-browser-sign-in-comes-back-to-the-phone-over-loopback.md).
 
+**Check server** in Settings (or `capynib server`) tries every call sync makes against your server
+and names any that fail, whatever memos version it runs. Reading touches nothing; the writes go to
+one private test memo of its own, deleted at the end. The gate runs the same check and the live sync
+tests against each memos release in [memos-versions.txt](memos-versions.txt) (0.28 to 0.31), and a
+weekly run tries `memos:stable`, the newest release.
+
 Each note is one private memo. The title is the memo's first-line heading and the color is a
 `#color/<name>` tag at the end, so notes read naturally in the memos web UI too. See
 [docs/adr/0002-a-note-is-one-memo.md](docs/adr/0002-a-note-is-one-memo.md).
@@ -31,7 +37,7 @@ Each note is one private memo. The title is the memo's first-line heading and th
 
 | What | Command |
 |---|---|
-| Everything, as CI runs it (needs Docker) | `./gate.sh` |
+| Everything, as CI runs it, against every memos release in `memos-versions.txt` (needs Docker) | `./gate.sh` |
 | Unit and UI tests, no server | `./gradlew check` |
 | Include the live memos tests | `docker run -d -p 5230:5230 --add-host=host.docker.internal:host-gateway neosmemo/memos:stable` then `MEMOS_TEST_URL=http://localhost:5230 MEMOS_TEST_REACH_BACK=host.docker.internal ./gradlew check` |
 | Debug APK | `./gradlew :app:assembleDebug` |
@@ -39,7 +45,7 @@ Each note is one private memo. The title is the memo's first-line heading and th
 | The command line | `./gradlew :cli:installDist` then `cli/build/install/capynib/bin/capynib --help` |
 
 The command line works on the same notes and sync as the app (`list`, `tags`, `add`, `edit`, `check`,
-`move`, `delete`, `restore`, `empty-trash`, `sync`, with `--json`), against a local database file. `capynib login --server URL` signs in with
+`move`, `delete`, `restore`, `empty-trash`, `sync`, `server`, with `--json`), against a local database file. `capynib login --server URL` signs in with
 the browser the same way and prints the new access token, for `CAPYNIB_TOKEN`.
 
 ## Design

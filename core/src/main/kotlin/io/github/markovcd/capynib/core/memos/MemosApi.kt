@@ -12,6 +12,9 @@ interface MemosApi {
 
     suspend fun delete(id: String): ApiResult<Unit>
 
+    /** The memos version the server reports, or null when it reports none. Shown, never relied on. */
+    suspend fun serverVersion(): ApiResult<String?>
+
     /** The signed-in user's name, to show a working connection. */
     suspend fun currentUser(): ApiResult<String>
 }

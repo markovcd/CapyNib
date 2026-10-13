@@ -312,4 +312,41 @@ class CliTest {
             assertTrue(ran.err, ran.err.contains("offers no sign-in provider"))
         }
     }
+
+    @Test
+    fun Server_tries_every_call_and_reports_which_work() {
+        env = mapOf("CAPYNIB_TOKEN" to "t", "CAPYNIB_SERVER" to "https://memos.example.com")
+        server.ignoresArchive = true
+
+        val text = run("server")
+        val report = json(run("server", "--json").out).jsonObject
+
+        assertEquals(ExitCode.SERVER_CHECK_FAILED, text.code)
+        assertTrue(text.out, text.out.startsWith("memos 0.31.0\nok    read the signed-in user\n"))
+        assertTrue(text.out, text.out.contains("FAIL  change a memo's text, pin, archive and create time: "))
+        assertEquals("false", report["works"]!!.jsonPrimitive.content)
+        assertEquals(
+            listOf("signed-in-user", "list-memos", "create-with-id", "update", "list-archived", "delete"),
+            report["checks"]!!.jsonArray.map { it.jsonObject["call"]!!.jsonPrimitive.content },
+        )
+        assertEquals(emptyMap<String, Any>(), server.memos)
+    }
+
+    @Test
+    fun Server_on_a_server_that_does_every_call_succeeds() {
+        env = mapOf("CAPYNIB_TOKEN" to "t", "CAPYNIB_SERVER" to "https://memos.example.com")
+
+        assertEquals(ExitCode.OK, run("server").code)
+    }
+
+    @Test
+    fun Server_that_cannot_be_reached_fails_with_its_own_code() {
+        env = mapOf("CAPYNIB_TOKEN" to "t", "CAPYNIB_SERVER" to "https://memos.example.com")
+        server.offline = true
+
+        val ran = run("server")
+
+        assertEquals(ExitCode.SERVER_CHECK_FAILED, ran.code)
+        assertTrue(ran.err, ran.err.contains("fake server is offline"))
+    }
 }

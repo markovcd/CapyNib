@@ -7,7 +7,14 @@ package io.github.markovcd.capynib.core.memos
 class FakeMemosServer : MemosApi {
     val memos = linkedMapOf<String, ServerMemo>()
     var offline = false
+
+    /** The memos version the server reports; null reports none. */
+    var version: String? = "0.31.0"
     var loseNextCreateReply = false
+
+    /** Answers updates as a memos that ignores the archived state would. */
+    var ignoresArchive = false
+
     var calls = 0
         private set
     private var clock = 1_000L
@@ -46,7 +53,7 @@ class FakeMemosServer : MemosApi {
         calls++
         if (offline) return unreachable
         val memo = memos[id] ?: return ApiResult.NotFound
-        memos[id] = memo.copy(state = state, updatedAt = ++clock)
+        memos[id] = memo.copy(state = if (ignoresArchive) state.copy(archived = memo.state.archived) else state, updatedAt = ++clock)
         return ApiResult.Ok(memos.getValue(id))
     }
 
@@ -55,6 +62,8 @@ class FakeMemosServer : MemosApi {
         if (offline) return unreachable
         return if (memos.remove(id) == null) ApiResult.NotFound else ApiResult.Ok(Unit)
     }
+
+    override suspend fun serverVersion(): ApiResult<String?> = if (offline) unreachable else ApiResult.Ok(version)
 
     override suspend fun currentUser(): ApiResult<String> = if (offline) unreachable else ApiResult.Ok("tester")
 

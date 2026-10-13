@@ -47,6 +47,21 @@ internal class MemosHttp(val server: ServerAddress, private val client: OkHttpCl
         }
     }
 
+    /**
+     * The memos version the server reports, asked without a token, or null when it reports none:
+     * memos 0.25 and later answer at `instance/profile`, older releases at `workspace/profile`.
+     */
+    suspend fun serverVersion(): ApiResult<String?> {
+        for (path in listOf("instance/profile", "workspace/profile")) {
+            when (val result = call<InstanceProfileDto>(Request.Builder().url(api(path)).get(), null)) {
+                is ApiResult.Ok -> return ApiResult.Ok(result.value.version.ifEmpty { null })
+                is ApiResult.Failed -> return result
+                ApiResult.NotFound, ApiResult.AlreadyExists -> continue
+            }
+        }
+        return ApiResult.Ok(null)
+    }
+
     fun unexpected(what: String): ApiResult.Failed = ApiResult.Failed(SyncFailure.Server(200, "unexpected reply from ${server}: $what"))
 
     private fun errorMessage(text: String): String =

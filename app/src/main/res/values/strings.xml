@@ -88,6 +88,12 @@
     <string name="settings_token_missing">Enter an access token</string>
     <string name="settings_checking">Checking…</string>
     <string name="settings_connected">Connected to %1$s as %2$s</string>
+    <string name="settings_check_server">Check server</string>
+    <string name="settings_check_passed">Every call Capynib makes works on this server (memos %1$s).</string>
+    <string name="settings_check_failed">This server (memos %1$s) does not do everything Capynib needs:</string>
+    <string name="settings_check_problem">• %1$s: %2$s</string>
+    <string name="settings_check_leftover">Its test memo %1$s could not be deleted; delete it in memos.</string>
+    <string name="settings_check_no_version">version not reported</string>
     <string name="settings_trash_section">Trash</string>
     <string name="settings_trash_days">Days deleted notes stay in the trash</string>
     <string name="settings_trash_days_help">From %1$d to %2$d days</string>

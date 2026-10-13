@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import io.github.markovcd.capynib.AppGraph
 import io.github.markovcd.capynib.core.memos.ApiResult
 import io.github.markovcd.capynib.core.memos.ServerAddress
+import io.github.markovcd.capynib.core.memos.ServerCheck
 import io.github.markovcd.capynib.core.memos.SignInResult
 import io.github.markovcd.capynib.core.memos.SyncFailure
 import io.github.markovcd.capynib.core.store.Trash
@@ -97,6 +98,22 @@ class SettingsViewModel(private val graph: AppGraph) : ViewModel() {
         val days = Trash.parseDays(text) ?: return
         graph.trash.save(days)
         viewModelScope.launch(Dispatchers.IO) { graph.emptyTrash() }
+    }
+
+    /**
+     * Tries every call sync makes against the saved server. The writes go to a memo of the check's
+     * own, deleted at the end; the user's memos are not touched.
+     */
+    fun checkServer() {
+        val api = graph.api(saved.value) ?: return
+        mutableMessage.value = SettingsMessage.Checking
+        viewModelScope.launch {
+            mutableMessage.value = when (val result = ServerCheck(api).run()) {
+                is ApiResult.Ok -> SettingsMessage.Checked(result.value)
+                is ApiResult.Failed -> SettingsMessage.Failed(result.failure)
+                ApiResult.NotFound, ApiResult.AlreadyExists -> SettingsMessage.Failed(SyncFailure.Server(404, "not a memos server"))
+            }
+        }
     }
 
     fun disconnect() {

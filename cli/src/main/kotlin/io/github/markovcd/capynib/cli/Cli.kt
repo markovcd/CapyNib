@@ -8,6 +8,7 @@ import io.github.markovcd.capynib.core.memos.LoopbackReceiver
 import io.github.markovcd.capynib.core.memos.HttpMemosApi
 import io.github.markovcd.capynib.core.memos.MemosApi
 import io.github.markovcd.capynib.core.memos.ServerAddress
+import io.github.markovcd.capynib.core.memos.ServerCheck
 import io.github.markovcd.capynib.core.memos.SignInResult
 import io.github.markovcd.capynib.core.note.Checklist
 import io.github.markovcd.capynib.core.note.ChecklistLine
@@ -72,6 +73,7 @@ class Cli(
             }
             "sync" -> sync(store, parsed, out, err)
             "login" -> login(parsed, out, err)
+            "server" -> checkServer(parsed, out, err)
             "colors" -> {
                 NoteColor.entries.forEach { out.appendLine(it.key) }
                 ExitCode.OK
@@ -168,8 +170,7 @@ class Cli(
 
     private fun sync(store: NoteStore, args: Arguments, out: Appendable, err: Appendable): Int {
         val server = server("sync", args) { return usage(err, it) }
-        val token = env["CAPYNIB_TOKEN"]?.takeIf { it.isNotBlank() }
-            ?: return usage(err, "sync needs the memos access token in CAPYNIB_TOKEN")
+        val token = token("sync") { return usage(err, it) }
         val days = trashDays(args) { return usage(err, it) }
         val report = runBlocking { SyncEngine(store, api(server, token), days, clock).sync() }
         if (args.flag("json")) {
@@ -179,6 +180,27 @@ class Cli(
         }
         report.failure?.let { err.appendLine("sync failed: ${it.message}") }
         return if (report.succeeded) ExitCode.OK else ExitCode.SYNC_FAILED
+    }
+
+    private fun checkServer(args: Arguments, out: Appendable, err: Appendable): Int {
+        val server = server("server", args) { return usage(err, it) }
+        val token = token("server") { return usage(err, it) }
+        val report = when (val result = runBlocking { ServerCheck(api(server, token)).run() }) {
+            is ApiResult.Ok -> result.value
+            is ApiResult.Failed -> {
+                err.appendLine("server check failed: ${result.failure.message}")
+                return ExitCode.SERVER_CHECK_FAILED
+            }
+            ApiResult.NotFound, ApiResult.AlreadyExists -> error("a server check finds no memo")
+        }
+        if (args.flag("json")) {
+            out.appendLine(json.encodeToString(ServerJson.of(report)))
+        } else {
+            out.appendLine("memos ${report.version ?: "(version not reported)"}")
+            report.results.forEach { out.appendLine(if (it.works) "ok    ${it.capability.what}" else "FAIL  ${it.capability.what}: ${it.problem}") }
+        }
+        report.leftover?.let { err.appendLine("the check's memo $it could not be deleted; delete it in memos") }
+        return if (report.works) ExitCode.OK else ExitCode.SERVER_CHECK_FAILED
     }
 
     private fun login(args: Arguments, out: Appendable, err: Appendable): Int {
@@ -225,6 +247,9 @@ class Cli(
         val text = args.option("trash-days") ?: return Trash.DEFAULT_DAYS
         return Trash.parseDays(text) ?: problem("--trash-days takes a whole number of days from ${Trash.DAYS.first} to ${Trash.DAYS.last}, not '$text'")
     }
+
+    private inline fun token(command: String, problem: (String) -> Nothing): String =
+        env["CAPYNIB_TOKEN"]?.takeIf { it.isNotBlank() } ?: problem("$command needs the memos access token in CAPYNIB_TOKEN")
 
     private inline fun server(command: String, args: Arguments, problem: (String) -> Nothing): ServerAddress {
         val text = args.option("server") ?: env["CAPYNIB_SERVER"] ?: problem("$command needs --server URL or CAPYNIB_SERVER")
@@ -289,6 +314,7 @@ class Cli(
             "empty-trash" to Command(setOf("trash-days")),
             "sync" to Command(setOf("server", "trash-days"), setOf("json")),
             "login" to Command(setOf("server"), setOf("json")),
+            "server" to Command(setOf("server"), setOf("json")),
             "colors" to Command(),
         )
         val USAGE = """
@@ -305,6 +331,7 @@ class Cli(
             |  empty-trash [--trash-days N]  delete notes N days (default 7) in the trash; prints how many
             |  sync [--server URL] [--trash-days N] [--json]  token from CAPYNIB_TOKEN
             |  login [--server URL] [--json] sign in in the browser; prints a new access token
+            |  server [--server URL] [--json] try every call sync makes on its own test memo; token from CAPYNIB_TOKEN
             |  colors
             |The database defaults to CAPYNIB_DB, then ./capynib.db.
             |

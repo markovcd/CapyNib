@@ -7,4 +7,5 @@ object ExitCode {
     const val NOT_FOUND = 2
     const val SYNC_FAILED = 3
     const val LOGIN_FAILED = 4
+    const val SERVER_CHECK_FAILED = 5
 }

@@ -1,6 +1,7 @@
 # The gate, on every push to main and every pull request: ./gate.sh builds the app and runs every
 # test (core, command line, Robolectric UI, and sync against a real memos server) in a pinned
-# Android SDK container. A green run on main uploads the debug APK to install.
+# Android SDK container, then the core and command-line tests against every other memos release in
+# memos-versions.txt. A green run on main uploads the debug APK to install.
 name: gate
 
 on:

@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.markovcd.capynib.R
 import io.github.markovcd.capynib.core.memos.LoopbackReceiver
+import io.github.markovcd.capynib.core.memos.ServerReport
 import io.github.markovcd.capynib.core.memos.SyncFailure
 import io.github.markovcd.capynib.core.store.Trash
 import io.github.markovcd.capynib.ui.SyncStatusLabel
@@ -78,12 +79,17 @@ fun SettingsScreen(model: SettingsViewModel, onClose: () -> Unit) {
                 Text(stringResource(R.string.settings_intro), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
             }
             if (saved.isConfigured) {
-                TextButton(
-                    onClick = model::disconnect,
-                    modifier = Modifier.testTag(Tags.DISCONNECT),
-                    colors = ButtonDefaults.textButtonColors(contentColor = colors.error),
-                ) {
-                    Text(stringResource(R.string.settings_disconnect))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilledTonalButton(onClick = model::checkServer, modifier = Modifier.testTag(Tags.CHECK_SERVER)) {
+                        Text(stringResource(R.string.settings_check_server))
+                    }
+                    TextButton(
+                        onClick = model::disconnect,
+                        modifier = Modifier.testTag(Tags.DISCONNECT),
+                        colors = ButtonDefaults.textButtonColors(contentColor = colors.error),
+                    ) {
+                        Text(stringResource(R.string.settings_disconnect))
+                    }
                 }
             } else {
                 OutlinedTextField(
@@ -160,6 +166,7 @@ private fun messageText(message: SettingsMessage): String = when (message) {
     SettingsMessage.TokenMissing -> stringResource(R.string.settings_token_missing)
     SettingsMessage.Checking -> stringResource(R.string.settings_checking)
     is SettingsMessage.Connected -> stringResource(R.string.settings_connected, message.host, message.username)
+    is SettingsMessage.Checked -> checkedText(message.report)
     is SettingsMessage.WaitingForBrowser -> stringResource(R.string.settings_waiting_for_browser, message.provider)
     SettingsMessage.NoSignInProvider -> stringResource(R.string.settings_no_sign_in_provider)
     is SettingsMessage.SignInRefused -> stringResource(R.string.settings_sign_in_refused, message.reason)
@@ -169,4 +176,14 @@ private fun messageText(message: SettingsMessage): String = when (message) {
         is SyncFailure.Unauthorized -> stringResource(R.string.sync_unauthorized)
         is SyncFailure.Server -> stringResource(R.string.sync_error, message.failure.message)
     }
+}
+
+@Composable
+private fun checkedText(report: ServerReport): String {
+    val version = report.version ?: stringResource(R.string.settings_check_no_version)
+    if (report.works) return stringResource(R.string.settings_check_passed, version)
+    val lines = listOf(stringResource(R.string.settings_check_failed, version)) +
+        report.failed.map { stringResource(R.string.settings_check_problem, it.capability.what, it.problem.orEmpty()) } +
+        listOfNotNull(report.leftover?.let { stringResource(R.string.settings_check_leftover, it) })
+    return lines.joinToString("\n")
 }

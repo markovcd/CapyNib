@@ -14,6 +14,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.Request
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -94,6 +95,12 @@ class MemosServerTest {
     @Test
     fun A_notes_tags_are_the_ones_memos_lists_for_its_memo() = runTest {
         val live = LiveMemos.connect()
+        val version = (live.api().serverVersion() as ApiResult.Ok).value.orEmpty()
+        val (major, minor) = version.split('.').take(2).map { it.toIntOrNull() ?: 0 } + listOf(0, 0)
+        assumeTrue(
+            "skip on memos $version: TagLexer ports the lexer of 0.31, and older releases end a tag at an apostrophe (ADR 0007)",
+            major > 0 || minor >= 31,
+        )
         val store = stores.open("tags-")
         val notes = listOf(
             store.create(++now, "Lisbon #travel", "- [ ] socks #packing\n- [x] passport #packing/documents", NoteColor.Sand),
@@ -112,6 +119,19 @@ class MemosServerTest {
             val expected = serverTags.getValue(content).filterNot { it == "color" || it.startsWith("color/") }
             assertEquals(content, expected, NoteTags.of(note).flatMap(NoteTags::withParents).distinct())
         }
+    }
+
+    @Test
+    fun Every_call_sync_makes_works_and_the_check_leaves_the_users_memos_as_they_were() = runTest {
+        val api = LiveMemos.connect().api()
+        val mine = MemoState("mine", pinned = false, archived = false, position = 1_760_000_000)
+        api.create("kept-1", mine)
+
+        val report = (ServerCheck(api).run() as ApiResult.Ok).value
+
+        assertEquals(report.failed.toString(), true, report.works)
+        assertEquals(null, report.leftover)
+        assertEquals(listOf(mine), (api.listAll() as ApiResult.Ok).value.map { it.state })
     }
 
     @Test

@@ -88,6 +88,8 @@ class HttpMemosApi(
             else -> result.mapError()
         }
 
+    override suspend fun serverVersion(): ApiResult<String?> = http.serverVersion()
+
     override suspend fun currentUser(): ApiResult<String> =
         when (val result = call<CurrentUserDto>(Request.Builder().url(api("auth/me")).get())) {
             is ApiResult.Ok -> result.value.user?.let { ApiResult.Ok(it.username) } ?: unexpected("auth/me")

@@ -1,0 +1,42 @@
+# Every Monday, and on demand: the gate against the newest memos release (neosmemo/memos:stable,
+# which memos moves to each release), so a release that changes a call Capynib makes turns this red
+# before users upgrade into it.
+# The image is unpinned on purpose: following the newest release is the point. Nothing is published.
+name: memos-stable
+
+on:
+  schedule:
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .gradle-home
+          key: gradle-${{ hashFiles('gradle/libs.versions.toml', '**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      # The server's address names no release, so --rerun-tasks keeps last week's results from passing for this week's image.
+      - name: Gate against memos stable
+        env:
+          GATE_MEMOS_RELEASES: stable neosmemo/memos:stable
+        run: docker pull neosmemo/memos:stable && ./gate.sh --rerun-tasks
+
+      - name: Test reports
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-reports
+          path: '*/build/reports/tests/'
+          retention-days: 7

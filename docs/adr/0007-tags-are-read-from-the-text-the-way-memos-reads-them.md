@@ -27,4 +27,6 @@ over the literal text of a full GFM parse, leaving out code, links, autolinks an
 - Tags work offline and need no migration; editing a tag is editing text.
 - A note whose text uses math, `_#tag_` or an email address before a tag can show a tag memos does
   not list, or miss one it does. memos' own lists still come from the server's parse.
-- `MemosServerTest` checks a set of everyday notes against a real memos server's tags.
+- `MemosServerTest` checks a set of everyday notes against a real memos server's tags, on 0.31 and
+  newer. memos 0.28 to 0.30 end a tag at an apostrophe (`#O'Brien's` is `O`), so there a note
+  such as that one shows a longer tag than memos lists.

@@ -58,6 +58,7 @@ object Tags {
     const val REDIRECT_URI = "redirect-uri"
     const val CONNECT = "connect"
     const val DISCONNECT = "disconnect"
+    const val CHECK_SERVER = "check-server"
     const val SETTINGS_MESSAGE = "settings-message"
     const val TRASH_DAYS = "trash-days"
 }

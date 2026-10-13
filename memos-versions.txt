@@ -1,0 +1,7 @@
+# The memos releases the gate runs the live tests against, server check included, oldest first: the
+# newest patch of each minor release. The last is the server the full gate runs against. A weekly run
+# (memos-stable.yml) does the same against memos:stable, so a release that breaks a call shows first there.
+0.28.0 neosmemo/memos:0.28.0@sha256:06066de94333c091ee67c2ad5dec5f15bf5f35b31498c90092f9915dd05e9f92
+0.29.1 neosmemo/memos:0.29.1@sha256:3e1253477066eb2aefa91145f7f9038bb931ed88c8a3ee05310a933594cdba7d
+0.30.0 neosmemo/memos:0.30.0@sha256:71a5b4738d1bed96e92112004054f0888e92791b64eb78afd79077c96e6f9327
+0.31.0 neosmemo/memos:0.31.0@sha256:24c2707ddd8fbd2ceaa7a61ecab86a53cdcde640b24ce572b73da14b00b5785f

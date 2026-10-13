@@ -36,6 +36,9 @@ dependencies {
 tasks.test {
     usesService(gradle.sharedServices.registrations.getByName("liveMemosServer").service)
     environment("MEMOS_TEST_URL", System.getenv("MEMOS_TEST_URL") ?: "")
+    // Environment is no task input, but which server the live tests ran against is: the gate names
+    // each memos server by its version, so a result is reused only for the same release.
+    inputs.property("memosTestUrl", System.getenv("MEMOS_TEST_URL") ?: "")
     testLogging {
         events("failed", "skipped")
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL

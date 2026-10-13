@@ -300,6 +300,41 @@ class CapynibRootTest {
         compose.waitUntil(timeoutMillis = 5_000) { graph.scheduler.status.value is SyncStatus.Synced }
     }
 
+    private fun connectWithToken() {
+        compose.onNodeWithTag(Tags.SETTINGS).performClick()
+        compose.onNodeWithTag(Tags.SERVER).performTextReplacement("https://memos.example.com")
+        compose.onNodeWithTag(Tags.TOKEN).performTextReplacement("memos_pat_test")
+        compose.onNodeWithTag(Tags.CONNECT).performScrollTo().performClick()
+        awaitText("Connected to memos.example.com as tester")
+    }
+
+    @Test
+    fun Check_server_says_every_call_works_and_leaves_no_memo_behind() {
+        connectWithToken()
+        server.put("mine", "groceries")
+
+        compose.onNodeWithTag(Tags.CHECK_SERVER).performScrollTo().performClick()
+
+        awaitText("Every call Capynib makes works on this server (memos 0.31.0).")
+        assertEquals(listOf("mine"), server.memos.keys.toList())
+    }
+
+    @Test
+    fun Check_server_names_each_call_the_server_gets_wrong() {
+        server.ignoresArchive = true
+        connectWithToken()
+
+        compose.onNodeWithTag(Tags.CHECK_SERVER).performScrollTo().performClick()
+
+        compose.waitUntil(timeoutMillis = 5_000) {
+            compose.onAllNodesWithText("does not do everything Capynib needs", substring = true).fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag(Tags.SETTINGS_MESSAGE).assertTextContains(
+            "• change a memo's text, pin, archive and create time: the server answered, but not with what was asked for",
+            substring = true,
+        )
+    }
+
     @Test
     fun Signing_in_without_a_browser_says_so_and_saves_nothing() {
         hasBrowser = false

@@ -143,6 +143,34 @@ class HttpMemosApiTest {
     }
 
     @Test
+    fun The_server_version_is_read_from_the_instance_profile_without_the_token() = runTest {
+        reply(200, """{"version":"0.31.0","demo":false,"instanceUrl":""}""")
+
+        assertEquals(ApiResult.Ok("0.31.0"), api.serverVersion())
+        val request = heard()
+        assertEquals("/api/v1/instance/profile", request.url.encodedPath)
+        assertNull(request.headers["Authorization"])
+    }
+
+    @Test
+    fun A_server_older_than_the_instance_profile_is_read_from_its_workspace_profile() = runTest {
+        reply(404, """{"code":5,"message":"Not Found"}""")
+        reply(200, """{"owner":"","version":"0.24.4","mode":"prod"}""")
+
+        assertEquals(ApiResult.Ok("0.24.4"), api.serverVersion())
+        assertEquals("/api/v1/instance/profile", heard().url.encodedPath)
+        assertEquals("/api/v1/workspace/profile", heard().url.encodedPath)
+    }
+
+    @Test
+    fun A_server_that_reports_no_version_has_none() = runTest {
+        reply(404, "{}")
+        reply(404, "{}")
+
+        assertEquals(ApiResult.Ok(null), api.serverVersion())
+    }
+
+    @Test
     fun A_server_address_without_a_scheme_means_https_and_junk_is_refused() {
         assertEquals("https://memos.example.com", ServerAddress.parse(" memos.example.com/ ").toString())
         assertEquals("http://10.0.0.2:5230", ServerAddress.parse("http://10.0.0.2:5230").toString())

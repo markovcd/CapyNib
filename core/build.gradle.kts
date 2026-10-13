@@ -51,6 +51,12 @@ tasks.test {
     // The memos integration tests read these; the gate always sets them.
     environment("MEMOS_TEST_URL", System.getenv("MEMOS_TEST_URL") ?: "")
     environment("MEMOS_TEST_REACH_BACK", System.getenv("MEMOS_TEST_REACH_BACK") ?: "")
+    // Environment is no task input, but which server the live tests ran against is: the gate names
+    // each memos server by its version, so a result is reused only for the same release.
+    inputs.property("memosTestUrl", System.getenv("MEMOS_TEST_URL") ?: "")
+    // Tests read these repository files, so a change to them reruns the tests.
+    inputs.file(rootProject.file("memos-versions.txt")).withPathSensitivity(PathSensitivity.RELATIVE)
+    inputs.dir(rootProject.file(".github/workflows")).withPathSensitivity(PathSensitivity.RELATIVE)
     testLogging {
         events("failed", "skipped")
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
