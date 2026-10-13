@@ -34,6 +34,7 @@ import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.RestoreFromTrash
 import androidx.compose.material.icons.outlined.Unarchive
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -91,6 +92,17 @@ fun EditorScreen(editor: NoteEditor, onClose: () -> Unit) {
     BackHandler(onBack = leave)
     val checklist = Checklist.isChecklist(note.body)
     val editable = !note.inTrash
+    var confirmingDelete by remember { mutableStateOf(false) }
+    if (confirmingDelete) {
+        ConfirmDeleteForever(
+            onConfirm = {
+                confirmingDelete = false
+                editor.deleteForever()
+                onClose()
+            },
+            onDismiss = { confirmingDelete = false },
+        )
+    }
     val fill = NoteColors.background(note.color)
 
     Scaffold(
@@ -111,10 +123,7 @@ fun EditorScreen(editor: NoteEditor, onClose: () -> Unit) {
                             Icon(Icons.Outlined.RestoreFromTrash, contentDescription = stringResource(R.string.editor_restore))
                         }
                         IconButton(
-                            onClick = {
-                                editor.deleteForever()
-                                onClose()
-                            },
+                            onClick = { confirmingDelete = true },
                             modifier = Modifier.testTag(Tags.DELETE_FOREVER),
                         ) {
                             Icon(Icons.Outlined.DeleteForever, contentDescription = stringResource(R.string.editor_delete_forever))
@@ -187,6 +196,25 @@ fun EditorScreen(editor: NoteEditor, onClose: () -> Unit) {
             }
         }
     }
+}
+
+/** Asks before a note is deleted for good, since nothing can bring it back. */
+@Composable
+private fun ConfirmDeleteForever(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        text = { Text(stringResource(R.string.editor_delete_forever_question)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm, modifier = Modifier.testTag(Tags.CONFIRM_DELETE_FOREVER)) {
+                Text(stringResource(R.string.editor_delete_forever))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, modifier = Modifier.testTag(Tags.CANCEL_DELETE_FOREVER)) {
+                Text(stringResource(R.string.editor_cancel))
+            }
+        },
+    )
 }
 
 /** Unticked items and text in their order, then the ticked items under a count, as Keep does. */

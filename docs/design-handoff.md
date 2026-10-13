@@ -55,7 +55,8 @@ quiet.
 **Note** (`ui/editor/EditorScreen.kt`)
 - The whole screen takes the note's color.
 - Top bar, transparent: back, pin (outlined or filled pin), archive or unarchive, delete. A note
-  in the trash is read-only, with no bottom bar, and its top bar has restore and delete forever.
+  in the trash is read-only, with no bottom bar, and its top bar has restore and delete forever, which asks
+  first in a dialog.
 - A borderless title field ("Title") and either a borderless body field ("Note") or a checklist:
   rows of checkbox, item text and a remove (x) button; an "+ List item" row; then "N checked
   items" and the ticked rows, struck through.

@@ -22,6 +22,8 @@ object Tags {
     const val DELETE = "delete"
     const val RESTORE = "restore"
     const val DELETE_FOREVER = "delete-forever"
+    const val CONFIRM_DELETE_FOREVER = "confirm-delete-forever"
+    const val CANCEL_DELETE_FOREVER = "cancel-delete-forever"
     const val TITLE = "title"
     const val BODY = "body"
     const val CHECKBOXES = "checkboxes"

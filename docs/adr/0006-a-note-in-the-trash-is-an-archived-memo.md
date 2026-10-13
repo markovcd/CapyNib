@@ -22,4 +22,4 @@ deleting one is final.
 - Until the week is up, the server still holds the note, so a lost phone does not lose it.
 - Another device and the memos web app see a trashed note as archived, and lose it when the
   device that trashed it deletes it for good.
-- Delete forever, from the trash, deletes at once, as delete did before.
+- Delete forever, from the trash, asks first and then deletes at once, as delete did before.

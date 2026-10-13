@@ -165,13 +165,19 @@ class CapynibRootTest {
     }
 
     @Test
-    fun Deleting_forever_from_the_trash_leaves_nothing_behind() {
+    fun Deleting_forever_from_the_trash_asks_first_then_leaves_nothing_behind() {
         val id = graph.store.create(graph.clock(), title = "gone").id
         graph.store.trash(id, graph.clock())
         compose.onNodeWithTag(Tags.TRASH_TOGGLE).performClick()
         open(id)
 
         compose.onNodeWithTag(Tags.DELETE_FOREVER).performClick()
+        compose.onNodeWithTag(Tags.CANCEL_DELETE_FOREVER).performClick()
+        awaitNoTag(Tags.CANCEL_DELETE_FOREVER)
+        assertEquals(true, graph.store.get(id)?.inTrash)
+
+        compose.onNodeWithTag(Tags.DELETE_FOREVER).performClick()
+        compose.onNodeWithTag(Tags.CONFIRM_DELETE_FOREVER).performClick()
 
         waitForStore { graph.store.get(id) == null }
         awaitTag(Tags.EMPTY_BOARD)

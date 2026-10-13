@@ -37,6 +37,8 @@
     <string name="editor_delete">Delete</string>
     <string name="editor_restore">Restore</string>
     <string name="editor_delete_forever">Delete forever</string>
+    <string name="editor_delete_forever_question">Delete this note forever? It cannot be restored.</string>
+    <string name="editor_cancel">Cancel</string>
     <string name="editor_show_checkboxes">Show checkboxes</string>
     <string name="editor_hide_checkboxes">Hide checkboxes</string>
     <string name="editor_remove_item">Remove item</string>
