@@ -21,6 +21,7 @@ the docs, ADRs, comments, test names and commit messages.
 | **pinned** | Kept at the top of the board. | `pinned` | starred, favorite |
 | **position** | Where a note sits on the board; a higher one is nearer the top. Synced as the memo's create time. | `position` | rank, order index |
 | **move** | Dragging a note to another place on the board. | `move` | reorder, sort |
+| **selection** | The notes picked by a long press, which the selection bar acts on together. | `Selection` | multi-select, checked (that is a checklist item) |
 | **archive** | Notes put away: off the board but kept and synced. | `archived` | trash (deleting is separate) |
 | **trash** | Deleted notes, kept for the days set in settings (a week by default) and read-only until restored or deleted for good. Their memos are archived meanwhile. | `trashedAt`, `Shelf.Trash`, `Trash` | bin, recycle bin, archive |
 | **shelf** | Which notes the board shows: the notes in use, the archive or the trash. | `Shelf` | tab, filter, view |

@@ -26,6 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -40,18 +42,22 @@ private const val PREVIEW_LINES = 10
 private const val TICKED_ALPHA = 0.62f
 private const val TAG_ALPHA = 0.08f
 
-/** A note on the board: its color, title, the start of its text or checklist, and its tags. */
+/** A note on the board: its color, title, the start of its text or checklist, and its tags; a picked note wears a thick outline. */
 @Composable
-fun NoteCard(note: Note, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+fun NoteCard(note: Note, selected: Boolean, onOpen: () -> Unit, modifier: Modifier = Modifier) {
     Card(
         onClick = onOpen,
-        modifier = modifier.fillMaxWidth().testTag(Tags.card(note.id)),
+        modifier = modifier.fillMaxWidth().semantics { this.selected = selected }.testTag(Tags.card(note.id)),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = NoteColors.background(note.color),
             contentColor = MaterialTheme.colorScheme.onSurface,
         ),
-        border = if (NoteColors.needsOutline(note.color)) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
+        border = when {
+            selected -> BorderStroke(2.dp, MaterialTheme.colorScheme.onSurface)
+            NoteColors.needsOutline(note.color) -> BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            else -> null
+        },
     ) {
         Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             if (note.title.isNotBlank()) {

@@ -8,6 +8,9 @@
 - A trash that keeps deleted notes for a week, or as many days as you set.
 - Checklists with items you can tick.
 - Tags: write `#tag` in a note to see it on the card and narrow the board to it.
+- Long press to pick several notes and pin, color, archive or delete them together.
+- Drag a note to move it; its place syncs, and the memos web app lists notes in the same order.
+- Swipe a note left to archive it, right to pin it, with Undo for archive and delete.
 - Sync with a memos server as you type, working offline until the server is back.
 - `capynib` command line for the same notes and sync.
 - Sign in with the browser, such as with Google, on memos servers that offer it.

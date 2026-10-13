@@ -3,9 +3,12 @@ package io.github.markovcd.capynib.ui.board
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.markovcd.capynib.AppGraph
+import io.github.markovcd.capynib.core.board.BoardChange
 import io.github.markovcd.capynib.core.board.BoardContent
+import io.github.markovcd.capynib.core.board.Selection
 import io.github.markovcd.capynib.core.board.Shelf
 import io.github.markovcd.capynib.core.note.Checklist
+import io.github.markovcd.capynib.core.note.NoteColor
 import io.github.markovcd.capynib.core.sync.SyncStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,10 +22,19 @@ class BoardViewModel(private val graph: AppGraph) : ViewModel() {
     val query = MutableStateFlow("")
     val shelf = MutableStateFlow(Shelf.Notes)
     val tag = MutableStateFlow<String?>(null)
+    private val picked = MutableStateFlow(Selection())
 
     val content: StateFlow<BoardContent?> =
         combine(graph.store.observeVisible(), query, shelf, tag) { notes, query, shelf, tag -> BoardContent.of(notes, query, shelf, tag) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** The picked notes still on the board; a shelf change or a note leaving it drops them. */
+    val selection: StateFlow<Selection> =
+        combine(picked, content) { picked, content -> if (content == null) Selection() else picked.within(content) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Selection())
+
+    /** The last change a swipe or the selection made, for the snackbar to offer to undo. */
+    val lastChange = MutableStateFlow<BoardChange?>(null)
 
     init {
         // Without a server nothing else empties the trash.
@@ -36,4 +48,78 @@ class BoardViewModel(private val graph: AppGraph) : ViewModel() {
     /** Makes an empty note, or a list with one empty item, and returns its id to open it. */
     fun newNote(checklist: Boolean): String =
         graph.store.create(graph.clock(), body = if (checklist) Checklist.toChecklist("") else "").id
+
+    fun showShelf(shelf: Shelf) {
+        picked.value = Selection()
+        this.shelf.value = shelf
+    }
+
+    fun toggle(id: String) {
+        picked.value = selection.value.toggle(id)
+    }
+
+    fun clearSelection() {
+        picked.value = Selection()
+    }
+
+    /** Pins the picked notes, or unpins them when all are pinned. */
+    fun pinSelected() {
+        val ids = selection.value.ids
+        val pins = selection.value.pins(content.value?.let { it.pinned + it.others }.orEmpty())
+        write { graph.store.saveAll(ids, graph.clock()) { it.copy(pinned = pins) } }
+    }
+
+    fun colorSelected(color: NoteColor) {
+        val ids = selection.value.ids
+        write { graph.store.saveAll(ids, graph.clock()) { it.copy(color = color) } }
+    }
+
+    /** Archives the picked notes, or takes them out of the archive when it is shown. */
+    fun archiveSelected() {
+        change(BoardChange(archiveKind(), selection.value.ids))
+        clearSelection()
+    }
+
+    fun trashSelected() {
+        change(BoardChange(BoardChange.Kind.Trash, selection.value.ids))
+        clearSelection()
+    }
+
+    /** A swiped note goes to the archive, or out of it when the archive is shown. */
+    fun swiped(id: String) {
+        change(BoardChange(archiveKind(), setOf(id)))
+    }
+
+    /** A note swiped right is pinned, or unpinned when it was. */
+    fun swipedToPin(id: String) {
+        write { graph.store.saveAll(setOf(id), graph.clock()) { it.copy(pinned = !it.pinned) } }
+    }
+
+    fun undo(change: BoardChange) {
+        write { change.undo(graph.store, graph.clock()) }
+    }
+
+    /** The snackbar for [change] is gone, so it is not offered again. */
+    fun changeShown(change: BoardChange) {
+        lastChange.compareAndSet(change, null)
+    }
+
+    /** Puts note [id] at index [to] of its section, as dropped after a drag. */
+    fun move(id: String, to: Int) {
+        val positions = content.value?.move(id, to).orEmpty()
+        if (positions.isNotEmpty()) write { graph.store.move(positions) }
+    }
+
+    private fun archiveKind() = if (shelf.value == Shelf.Archive) BoardChange.Kind.Unarchive else BoardChange.Kind.Archive
+
+    private fun change(change: BoardChange) {
+        if (change.ids.isEmpty()) return
+        lastChange.value = change
+        write { change.apply(graph.store, graph.clock()) }
+    }
+
+    private fun write(block: () -> Unit) {
+        block()
+        graph.scheduler.requestSync()
+    }
 }

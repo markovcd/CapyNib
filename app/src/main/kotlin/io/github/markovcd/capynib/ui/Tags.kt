@@ -13,6 +13,15 @@ object Tags {
     const val EMPTY_BOARD = "empty-board"
     const val PINNED = "pinned"
     const val OTHERS = "others"
+    const val BOARD = "board"
+    const val SELECTION_BAR = "selection-bar"
+    const val CLOSE_SELECTION = "close-selection"
+    const val SELECTED_COUNT = "selected-count"
+    const val PIN_SELECTED = "pin-selected"
+    const val COLOR_SELECTED = "color-selected"
+    const val ARCHIVE_SELECTED = "archive-selected"
+    const val TRASH_SELECTED = "trash-selected"
+    const val UNDO = "undo"
 
     fun card(id: String) = "card-$id"
 

@@ -1,6 +1,13 @@
 package io.github.markovcd.capynib.ui.board
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,20 +21,28 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridScope
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.CheckBox
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Lightbulb
+import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Unarchive
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -35,47 +50,101 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SmallFloatingActionButton
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerInputScope
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.toSize
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.markovcd.capynib.R
+import io.github.markovcd.capynib.core.board.BoardChange
 import io.github.markovcd.capynib.core.board.BoardContent
+import io.github.markovcd.capynib.core.board.Selection
 import io.github.markovcd.capynib.core.board.Shelf
 import io.github.markovcd.capynib.core.note.Note
+import io.github.markovcd.capynib.core.note.NoteColor
 import io.github.markovcd.capynib.core.sync.SyncStatus
+import io.github.markovcd.capynib.ui.ColorPalette
 import io.github.markovcd.capynib.ui.PlainTextField
 import io.github.markovcd.capynib.ui.SyncStatusLabel
 import io.github.markovcd.capynib.ui.Tags
 import io.github.markovcd.capynib.ui.theme.color
+import kotlinx.coroutines.launch
+
+/** How close to the board's top or bottom edge a dragged note scrolls it. */
+private val SCROLL_EDGE = 48.dp
 
 @Composable
 fun BoardScreen(model: BoardViewModel, onOpen: (String) -> Unit, onSettings: () -> Unit) {
     val content by model.content.collectAsStateWithLifecycle()
     val query by model.query.collectAsStateWithLifecycle()
     val shelf by model.shelf.collectAsStateWithLifecycle()
+    val selection by model.selection.collectAsStateWithLifecycle()
+    val lastChange by model.lastChange.collectAsStateWithLifecycle()
     val status by model.status.collectAsStateWithLifecycle()
     val trashDays by model.trashDays.collectAsStateWithLifecycle()
     BoardLayout(
         content = content,
         query = query,
         shelf = shelf,
+        selection = selection,
+        lastChange = lastChange,
         status = status,
         trashDays = trashDays,
         onQuery = { model.query.value = it },
-        onShelf = { model.shelf.value = it },
+        onShelf = model::showShelf,
         onTag = { model.tag.value = it },
         onOpen = onOpen,
         onNew = { checklist -> onOpen(model.newNote(checklist)) },
         onSettings = onSettings,
+        actions = SelectionActions(
+            toggle = model::toggle,
+            clear = model::clearSelection,
+            pin = model::pinSelected,
+            color = model::colorSelected,
+            archive = model::archiveSelected,
+            trash = model::trashSelected,
+        ),
+        onSwiped = model::swiped,
+        onSwipedToPin = model::swipedToPin,
+        onMove = model::move,
+        onUndo = model::undo,
+        onChangeShown = model::changeShown,
     )
 }
 
@@ -84,6 +153,8 @@ fun BoardLayout(
     content: BoardContent?,
     query: String,
     shelf: Shelf,
+    selection: Selection,
+    lastChange: BoardChange?,
     status: SyncStatus,
     trashDays: Int,
     onQuery: (String) -> Unit,
@@ -92,17 +163,42 @@ fun BoardLayout(
     onOpen: (String) -> Unit,
     onNew: (checklist: Boolean) -> Unit,
     onSettings: () -> Unit,
+    actions: SelectionActions,
+    onSwiped: (String) -> Unit,
+    onSwipedToPin: (String) -> Unit,
+    onMove: (String, Int) -> Unit,
+    onUndo: (BoardChange) -> Unit,
+    onChangeShown: (BoardChange) -> Unit,
 ) {
+    val snackbar = remember { SnackbarHostState() }
+    ChangeSnackbar(snackbar, lastChange, onUndo, onChangeShown)
+    BackHandler(enabled = selection.isActive) { actions.clear() }
     Scaffold(
         topBar = {
-            Column {
-                SearchBar(query, shelf, status, onQuery, onShelf, onSettings)
-                val tags = content?.tags.orEmpty()
-                if (tags.isNotEmpty()) TagBar(tags, content?.tag, onTag)
+            if (selection.isActive) {
+                val notes = content?.let { it.pinned + it.others }.orEmpty()
+                SelectionBar(selection, pins = selection.pins(notes), shelf, actions)
+            } else {
+                Column {
+                    SearchBar(query, shelf, status, onQuery, onShelf, onSettings)
+                    val tags = content?.tags.orEmpty()
+                    if (tags.isNotEmpty()) TagBar(tags, content?.tag, onTag)
+                }
+            }
+        },
+        snackbarHost = {
+            SnackbarHost(snackbar) { data ->
+                Snackbar(
+                    action = {
+                        TextButton(onClick = { data.performAction() }, modifier = Modifier.testTag(Tags.UNDO)) {
+                            Text(data.visuals.actionLabel.orEmpty())
+                        }
+                    },
+                ) { Text(data.visuals.message) }
             }
         },
         floatingActionButton = {
-            if (shelf == Shelf.Notes) {
+            if (shelf == Shelf.Notes && !selection.isActive) {
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     SmallFloatingActionButton(
                         onClick = { onNew(true) },
@@ -138,17 +234,149 @@ fun BoardLayout(
             }
             return@Scaffold
         }
-        LazyVerticalStaggeredGrid(
-            columns = StaggeredGridCells.Adaptive(160.dp),
-            modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 160.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalItemSpacing = 8.dp,
-        ) {
-            if (shelf == Shelf.Trash) trashNotice(trashDays)
-            section(R.string.board_pinned.takeIf { content.pinned.isNotEmpty() }, Tags.PINNED, content.pinned, onOpen)
-            section(R.string.board_others.takeIf { content.pinned.isNotEmpty() && content.others.isNotEmpty() }, Tags.OTHERS, content.others, onOpen)
+        NoteGrid(content, query, shelf, selection, trashDays, onOpen, actions, onSwiped, onSwipedToPin, onMove, Modifier.padding(padding))
+    }
+}
+
+/**
+ * The cards. A long press picks a note for the selection; moving the finger after it drags the
+ * note to a new place instead, on the notes shelf when no search or tag narrows it. A swipe left archives
+ * a note, or takes it out of the archive; on the notes shelf a swipe right pins or unpins it.
+ */
+@Composable
+private fun NoteGrid(
+    content: BoardContent,
+    query: String,
+    shelf: Shelf,
+    selection: Selection,
+    trashDays: Int,
+    onOpen: (String) -> Unit,
+    actions: SelectionActions,
+    onSwiped: (String) -> Unit,
+    onSwipedToPin: (String) -> Unit,
+    onMove: (String, Int) -> Unit,
+    modifier: Modifier,
+) {
+    val drag = remember { BoardDrag() }
+    val grid = rememberLazyStaggeredGridState()
+    val scope = rememberCoroutineScope()
+    var coordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    LaunchedEffect(content) { drag.settle() }
+
+    val current by rememberUpdatedState(content)
+    val picked by rememberUpdatedState(selection)
+    val movable = shelf == Shelf.Notes && query.isBlank() && content.tag == null
+    val canMove by rememberUpdatedState(movable)
+    val pressable = shelf != Shelf.Trash
+    val edge = with(LocalDensity.current) { SCROLL_EDGE.toPx() }
+
+    LazyVerticalStaggeredGrid(
+        columns = StaggeredGridCells.Adaptive(160.dp),
+        state = grid,
+        modifier = modifier.fillMaxSize()
+            .pointerInput(pressable) {
+                if (!pressable) return@pointerInput
+                var pickedByPress = false
+                detectPressOnCard(
+                    toRoot = { point -> coordinates?.let { it.localToRoot(point) } ?: point },
+                    noteAt = drag::noteAt,
+                    onLongPress = { id ->
+                        pickedByPress = id !in picked.ids
+                        if (pickedByPress) actions.toggle(id)
+                    },
+                    onDragStart = { id, at ->
+                        if (!canMove) return@detectPressOnCard false
+                        if (pickedByPress) actions.toggle(id)
+                        val section = if (current.pinned.any { it.id == id }) current.pinned else current.others
+                        drag.start(id, at, section.map { it.id })
+                        true
+                    },
+                    onDrag = { at ->
+                        drag.drag(at)
+                        val bounds = coordinates?.let { Rect(it.positionInRoot(), it.size.toSize()) }
+                        if (bounds != null) {
+                            val by = when {
+                                at.y < bounds.top + edge -> -edge / 4
+                                at.y > bounds.bottom - edge -> edge / 4
+                                else -> 0f
+                            }
+                            if (by != 0f) scope.launch { grid.scrollBy(by) }
+                        }
+                    },
+                    onDragEnd = { drag.drop()?.let { (id, index) -> onMove(id, index) } },
+                )
+            }
+            .onGloballyPositioned { coordinates = it }
+            .testTag(Tags.BOARD),
+        contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 160.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalItemSpacing = 8.dp,
+    ) {
+        if (shelf == Shelf.Trash) trashNotice(trashDays)
+        val card = CardBehavior(
+            drag,
+            selection,
+            swipeable = pressable && !selection.isActive,
+            pinnable = shelf == Shelf.Notes,
+            onOpen,
+            actions.toggle,
+            onSwiped,
+            onSwipedToPin,
+        )
+        section(R.string.board_pinned.takeIf { content.pinned.isNotEmpty() }, Tags.PINNED, drag.shown(content.pinned), card)
+        section(R.string.board_others.takeIf { content.pinned.isNotEmpty() && content.others.isNotEmpty() }, Tags.OTHERS, drag.shown(content.others), card)
+    }
+}
+
+/** The section's notes in the order a drag shows them, or as given when no drag is in it. */
+private fun BoardDrag.shown(notes: List<Note>): List<Note> {
+    val ids = order ?: return notes
+    if (ids.size != notes.size) return notes
+    val byId = notes.associateBy { it.id }
+    return ids.mapNotNull { byId[it] }.takeIf { it.size == notes.size } ?: notes
+}
+
+/**
+ * Watches every press on the board before the cards see it. A press held still for a long press
+ * picks the card under it; moving after that drags it, when [onDragStart] allows. Once the long press
+ * is reached the rest of the gesture is the board's, so the card does not also open.
+ */
+private suspend fun PointerInputScope.detectPressOnCard(
+    toRoot: (Offset) -> Offset,
+    noteAt: (Offset) -> String?,
+    onLongPress: (String) -> Unit,
+    onDragStart: (String, Offset) -> Boolean,
+    onDrag: (Offset) -> Unit,
+    onDragEnd: () -> Unit,
+) = awaitEachGesture {
+    val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+    val id = noteAt(toRoot(down.position)) ?: return@awaitEachGesture
+    val slop = viewConfiguration.touchSlop
+    val letGo = withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+        do {
+            val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id }
+        } while (change != null && change.pressed && (change.position - down.position).getDistance() <= slop)
+        true
+    }
+    if (letGo != null) return@awaitEachGesture
+    onLongPress(id)
+
+    var dragging = false
+    while (!dragging) {
+        val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id } ?: return@awaitEachGesture
+        change.consume()
+        if (!change.pressed) return@awaitEachGesture
+        if ((change.position - down.position).getDistance() > slop) dragging = onDragStart(id, toRoot(change.position))
+    }
+    try {
+        while (true) {
+            val change = awaitPointerEvent(PointerEventPass.Initial).changes.firstOrNull { it.id == down.id } ?: break
+            change.consume()
+            if (!change.pressed) break
+            onDrag(toRoot(change.position))
         }
+    } finally {
+        onDragEnd()
     }
 }
 
@@ -211,6 +439,80 @@ private fun TagBar(tags: List<String>, picked: String?, onTag: (String?) -> Unit
     }
 }
 
+/** In place of the search pill while notes are picked: how many, and what to do with them all. */
+@Composable
+private fun SelectionBar(selection: Selection, pins: Boolean, shelf: Shelf, actions: SelectionActions) {
+    val colors = MaterialTheme.colorScheme
+    var palette by remember { mutableStateOf(false) }
+    Row(
+        Modifier.statusBarsPadding().padding(start = 12.dp, end = 12.dp, top = 8.dp).fillMaxWidth().height(52.dp)
+            .clip(CircleShape).background(colors.secondaryContainer).padding(horizontal = 4.dp).testTag(Tags.SELECTION_BAR),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = actions.clear, modifier = Modifier.testTag(Tags.CLOSE_SELECTION)) {
+            Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.board_close_selection), tint = colors.onSecondaryContainer)
+        }
+        Text(
+            stringResource(R.string.board_selected, selection.ids.size),
+            modifier = Modifier.weight(1f).padding(start = 4.dp).testTag(Tags.SELECTED_COUNT),
+            style = MaterialTheme.typography.titleMedium,
+            color = colors.onSecondaryContainer,
+        )
+        IconButton(onClick = actions.pin, modifier = Modifier.testTag(Tags.PIN_SELECTED)) {
+            if (pins) {
+                Icon(Icons.Outlined.PushPin, contentDescription = stringResource(R.string.editor_pin), tint = colors.onSecondaryContainer)
+            } else {
+                Icon(Icons.Filled.PushPin, contentDescription = stringResource(R.string.editor_unpin), tint = colors.onSecondaryContainer)
+            }
+        }
+        Box {
+            IconButton(onClick = { palette = true }, modifier = Modifier.testTag(Tags.COLOR_SELECTED)) {
+                Icon(Icons.Outlined.Palette, contentDescription = stringResource(R.string.board_color_selected), tint = colors.onSecondaryContainer)
+            }
+            DropdownMenu(expanded = palette, onDismissRequest = { palette = false }) {
+                ColorPalette(
+                    selected = null,
+                    onColor = { color ->
+                        palette = false
+                        actions.color(color)
+                    },
+                    modifier = Modifier.width(300.dp).padding(horizontal = 8.dp),
+                )
+            }
+        }
+        IconButton(onClick = actions.archive, modifier = Modifier.testTag(Tags.ARCHIVE_SELECTED)) {
+            if (shelf == Shelf.Archive) {
+                Icon(Icons.Outlined.Unarchive, contentDescription = stringResource(R.string.editor_unarchive), tint = colors.onSecondaryContainer)
+            } else {
+                Icon(Icons.Outlined.Archive, contentDescription = stringResource(R.string.editor_archive), tint = colors.onSecondaryContainer)
+            }
+        }
+        IconButton(onClick = actions.trash, modifier = Modifier.testTag(Tags.TRASH_SELECTED)) {
+            Icon(Icons.Outlined.Delete, contentDescription = stringResource(R.string.editor_delete), tint = colors.onSecondaryContainer)
+        }
+    }
+}
+
+/** Says what the last swipe or selection action did, with Undo, until the next one replaces it. */
+@Composable
+private fun ChangeSnackbar(snackbar: SnackbarHostState, change: BoardChange?, onUndo: (BoardChange) -> Unit, onShown: (BoardChange) -> Unit) {
+    val message = change?.let {
+        val text = when (it.kind) {
+            BoardChange.Kind.Archive -> R.plurals.board_archived
+            BoardChange.Kind.Unarchive -> R.plurals.board_unarchived
+            BoardChange.Kind.Trash -> R.plurals.board_trashed
+        }
+        pluralStringResource(text, it.ids.size, it.ids.size)
+    }
+    val undo = stringResource(R.string.board_undo)
+    LaunchedEffect(change) {
+        if (change == null || message == null) return@LaunchedEffect
+        val result = snackbar.showSnackbar(message, actionLabel = undo, duration = SnackbarDuration.Short)
+        if (result == SnackbarResult.ActionPerformed) onUndo(change)
+        onShown(change)
+    }
+}
+
 /** Shows [target], or the notes again (a light bulb) while [target] is shown. */
 @Composable
 private fun ShelfToggle(target: Shelf, shelf: Shelf, tag: String, icon: ImageVector, label: Int, onShelf: (Shelf) -> Unit) {
@@ -235,7 +537,7 @@ private fun LazyStaggeredGridScope.trashNotice(days: Int) {
     }
 }
 
-private fun LazyStaggeredGridScope.section(heading: Int?, tag: String, notes: List<Note>, onOpen: (String) -> Unit) {
+private fun LazyStaggeredGridScope.section(heading: Int?, tag: String, notes: List<Note>, card: CardBehavior) {
     if (heading != null) {
         item(span = StaggeredGridItemSpan.FullLine, key = "heading-$heading") {
             Text(
@@ -246,7 +548,46 @@ private fun LazyStaggeredGridScope.section(heading: Int?, tag: String, notes: Li
             )
         }
     }
-    items(notes, key = { it.id }) { note -> NoteCard(note, onOpen = { onOpen(note.id) }) }
+    items(notes, key = { it.id }) { note ->
+        val dragged = card.drag.dragged == note.id
+        DisposableEffect(note.id) { onDispose { card.drag.forget(note.id) } }
+        val swipe = rememberSwipeToDismissBoxState()
+        val scope = rememberCoroutineScope()
+        // One callback per card: the box calls it again whenever it changes while still dismissed.
+        val onDismiss: (SwipeToDismissBoxValue) -> Unit = remember(note.id) {
+            { direction ->
+                if (direction == SwipeToDismissBoxValue.StartToEnd) {
+                    card.onSwipedToPin(note.id)
+                    scope.launch { swipe.reset() }
+                } else {
+                    card.onSwiped(note.id)
+                }
+            }
+        }
+        SwipeToDismissBox(
+            state = swipe,
+            backgroundContent = {},
+            modifier = Modifier
+                .animateItem(placementSpec = if (dragged) null else spring(Spring.DampingRatioNoBouncy, Spring.StiffnessMediumLow, IntOffset.VisibilityThreshold))
+                .zIndex(if (dragged) 1f else 0f)
+                .onGloballyPositioned { card.drag.place(note.id, Rect(it.positionInRoot(), it.size.toSize())) }
+                .graphicsLayer {
+                    val offset = card.drag.offsetOf(note.id)
+                    translationX = offset.x
+                    translationY = offset.y
+                    if (dragged) shadowElevation = 8.dp.toPx()
+                },
+            enableDismissFromStartToEnd = card.pinnable,
+            gesturesEnabled = card.swipeable && !dragged,
+            onDismiss = onDismiss,
+        ) {
+            NoteCard(
+                note,
+                selected = note.id in card.selection.ids,
+                onOpen = { if (card.selection.isActive) card.onToggle(note.id) else card.onOpen(note.id) },
+            )
+        }
+    }
 }
 
 /** The sync state at a glance; tapping it opens settings, where it is spelled out. */

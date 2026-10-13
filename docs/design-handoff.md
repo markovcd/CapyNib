@@ -51,7 +51,11 @@ quiet.
   ("Notes you add appear here").
 - A card: the note color as fill (default notes have a thin outline instead), the title in a
   title style, then up to 10 lines of the body; checklist items show a small checkbox glyph,
-  ticked ones struck through. The note's tags follow as small tinted pills ("#travel").
+  ticked ones struck through. The note's tags follow as small tinted pills ("#travel"). A picked card wears a 2 dp `onSurface` outline.
+- Gestures: a long press picks a card and the top bar becomes the selection bar (close, "N
+  selected", pin, color, archive, delete, on `secondaryContainer`); moving the finger after the long
+  press drags the card to a new place instead, lifted with a shadow. A swipe left archives a
+  card, a swipe right pins or unpins it. Archive, unarchive and delete from the board show a snackbar with Undo.
 - Floating buttons: an extended "New note" button with a pencil, and a small "New list" button
   with a checkbox above it.
 
