@@ -71,7 +71,7 @@ class LoopbackReceiver private constructor(private val socket: ServerSocket) : C
         return callback
     }
 
-    /** The request target of an HTTP request line, such as `/quicknib?code=…`; null for anything else. */
+    /** The request target of an HTTP request line, such as `/capynib?code=…`; null for anything else. */
     private fun readTarget(input: InputStream): String? {
         val line = StringBuilder()
         while (line.length < MAX_REQUEST_LINE) {
@@ -108,8 +108,7 @@ class LoopbackReceiver private constructor(private val socket: ServerSocket) : C
         /** The port Capynib's redirect address uses; the sign-in provider must allow that address. */
         const val PORT = 47815
         private const val HOST = "127.0.0.1"
-        /** Registered with sign-in providers, so it keeps the app's first name. */
-        private const val PATH = "/quicknib"
+        private const val PATH = "/capynib"
         private const val MAX_REQUEST_LINE = 8192
         private const val READ_TIMEOUT_MS = 10_000
 

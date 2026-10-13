@@ -12,7 +12,7 @@ with a short-lived session token, while sync wants a token that lasts.
 ## Decision
 
 - The app opens the provider's sign-in page in the browser with `redirect_uri` set to
-  `http://127.0.0.1:47815/quicknib`, served for the length of the sign-in by `LoopbackReceiver`.
+  `http://127.0.0.1:47815/capynib`, served for the length of the sign-in by `LoopbackReceiver`.
   It sends a random `state` and a PKCE challenge; a return without the right `state` is answered
   and ignored.
 - The code goes to memos `auth/signin` as SSO credentials with the same redirect URI and the PKCE
@@ -22,7 +22,7 @@ with a short-lived session token, while sync wants a token that lasts.
 
 ## Consequences
 
-- The server's admin adds `http://127.0.0.1:47815/quicknib` to the OAuth client's authorized
+- The server's admin adds `http://127.0.0.1:47815/capynib` to the OAuth client's authorized
   redirect URIs once. Until then the provider shows its own redirect error and the app keeps
   waiting until sign-in is tapped again.
 - The port is fixed so it can be registered; if another app holds it, sign-in fails with a message

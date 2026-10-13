@@ -74,7 +74,7 @@ class BrowserSignInTest {
         val page = pages.single()
         assertEquals("accounts.example.com", page.host)
         assertEquals(listOf("client-1", "code", "email profile", "S256"), listOf("client_id", "response_type", "scope", "code_challenge_method").map { page.queryParameter(it) })
-        assertTrue(page.queryParameter("redirect_uri")!!.matches(Regex("""http://127\.0\.0\.1:\d+/quicknib""")))
+        assertTrue(page.queryParameter("redirect_uri")!!.matches(Regex("""http://127\.0\.0\.1:\d+/capynib""")))
 
         val credentials = Json.parseToJsonElement(heard().body!!.utf8()).jsonObject["ssoCredentials"]!!.jsonObject
         assertEquals("identity-providers/google", credentials["idpName"]!!.jsonPrimitive.content)
