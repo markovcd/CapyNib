@@ -42,6 +42,8 @@
     <string name="sync_error">Sync failed: %1$s</string>
 
     <string name="settings_title">Settings</string>
+    <string name="settings_section">Memos server</string>
+    <string name="settings_intro">Notes are always saved on this phone. Add your memos server to sync them.</string>
     <string name="settings_server">Memos server address</string>
     <string name="settings_server_example">https://memos.example.com</string>
     <string name="settings_token">Access token</string>

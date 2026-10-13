@@ -8,3 +8,4 @@
 - Checklists with items you can tick.
 - Sync with a memos server as you type, working offline until the server is back.
 - `quicknib` command line for the same notes and sync.
+- Its own icon, a calm teal-grey look, a readable note palette and the Figtree typeface.

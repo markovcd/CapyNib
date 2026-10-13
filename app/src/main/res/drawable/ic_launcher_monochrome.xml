@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The foreground's shapes in one tone for themed icons; the nib's slit and hole are cut out. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M51,32a18,18 0,1 1,0 36a18,18 0,1 1,0 -36z"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="9" />
+    <path
+        android:pathData="M45,57V43L57,57V43"
+        android:strokeColor="#FF000000"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="4" />
+    <group
+        android:rotation="-45"
+        android:scaleX="1.15"
+        android:scaleY="1.15"
+        android:translateX="77"
+        android:translateY="76">
+        <path
+            android:fillColor="#FF000000"
+            android:fillType="evenOdd"
+            android:pathData="M0,0L-7.5,-14V-21H7.5V-14Z M-1,-2V-8.6a1,1 0,0 1,2 0V-2a1,1 0,0 1,-2 0z M-2.1,-11.8a2.1,2.1 0,1 0,4.2 0a2.1,2.1 0,1 0,-4.2 0z" />
+    </group>
+</vector>

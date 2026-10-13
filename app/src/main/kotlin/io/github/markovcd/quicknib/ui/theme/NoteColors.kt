@@ -9,32 +9,32 @@ import io.github.markovcd.quicknib.core.note.NoteColor
 
 /** The one place that knows what each note color looks like, in light and dark themes. */
 object NoteColors {
-    private val light = mapOf(
-        NoteColor.Coral to Color(0xFFFAAFA8),
-        NoteColor.Peach to Color(0xFFF39F76),
-        NoteColor.Sand to Color(0xFFFFF8B8),
-        NoteColor.Mint to Color(0xFFE2F6D3),
-        NoteColor.Sage to Color(0xFFB4DDD3),
-        NoteColor.Fog to Color(0xFFD4E4ED),
-        NoteColor.Storm to Color(0xFFAECCDC),
-        NoteColor.Dusk to Color(0xFFD3BFDB),
-        NoteColor.Blossom to Color(0xFFF6E2DD),
-        NoteColor.Clay to Color(0xFFE9E3D4),
-        NoteColor.Chalk to Color(0xFFEFEFF1),
+    internal val light = mapOf(
+        NoteColor.Coral to Color(0xFFFFC7BE),
+        NoteColor.Peach to Color(0xFFFFE0C8),
+        NoteColor.Sand to Color(0xFFFFECC4),
+        NoteColor.Mint to Color(0xFFB9EAD4),
+        NoteColor.Sage to Color(0xFFD7E1C1),
+        NoteColor.Fog to Color(0xFFE7F3F9),
+        NoteColor.Storm to Color(0xFFB2CEF5),
+        NoteColor.Dusk to Color(0xFFE1D7FF),
+        NoteColor.Blossom to Color(0xFFFFE0EC),
+        NoteColor.Clay to Color(0xFFE7BAA6),
+        NoteColor.Chalk to Color(0xFFFCF2E7),
     )
 
-    private val dark = mapOf(
-        NoteColor.Coral to Color(0xFF77172E),
-        NoteColor.Peach to Color(0xFF692B17),
-        NoteColor.Sand to Color(0xFF7C4A03),
-        NoteColor.Mint to Color(0xFF264D3B),
-        NoteColor.Sage to Color(0xFF0C625D),
-        NoteColor.Fog to Color(0xFF256377),
-        NoteColor.Storm to Color(0xFF284255),
-        NoteColor.Dusk to Color(0xFF472E5B),
-        NoteColor.Blossom to Color(0xFF6C394F),
-        NoteColor.Clay to Color(0xFF4B443A),
-        NoteColor.Chalk to Color(0xFF232427),
+    internal val dark = mapOf(
+        NoteColor.Coral to Color(0xFF683A33),
+        NoteColor.Peach to Color(0xFF6C4520),
+        NoteColor.Sand to Color(0xFF655012),
+        NoteColor.Mint to Color(0xFF274B3D),
+        NoteColor.Sage to Color(0xFF3D4531),
+        NoteColor.Fog to Color(0xFF4D565A),
+        NoteColor.Storm to Color(0xFF253A54),
+        NoteColor.Dusk to Color(0xFF423C5A),
+        NoteColor.Blossom to Color(0xFF644152),
+        NoteColor.Clay to Color(0xFF482F23),
+        NoteColor.Chalk to Color(0xFF5E5952),
     )
 
     /** The background of a note card and of the open note. Default follows the theme's surface. */

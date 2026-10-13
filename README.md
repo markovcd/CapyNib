@@ -32,7 +32,7 @@ The command line works on the same notes and sync as the app (`list`, `add`, `ed
 
 ## Design
 
-The icon, color scheme and UI style are open for a design pass: see [docs/design-handoff.md](docs/design-handoff.md).
+The icon, colors and type come from the [QuickNib identity canvas](https://claude.ai/artifact/RQR8sA3JUE7e8qHsUtp94r); [docs/design-handoff.md](docs/design-handoff.md) says where each token lives. The app uses [Figtree](https://github.com/erikdkennedy/figtree) under the [SIL Open Font License](licenses/Figtree-OFL.txt).
 
 ## License
 

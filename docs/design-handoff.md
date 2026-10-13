@@ -1,8 +1,9 @@
 # Design handoff: icon, color scheme and UI style
 
-QuickNib needs a visual identity. This is what a designer needs to know to produce one: what the
-app is, every screen and control, what can change freely and what cannot, and where each design
-token lives in the code so the result drops in without guesswork.
+What a designer needs to know to restyle QuickNib: what the app is, every screen and control, what
+can change freely and what cannot, and where each design token lives in the code so the result
+drops in without guesswork. The current identity (icon, teal-grey scheme, note palette, Figtree)
+comes from the [QuickNib identity canvas](https://claude.ai/artifact/RQR8sA3JUE7e8qHsUtp94r).
 
 ## The app in one paragraph
 
@@ -93,10 +94,11 @@ icon set is fine if it covers the same meanings.
 |---|---|
 | App color scheme (light and dark) | `app/src/main/kotlin/io/github/markovcd/quicknib/ui/theme/Theme.kt` (`LightColors`, `DarkColors`) |
 | Note palette (light and dark) | `app/src/main/kotlin/io/github/markovcd/quicknib/ui/theme/NoteColors.kt` (`light`, `dark` maps); the only place note colors are defined |
-| Typography, shapes | not customized yet (Material 3 defaults); would go in `ui/theme/` next to `Theme.kt` |
-| Card corner radius, outline | `ui/board/NoteCard.kt` (12 dp, 1 dp `outlineVariant` outline on default notes) |
+| Typography | `ui/theme/QuickNibType.kt` (Figtree in `res/font/`, license in `licenses/`) |
+| Sync status icon colors | `ui/theme/SyncToneColor.kt` |
+| Card corner radius, outline | `ui/board/NoteCard.kt` (16 dp, 1 dp `outlineVariant` outline on default notes) |
 | Window color before the UI draws | `app/src/main/res/values/colors.xml`, `values-night/colors.xml` (`window_background`) |
-| Launcher icon | `app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml`, `res/drawable/ic_launcher_foreground.xml`, `res/values/colors.xml` (`ic_launcher_background`) — the current one is a placeholder |
+| Launcher icon | `app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml`, `res/drawable/ic_launcher_foreground.xml`, `ic_launcher_monochrome.xml`, `res/values/colors.xml` (`ic_launcher_background`) |
 | UI text | `app/src/main/res/values/strings.xml` |
 
 ## How to deliver

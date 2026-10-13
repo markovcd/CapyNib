@@ -1,14 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- A note card with a folded corner and two ticked lines, in the 72dp safe zone of a 108dp icon. -->
+<!-- QN: an N inside the Q, with a nib for its tail, in the 72dp safe zone of a 108dp icon. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
     <path
-        android:fillColor="#FF5F4B00"
-        android:pathData="M34,30h30l10,10v38a4,4 0,0 1,-4 4H34a4,4 0,0 1,-4 -4V34a4,4 0,0 1,4 -4z" />
+        android:pathData="M51,32a18,18 0,1 1,0 36a18,18 0,1 1,0 -36z"
+        android:strokeColor="#FFFFE2A0"
+        android:strokeWidth="9" />
     <path
-        android:fillColor="#FFFFF8B8"
-        android:pathData="M64,30v10h10z M38,46h6v6h-6z M48,47h20v4H48z M38,58h6v6h-6z M48,59h20v4H48z M38,70h6v4h-6z M48,70h14v4H48z" />
+        android:pathData="M45,57V43L57,57V43"
+        android:strokeColor="#FF81D5CC"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeWidth="4" />
+    <group
+        android:rotation="-45"
+        android:scaleX="1.15"
+        android:scaleY="1.15"
+        android:translateX="77"
+        android:translateY="76">
+        <!-- The background color drawn under the nib cuts it free of the ring. -->
+        <path
+            android:pathData="M0,0L-7.5,-14V-21H7.5V-14Z"
+            android:strokeColor="#FF006A63"
+            android:strokeLineJoin="round"
+            android:strokeWidth="2.6" />
+        <path
+            android:fillColor="#FFFFE2A0"
+            android:pathData="M0,0L-7.5,-14V-21H7.5V-14Z" />
+        <path
+            android:pathData="M0,-2V-10"
+            android:strokeColor="#FF00504A"
+            android:strokeLineCap="round"
+            android:strokeWidth="2" />
+        <path
+            android:fillColor="#FF00504A"
+            android:pathData="M-2.1,-11.8a2.1,2.1 0,1 0,4.2 0a2.1,2.1 0,1 0,-4.2 0z" />
+    </group>
 </vector>
