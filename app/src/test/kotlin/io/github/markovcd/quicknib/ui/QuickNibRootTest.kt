@@ -182,13 +182,14 @@ class QuickNibRootTest {
         compose.onNodeWithTag(Tags.SIGN_IN).performClick()
 
         val started = shadowOf(ApplicationProvider.getApplicationContext<Application>())
-        var opened: Intent? = null
+        var next: Intent? = null
         compose.waitUntil(timeoutMillis = 5_000) {
-            opened = started.nextStartedActivity
-            opened != null
+            next = started.nextStartedActivity
+            next != null
         }
-        val page = opened!!.data.toString().toHttpUrl()
-        assertEquals(Intent.ACTION_VIEW, opened!!.action)
+        val opened = next!!
+        val page = opened.data.toString().toHttpUrl()
+        assertEquals(Intent.ACTION_VIEW, opened.action)
         assertEquals("accounts.example.com", page.host)
         awaitText("Finish signing in with Google in the browser, then come back.")
 
