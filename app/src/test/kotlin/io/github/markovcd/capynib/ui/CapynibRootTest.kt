@@ -188,7 +188,7 @@ class CapynibRootTest {
         compose.onNodeWithTag(Tags.CONNECT).performScrollTo().performClick()
 
         compose.waitUntil(timeoutMillis = 5_000) { server.memos.values.any { it.state.content == "written offline" } }
-        awaitText("Connected as tester")
+        awaitText("Connected to memos.example.com as tester")
     }
 
     @Test
@@ -213,9 +213,27 @@ class CapynibRootTest {
             .build()
         OkHttpClient().newCall(Request.Builder().url(back).build()).execute().close()
 
-        awaitText("Connected as tester")
+        awaitText("Connected to memos.example.com as tester")
         assertEquals("memos_pat_from_browser", graph.settings.settings.value.token)
         compose.waitUntil(timeoutMillis = 5_000) { graph.scheduler.status.value is SyncStatus.Synced }
+    }
+
+    @Test
+    fun Settings_offer_only_disconnect_while_connected_and_only_the_ways_to_connect_otherwise() {
+        compose.onNodeWithTag(Tags.SETTINGS).performClick()
+        awaitNoTag(Tags.DISCONNECT)
+
+        compose.onNodeWithTag(Tags.SERVER).performTextReplacement("https://memos.example.com")
+        compose.onNodeWithTag(Tags.TOKEN).performTextReplacement("memos_pat_test")
+        compose.onNodeWithTag(Tags.CONNECT).performScrollTo().performClick()
+
+        awaitTag(Tags.DISCONNECT)
+        for (gone in listOf(Tags.CONNECT, Tags.SIGN_IN, Tags.SERVER, Tags.TOKEN)) awaitNoTag(gone)
+
+        compose.onNodeWithTag(Tags.DISCONNECT).performScrollTo().performClick()
+
+        awaitNoTag(Tags.DISCONNECT)
+        for (back in listOf(Tags.CONNECT, Tags.SIGN_IN, Tags.SERVER, Tags.TOKEN)) awaitTag(back)
     }
 
     @Test

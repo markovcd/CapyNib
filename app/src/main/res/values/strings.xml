@@ -56,10 +56,9 @@
     <string name="settings_no_browser">No browser to sign in with. Use an access token.</string>
     <string name="settings_connect">Connect</string>
     <string name="settings_disconnect">Disconnect</string>
-    <string name="settings_sync_now">Sync now</string>
     <string name="settings_bad_address">That is not a server address</string>
     <string name="settings_token_missing">Enter an access token</string>
     <string name="settings_checking">Checking…</string>
-    <string name="settings_connected">Connected as %1$s</string>
+    <string name="settings_connected">Connected to %1$s as %2$s</string>
     <string name="settings_not_connected">Not connected. Notes stay on this phone.</string>
 </resources>

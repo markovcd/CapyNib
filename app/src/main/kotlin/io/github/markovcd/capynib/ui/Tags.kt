@@ -36,6 +36,5 @@ object Tags {
     const val SIGN_IN = "sign-in"
     const val CONNECT = "connect"
     const val DISCONNECT = "disconnect"
-    const val SYNC_NOW = "sync-now"
     const val SETTINGS_MESSAGE = "settings-message"
 }

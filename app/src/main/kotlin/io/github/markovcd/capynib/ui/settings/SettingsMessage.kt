@@ -12,7 +12,7 @@ sealed interface SettingsMessage {
 
     data object Checking : SettingsMessage
 
-    data class Connected(val username: String) : SettingsMessage
+    data class Connected(val host: String, val username: String) : SettingsMessage
 
     /** The sign-in page of [provider] is open in the browser. */
     data class WaitingForBrowser(val provider: String) : SettingsMessage

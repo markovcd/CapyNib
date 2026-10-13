@@ -16,10 +16,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(private val graph: AppGraph) : ViewModel() {
-    private val saved = graph.settings.settings.value
+    private val atStart = graph.settings.settings.value
 
-    val server = MutableStateFlow(saved.server?.toString().orEmpty())
-    val token = MutableStateFlow(saved.token)
+    val server = MutableStateFlow(atStart.server?.toString().orEmpty())
+    val token = MutableStateFlow(atStart.token)
 
     private val mutableMessage = MutableStateFlow<SettingsMessage>(SettingsMessage.NotConnected)
     val message: StateFlow<SettingsMessage> = mutableMessage.asStateFlow()
@@ -33,10 +33,11 @@ class SettingsViewModel(private val graph: AppGraph) : ViewModel() {
 
     private var signingIn: Job? = null
 
-    val isConnected: Boolean get() = graph.settings.settings.value.isConfigured
+    /** What is saved; the screen offers Disconnect while it names a server, and the ways to connect otherwise. */
+    val saved: StateFlow<SyncSettings> = graph.settings.settings
 
     init {
-        if (saved.isConfigured) check(saved)
+        if (atStart.isConfigured) check(atStart)
     }
 
     /**
@@ -78,7 +79,7 @@ class SettingsViewModel(private val graph: AppGraph) : ViewModel() {
                     token.value = result.accessToken
                     graph.settings.save(SyncSettings(address, result.accessToken))
                     graph.scheduler.requestSync(immediate = true)
-                    SettingsMessage.Connected(result.username)
+                    SettingsMessage.Connected(address.url.host, result.username)
                 }
                 is SignInResult.Refused -> SettingsMessage.SignInRefused(result.reason)
                 is SignInResult.Failed -> SettingsMessage.Failed(result.failure)
@@ -103,15 +104,13 @@ class SettingsViewModel(private val graph: AppGraph) : ViewModel() {
         graph.scheduler.requestSync(immediate = true)
     }
 
-    fun syncNow() = graph.scheduler.requestSync(immediate = true)
-
     private fun check(settings: SyncSettings, save: Boolean = false) {
         val api = graph.api(settings) ?: return
         mutableMessage.value = SettingsMessage.Checking
         viewModelScope.launch {
             val result = api.currentUser()
             mutableMessage.value = when (result) {
-                is ApiResult.Ok -> SettingsMessage.Connected(result.value)
+                is ApiResult.Ok -> SettingsMessage.Connected(settings.server?.url?.host.orEmpty(), result.value)
                 is ApiResult.Failed -> SettingsMessage.Failed(result.failure)
                 ApiResult.NotFound, ApiResult.AlreadyExists -> SettingsMessage.Failed(SyncFailure.Server(404, "not a memos server"))
             }

@@ -5,7 +5,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,7 +15,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.Sync
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
@@ -53,6 +51,7 @@ fun SettingsScreen(model: SettingsViewModel, onClose: () -> Unit) {
     val message by model.message.collectAsStateWithLifecycle()
     val status by model.status.collectAsStateWithLifecycle()
     val signInPage by model.signInPage.collectAsStateWithLifecycle()
+    val saved by model.saved.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
     val colors = MaterialTheme.colorScheme
     val fieldShape = RoundedCornerShape(12.dp)
@@ -89,49 +88,44 @@ fun SettingsScreen(model: SettingsViewModel, onClose: () -> Unit) {
                 Text(stringResource(R.string.settings_section).uppercase(), style = MaterialTheme.typography.labelMedium, color = colors.primary)
                 Text(stringResource(R.string.settings_intro), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
             }
-            OutlinedTextField(
-                value = server,
-                onValueChange = { model.server.value = it },
-                modifier = Modifier.fillMaxWidth().testTag(Tags.SERVER),
-                label = { Text(stringResource(R.string.settings_server)) },
-                placeholder = { Text(stringResource(R.string.settings_server_example)) },
-                singleLine = true,
-                shape = fieldShape,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Button(onClick = model::signInWithBrowser, modifier = Modifier.fillMaxWidth().testTag(Tags.SIGN_IN)) {
-                    Text(stringResource(R.string.settings_sign_in))
+            if (saved.isConfigured) {
+                TextButton(
+                    onClick = model::disconnect,
+                    modifier = Modifier.testTag(Tags.DISCONNECT),
+                    colors = ButtonDefaults.textButtonColors(contentColor = colors.error),
+                ) {
+                    Text(stringResource(R.string.settings_disconnect))
                 }
-                Text(stringResource(R.string.settings_sign_in_help), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
-            }
-            OutlinedTextField(
-                value = token,
-                onValueChange = { model.token.value = it },
-                modifier = Modifier.fillMaxWidth().testTag(Tags.TOKEN),
-                label = { Text(stringResource(R.string.settings_token)) },
-                supportingText = { Text(stringResource(R.string.settings_token_help)) },
-                singleLine = true,
-                shape = fieldShape,
-                visualTransformation = PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            )
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            } else {
+                OutlinedTextField(
+                    value = server,
+                    onValueChange = { model.server.value = it },
+                    modifier = Modifier.fillMaxWidth().testTag(Tags.SERVER),
+                    label = { Text(stringResource(R.string.settings_server)) },
+                    placeholder = { Text(stringResource(R.string.settings_server_example)) },
+                    singleLine = true,
+                    shape = fieldShape,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Button(onClick = model::signInWithBrowser, modifier = Modifier.fillMaxWidth().testTag(Tags.SIGN_IN)) {
+                        Text(stringResource(R.string.settings_sign_in))
+                    }
+                    Text(stringResource(R.string.settings_sign_in_help), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                }
+                OutlinedTextField(
+                    value = token,
+                    onValueChange = { model.token.value = it },
+                    modifier = Modifier.fillMaxWidth().testTag(Tags.TOKEN),
+                    label = { Text(stringResource(R.string.settings_token)) },
+                    supportingText = { Text(stringResource(R.string.settings_token_help)) },
+                    singleLine = true,
+                    shape = fieldShape,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                )
                 FilledTonalButton(onClick = model::connect, modifier = Modifier.testTag(Tags.CONNECT)) {
                     Text(stringResource(R.string.settings_connect))
-                }
-                if (model.isConnected) {
-                    Button(onClick = model::syncNow, modifier = Modifier.testTag(Tags.SYNC_NOW)) {
-                        Icon(Icons.Outlined.Sync, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Text(stringResource(R.string.settings_sync_now), Modifier.padding(start = 8.dp))
-                    }
-                    TextButton(
-                        onClick = model::disconnect,
-                        modifier = Modifier.testTag(Tags.DISCONNECT),
-                        colors = ButtonDefaults.textButtonColors(contentColor = colors.error),
-                    ) {
-                        Text(stringResource(R.string.settings_disconnect))
-                    }
                 }
             }
             Column(
@@ -155,7 +149,7 @@ private fun messageText(message: SettingsMessage): String = when (message) {
     SettingsMessage.BadAddress -> stringResource(R.string.settings_bad_address)
     SettingsMessage.TokenMissing -> stringResource(R.string.settings_token_missing)
     SettingsMessage.Checking -> stringResource(R.string.settings_checking)
-    is SettingsMessage.Connected -> stringResource(R.string.settings_connected, message.username)
+    is SettingsMessage.Connected -> stringResource(R.string.settings_connected, message.host, message.username)
     is SettingsMessage.WaitingForBrowser -> stringResource(R.string.settings_waiting_for_browser, message.provider)
     SettingsMessage.NoSignInProvider -> stringResource(R.string.settings_no_sign_in_provider)
     is SettingsMessage.SignInRefused -> stringResource(R.string.settings_sign_in_refused, message.reason)
