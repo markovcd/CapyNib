@@ -17,7 +17,7 @@ app that rule and F-Droid cannot both hold.
 - Debug builds carry the suffix `-dev`, so a CI artifact never passes for a release. Release builds
   carry the plain version.
 - The release APK leaves out the dependency metadata block, which only Google can decrypt.
-- F-Droid builds and signs the release APK with its own key. `StoreListingTest` holds the store
+- F-Droid builds and signs the release APK with its own key; the project keeps no signing key. `StoreListingTest` holds the store
   listing to F-Droid's limits and checks the current version has a changelog.
 
 ## Consequences
@@ -26,6 +26,5 @@ app that rule and F-Droid cannot both hold.
   request per release.
 - The version in `main` between releases is the last one released; only the `-dev` suffix on debug
   builds tells them apart.
-- Installs from F-Droid and installs of a self-signed APK cannot update each other. Publishing our
-  own signed APK as well means making the build reproducible and moving F-Droid to it, a decision
-  for later.
+- QuickNib has no release key of its own: F-Droid is the one place releases come from, signed with
+  F-Droid's key.
