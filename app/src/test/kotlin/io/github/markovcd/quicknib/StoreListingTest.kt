@@ -7,9 +7,9 @@ import java.io.File
 
 /** The fastlane store listing F-Droid publishes, held to F-Droid's length limits. */
 class StoreListingTest {
-    private val listing = File(System.getProperty("quicknib.listing"))
+    private val listing = File(checkNotNull(System.getProperty("quicknib.listing")) { "the build passes quicknib.listing" })
     private val locales = listing.listFiles { file -> file.isDirectory }.orEmpty().sortedBy { it.name }
-    private val versionCode = System.getProperty("quicknib.versionCode")
+    private val versionCode = checkNotNull(System.getProperty("quicknib.versionCode")) { "the build passes quicknib.versionCode" }
 
     @Test
     fun Every_listing_text_fits_its_limit() {
