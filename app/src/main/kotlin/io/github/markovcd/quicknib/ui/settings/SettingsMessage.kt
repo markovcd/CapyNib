@@ -14,5 +14,14 @@ sealed interface SettingsMessage {
 
     data class Connected(val username: String) : SettingsMessage
 
+    /** The sign-in page of [provider] is open in the browser. */
+    data class WaitingForBrowser(val provider: String) : SettingsMessage
+
+    data object NoSignInProvider : SettingsMessage
+
+    data class SignInRefused(val reason: String) : SettingsMessage
+
+    data object NoBrowser : SettingsMessage
+
     data class Failed(val failure: SyncFailure) : SettingsMessage
 }

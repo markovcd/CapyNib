@@ -9,8 +9,15 @@ server (or another device) come back.
 
 1. Install the debug APK from the latest [gate run](../../actions/workflows/gate.yml) (artifact `quicknib-debug-apk`).
 2. Write notes. Without a server they stay on the phone.
-3. To sync, open **Settings** (gear on the board), enter your memos address and a personal access
-   token (memos web UI: Settings, then Access Tokens), and tap **Connect**.
+3. To sync, open **Settings** (gear on the board), enter your memos address, and either tap
+   **Sign in with browser** or paste a personal access token (memos web UI: Settings, then Access
+   Tokens) and tap **Connect**.
+
+Signing in with the browser works when the memos server signs people in through another site, such
+as Google. That site sends the browser back to `http://127.0.0.1:47815/quicknib` on the phone, so
+the address has to be listed as an authorized redirect URI on the server's OAuth client (for Google:
+Cloud Console, APIs & Services, Credentials). QuickNib then asks memos for an access token of its
+own. See [docs/adr/0005-browser-sign-in-comes-back-to-the-phone-over-loopback.md](docs/adr/0005-browser-sign-in-comes-back-to-the-phone-over-loopback.md).
 
 Each note is one private memo. The title is the memo's first-line heading and the color is a
 `#color/<name>` tag at the end, so notes read naturally in the memos web UI too. See
@@ -22,13 +29,14 @@ Each note is one private memo. The title is the memo's first-line heading and th
 |---|---|
 | Everything, as CI runs it (needs Docker) | `./gate.sh` |
 | Unit and UI tests, no server | `./gradlew check` |
-| Include the live memos tests | `docker run -d -p 5230:5230 neosmemo/memos:stable` then `MEMOS_TEST_URL=http://localhost:5230 ./gradlew check` |
+| Include the live memos tests | `docker run -d -p 5230:5230 --add-host=host.docker.internal:host-gateway neosmemo/memos:stable` then `MEMOS_TEST_URL=http://localhost:5230 MEMOS_TEST_REACH_BACK=host.docker.internal ./gradlew check` |
 | Debug APK | `./gradlew :app:assembleDebug` |
 | Release APK, as F-Droid builds it | `./gradlew :app:assembleRelease` |
 | The command line | `./gradlew :cli:installDist` then `cli/build/install/quicknib/bin/quicknib --help` |
 
 The command line works on the same notes and sync as the app (`list`, `add`, `edit`, `check`,
-`sync`, with `--json`), against a local database file.
+`sync`, with `--json`), against a local database file. `quicknib login --server URL` signs in with
+the browser the same way and prints the new access token, for `QUICKNIB_TOKEN`.
 
 ## Design
 

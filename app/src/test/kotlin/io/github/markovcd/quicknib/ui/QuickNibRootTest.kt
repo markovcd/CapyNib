@@ -1,5 +1,7 @@
 package io.github.markovcd.quicknib.ui
 
+import android.app.Application
+import android.content.Intent
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -9,17 +11,22 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
+import androidx.test.core.app.ApplicationProvider
 import io.github.markovcd.quicknib.AppGraph
 import io.github.markovcd.quicknib.TestGraphs
 import io.github.markovcd.quicknib.core.memos.FakeMemosServer
 import io.github.markovcd.quicknib.core.note.NoteColor
 import io.github.markovcd.quicknib.core.sync.SyncStatus
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /** The app's screens driven the way a person uses them, over a real store and a fake server. */
@@ -166,6 +173,35 @@ class QuickNibRootTest {
 
         compose.waitUntil(timeoutMillis = 5_000) { server.memos.values.any { it.state.content == "written offline" } }
         awaitText("Connected as tester")
+    }
+
+    @Test
+    fun Signing_in_with_the_browser_keeps_the_access_token_the_server_makes() {
+        compose.onNodeWithTag(Tags.SETTINGS).performClick()
+        compose.onNodeWithTag(Tags.SERVER).performTextReplacement("https://memos.example.com")
+        compose.onNodeWithTag(Tags.SIGN_IN).performClick()
+
+        val started = shadowOf(ApplicationProvider.getApplicationContext<Application>())
+        var opened: Intent? = null
+        compose.waitUntil(timeoutMillis = 5_000) {
+            opened = started.nextStartedActivity
+            opened != null
+        }
+        val page = opened!!.data.toString().toHttpUrl()
+        assertEquals(Intent.ACTION_VIEW, opened!!.action)
+        assertEquals("accounts.example.com", page.host)
+        awaitText("Finish signing in with Google in the browser, then come back.")
+
+        // The provider sends the browser back to the app with a code.
+        val back = page.queryParameter("redirect_uri")!!.toHttpUrl().newBuilder()
+            .addQueryParameter("code", "abc")
+            .addQueryParameter("state", page.queryParameter("state"))
+            .build()
+        OkHttpClient().newCall(Request.Builder().url(back).build()).execute().close()
+
+        awaitText("Connected as tester")
+        assertEquals("memos_pat_from_browser", graph.settings.settings.value.token)
+        compose.waitUntil(timeoutMillis = 5_000) { graph.scheduler.status.value is SyncStatus.Synced }
     }
 
     @Test

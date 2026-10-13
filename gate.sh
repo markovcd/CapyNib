@@ -21,11 +21,13 @@ docker run -d --name "$run_id-memos" --network "$run_id" --network-alias memos "
 mkdir -p .gradle-home
 # Runs as root so the build can add SDK parts it lacks; files it makes are handed back on exit.
 # shellcheck disable=SC2086 # GATE_DOCKER_ARGS is a list of options.
-docker run --rm --network "$run_id" \
+# The alias lets the memos server call back into the tests (a fake sign-in provider).
+docker run --rm --network "$run_id" --network-alias quicknib-tests \
     --user root \
     -e HOST_OWNER="$(id -u):$(id -g)" \
     -e GRADLE_USER_HOME=/work/.gradle-home \
     -e MEMOS_TEST_URL=http://memos:5230 \
+    -e MEMOS_TEST_REACH_BACK=quicknib-tests \
     -v "$PWD:/work" -w /work \
     ${GATE_DOCKER_ARGS:-} \
     "$ANDROID_IMAGE" \

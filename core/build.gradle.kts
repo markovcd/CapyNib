@@ -47,8 +47,9 @@ dependencies {
 }
 
 tasks.test {
-    // The memos integration tests read this; the gate always sets it.
+    // The memos integration tests read these; the gate always sets them.
     environment("MEMOS_TEST_URL", System.getenv("MEMOS_TEST_URL") ?: "")
+    environment("MEMOS_TEST_REACH_BACK", System.getenv("MEMOS_TEST_REACH_BACK") ?: "")
     testLogging {
         events("failed", "skipped")
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL

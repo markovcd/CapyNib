@@ -4,3 +4,4 @@
 - Turn on Android lint warnings as errors once the first CI runs show what lint reports.
 - Release script (`release.sh`) with signing, per `docs/agents/rules/pipeline.md`.
 - Tag v0.1.0 and submit QuickNib to F-Droid: [docs/handoff/01-f-droid-submission.md](docs/handoff/01-f-droid-submission.md).
+- Let the user pick a sign-in provider when a memos server offers more than one; browser sign-in uses the first (ADR 0005).

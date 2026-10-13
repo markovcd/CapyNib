@@ -60,8 +60,9 @@ quiet.
   one has a ring and a check mark).
 
 **Settings** (`ui/settings/SettingsScreen.kt`)
-- Server address and access token fields (outlined), Connect, Sync now and Disconnect buttons, a
-  message line ("Connected as ...") and the sync status with its icon.
+- Server address field, a full-width Sign in with browser button with a help line, the access token
+  field (outlined), Connect, Sync now and Disconnect buttons, a message line ("Connected as ...")
+  and the sync status with its icon.
 
 **Sync status icons** (`ui/SyncStatusLabel.kt`): phone (notes only on this phone), plain cloud
 (waiting), sync arrows (syncing), cloud with check (synced), crossed cloud (offline), error

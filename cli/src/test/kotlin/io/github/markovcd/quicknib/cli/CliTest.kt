@@ -1,16 +1,23 @@
 package io.github.markovcd.quicknib.cli
 
+import io.github.markovcd.quicknib.core.memos.BrowserSignIn
 import io.github.markovcd.quicknib.core.memos.FakeMemosServer
 import io.github.markovcd.quicknib.core.memos.LiveMemos
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import mockwebserver3.MockResponse
+import mockwebserver3.MockWebServer
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import kotlin.concurrent.thread
 
 class CliTest {
     @get:Rule
@@ -26,11 +33,48 @@ class CliTest {
     private fun run(vararg args: String): Ran {
         val out = StringBuilder()
         val err = StringBuilder()
-        val code = Cli(env, { ++now }) { _, _ -> server }.run(listOf("--db", db) + args, out, err)
+        val code = Cli(env, { ++now }, { _, _ -> server }).run(listOf("--db", db) + args, out, err)
         return Ran(code, out.toString(), err.toString())
     }
 
     private fun json(text: String) = Json.parseToJsonElement(text)
+
+    /** Runs `login` against [memos], with a browser that signs in on whatever page `err` names. */
+    private fun login(memos: MockWebServer, vararg args: String): Ran {
+        val out = StringBuilder()
+        val err = Browser()
+        val cli = Cli(env, { ++now }, { _, _ -> server }) { BrowserSignIn(it, "test", port = 0) }
+        val code = cli.run(listOf("login", "--server", memos.url("/").toString()) + args, out, err)
+        return Ran(code, out.toString(), err.toString())
+    }
+
+    /** Reads what the command line writes to stderr and, on seeing a sign-in page, comes back from it signed in. */
+    private class Browser : Appendable {
+        private val text = StringBuilder()
+
+        override fun append(csq: CharSequence?): Appendable = apply {
+            text.append(csq)
+            csq?.toString()?.takeIf { it.startsWith("https://") }?.toHttpUrl()?.let { page ->
+                val back = page.queryParameter("redirect_uri")!!.toHttpUrl().newBuilder()
+                    .addQueryParameter("code", "abc")
+                    .addQueryParameter("state", page.queryParameter("state"))
+                    .build()
+                thread { OkHttpClient().newCall(Request.Builder().url(back).build()).execute().close() }
+            }
+        }
+
+        override fun append(csq: CharSequence?, start: Int, end: Int): Appendable = append(csq?.subSequence(start, end))
+
+        override fun append(c: Char): Appendable = apply { text.append(c) }
+
+        override fun toString() = text.toString()
+    }
+
+    private fun MockWebServer.reply(body: String) = enqueue(MockResponse.Builder().body(body).build())
+
+    private val googleOnly =
+        """{"identityProviders":[{"name":"identity-providers/google","type":"OAUTH2","title":"Google",""" +
+            """"config":{"oauth2Config":{"clientId":"c1","authUrl":"https://accounts.example.com/auth","scopes":["email"]}}}]}"""
 
     @Test
     fun A_note_added_from_the_command_line_is_listed() {
@@ -154,5 +198,34 @@ class CliTest {
         assertEquals(ExitCode.OK, real(phone, "sync").code)
 
         assertEquals("Trip\n0 [x] tickets\n", real(phone, "show", id).out)
+    }
+
+    @Test
+    fun Login_prints_a_new_access_token_after_signing_in_in_the_browser() {
+        MockWebServer().use { memos ->
+            memos.start()
+            memos.reply(googleOnly)
+            memos.reply("""{"user":{"name":"users/arek","username":"arek"},"accessToken":"session-jwt"}""")
+            memos.reply("""{"token":"memos_pat_new"}""")
+
+            val ran = login(memos, "--json")
+
+            assertEquals(ran.err, ExitCode.OK, ran.code)
+            assertEquals("""{"username":"arek","accessToken":"memos_pat_new"}""", ran.out.trim())
+            assertTrue(ran.err, ran.err.startsWith("Open this page to sign in with Google:\nhttps://accounts.example.com/auth?"))
+        }
+    }
+
+    @Test
+    fun Login_to_a_server_without_sign_in_providers_fails_with_its_own_code() {
+        MockWebServer().use { memos ->
+            memos.start()
+            memos.reply("""{"identityProviders":[]}""")
+
+            val ran = login(memos)
+
+            assertEquals(ExitCode.LOGIN_FAILED, ran.code)
+            assertTrue(ran.err, ran.err.contains("offers no sign-in provider"))
+        }
     }
 }

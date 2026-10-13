@@ -1,9 +1,12 @@
 package io.github.markovcd.quicknib.cli
 
 import io.github.markovcd.quicknib.core.board.BoardContent
+import io.github.markovcd.quicknib.core.memos.ApiResult
+import io.github.markovcd.quicknib.core.memos.BrowserSignIn
 import io.github.markovcd.quicknib.core.memos.HttpMemosApi
 import io.github.markovcd.quicknib.core.memos.MemosApi
 import io.github.markovcd.quicknib.core.memos.ServerAddress
+import io.github.markovcd.quicknib.core.memos.SignInResult
 import io.github.markovcd.quicknib.core.note.Checklist
 import io.github.markovcd.quicknib.core.note.ChecklistLine
 import io.github.markovcd.quicknib.core.note.Note
@@ -22,6 +25,7 @@ class Cli(
     private val env: Map<String, String>,
     private val clock: () -> Long,
     private val api: (ServerAddress, String) -> MemosApi = ::HttpMemosApi,
+    private val signIn: (ServerAddress) -> BrowserSignIn = { BrowserSignIn(it, "QuickNib command line") },
 ) {
     private val json = Json { prettyPrint = false }
 
@@ -53,6 +57,7 @@ class Cli(
                 ExitCode.OK
             }
             "sync" -> sync(store, parsed, out, err)
+            "login" -> login(parsed, out, err)
             "colors" -> {
                 NoteColor.entries.forEach { out.appendLine(it.key) }
                 ExitCode.OK
@@ -119,9 +124,7 @@ class Cli(
     }
 
     private fun sync(store: NoteStore, args: Arguments, out: Appendable, err: Appendable): Int {
-        val serverText = args.option("server") ?: env["QUICKNIB_SERVER"]
-            ?: return usage(err, "sync needs --server URL or QUICKNIB_SERVER")
-        val server = ServerAddress.parse(serverText) ?: return usage(err, "sync: '$serverText' is not a server address")
+        val server = server("sync", args) { return usage(err, it) }
         val token = env["QUICKNIB_TOKEN"]?.takeIf { it.isNotBlank() }
             ?: return usage(err, "sync needs the memos access token in QUICKNIB_TOKEN")
         val report = runBlocking { SyncEngine(store, api(server, token), clock).sync() }
@@ -132,6 +135,48 @@ class Cli(
         }
         report.failure?.let { err.appendLine("sync failed: ${it.message}") }
         return if (report.succeeded) ExitCode.OK else ExitCode.SYNC_FAILED
+    }
+
+    private fun login(args: Arguments, out: Appendable, err: Appendable): Int {
+        val server = server("login", args) { return usage(err, it) }
+        val browserSignIn = signIn(server)
+        val provider = when (val providers = runBlocking { browserSignIn.providers() }) {
+            is ApiResult.Ok -> providers.value.firstOrNull() ?: run {
+                err.appendLine("login: $server offers no sign-in provider; make an access token in memos instead")
+                return ExitCode.LOGIN_FAILED
+            }
+            is ApiResult.Failed -> {
+                err.appendLine("login failed: ${providers.failure.message}")
+                return ExitCode.LOGIN_FAILED
+            }
+            ApiResult.NotFound, ApiResult.AlreadyExists -> error("listing providers finds no memo")
+        }
+        val result = runBlocking {
+            browserSignIn.signIn(provider) { page -> err.appendLine("Open this page to sign in with ${provider.title}:").appendLine(page) }
+        }
+        return when (result) {
+            is SignInResult.SignedIn -> {
+                if (args.flag("json")) {
+                    out.appendLine(json.encodeToString(LoginJson(result.username, result.accessToken)))
+                } else {
+                    out.appendLine(result.accessToken)
+                }
+                ExitCode.OK
+            }
+            is SignInResult.Refused -> {
+                err.appendLine("login refused: ${result.reason}")
+                ExitCode.LOGIN_FAILED
+            }
+            is SignInResult.Failed -> {
+                err.appendLine("login failed: ${result.failure.message}")
+                ExitCode.LOGIN_FAILED
+            }
+        }
+    }
+
+    private inline fun server(command: String, args: Arguments, problem: (String) -> Nothing): ServerAddress {
+        val text = args.option("server") ?: env["QUICKNIB_SERVER"] ?: problem("$command needs --server URL or QUICKNIB_SERVER")
+        return ServerAddress.parse(text) ?: problem("$command: '$text' is not a server address")
     }
 
     private fun print(note: Note, args: Arguments, out: Appendable): Int {
@@ -187,6 +232,7 @@ class Cli(
             "check" to Command(flags = setOf("json")),
             "delete" to Command(),
             "sync" to Command(setOf("server"), setOf("json")),
+            "login" to Command(setOf("server"), setOf("json")),
             "colors" to Command(),
         )
         val USAGE = """
@@ -198,6 +244,7 @@ class Cli(
             |  check ID LINE [--json]        tick or untick a checklist item
             |  delete ID
             |  sync [--server URL] [--json]  token from QUICKNIB_TOKEN
+            |  login [--server URL] [--json] sign in in the browser; prints a new access token
             |  colors
             |The database defaults to QUICKNIB_DB, then ./quicknib.db.
             |

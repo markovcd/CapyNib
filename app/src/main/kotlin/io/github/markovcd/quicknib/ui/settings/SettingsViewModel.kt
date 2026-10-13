@@ -5,9 +5,11 @@ import androidx.lifecycle.viewModelScope
 import io.github.markovcd.quicknib.AppGraph
 import io.github.markovcd.quicknib.core.memos.ApiResult
 import io.github.markovcd.quicknib.core.memos.ServerAddress
+import io.github.markovcd.quicknib.core.memos.SignInResult
 import io.github.markovcd.quicknib.core.memos.SyncFailure
 import io.github.markovcd.quicknib.core.sync.SyncStatus
 import io.github.markovcd.quicknib.settings.SyncSettings
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +25,13 @@ class SettingsViewModel(private val graph: AppGraph) : ViewModel() {
     val message: StateFlow<SettingsMessage> = mutableMessage.asStateFlow()
 
     val status: StateFlow<SyncStatus> = graph.scheduler.status
+
+    private val mutableSignInPage = MutableStateFlow<String?>(null)
+
+    /** A sign-in page for the screen to open in the browser, until it says it has. */
+    val signInPage: StateFlow<String?> = mutableSignInPage.asStateFlow()
+
+    private var signingIn: Job? = null
 
     val isConnected: Boolean get() = graph.settings.settings.value.isConfigured
 
@@ -42,6 +51,49 @@ class SettingsViewModel(private val graph: AppGraph) : ViewModel() {
             else -> SyncSettings(address, token.value.trim())
         }
         check(settings, save = true)
+    }
+
+    /**
+     * Signs in through the server's sign-in provider in the browser and keeps the access token the
+     * server makes for the app. Tapping again starts over.
+     */
+    fun signInWithBrowser() {
+        val address = ServerAddress.parse(server.value) ?: return run { mutableMessage.value = SettingsMessage.BadAddress }
+        signingIn?.cancel()
+        signingIn = viewModelScope.launch {
+            mutableMessage.value = SettingsMessage.Checking
+            val signIn = graph.browserSignIn(address)
+            val provider = when (val providers = signIn.providers()) {
+                is ApiResult.Ok -> providers.value.firstOrNull()
+                    ?: return@launch run { mutableMessage.value = SettingsMessage.NoSignInProvider }
+                is ApiResult.Failed -> return@launch run { mutableMessage.value = SettingsMessage.Failed(providers.failure) }
+                ApiResult.NotFound, ApiResult.AlreadyExists ->
+                    return@launch run { mutableMessage.value = SettingsMessage.Failed(SyncFailure.Server(404, "not a memos server")) }
+            }
+            mutableMessage.value = SettingsMessage.WaitingForBrowser(provider.title)
+            val result = signIn.signIn(provider) { mutableSignInPage.value = it }
+            mutableSignInPage.value = null
+            mutableMessage.value = when (result) {
+                is SignInResult.SignedIn -> {
+                    token.value = result.accessToken
+                    graph.settings.save(SyncSettings(address, result.accessToken))
+                    graph.scheduler.requestSync(immediate = true)
+                    SettingsMessage.Connected(result.username)
+                }
+                is SignInResult.Refused -> SettingsMessage.SignInRefused(result.reason)
+                is SignInResult.Failed -> SettingsMessage.Failed(result.failure)
+            }
+        }
+    }
+
+    fun signInPageOpened() {
+        mutableSignInPage.value = null
+    }
+
+    fun signInPageFailed() {
+        signingIn?.cancel()
+        mutableSignInPage.value = null
+        mutableMessage.value = SettingsMessage.NoBrowser
     }
 
     fun disconnect() {

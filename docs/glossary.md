@@ -25,4 +25,6 @@ the docs, ADRs, comments, test names and commit messages.
 | **store listing** | The name, descriptions, icon, screenshots and per-version changelogs F-Droid shows for the app, kept under `fastlane/`. | `StoreListingTest` | metadata (that is F-Droid's build recipe for the app) |
 | **sync** | Making the device's notes and the server's memos agree. | `SyncEngine` | backup, upload |
 | **access token** | The memos personal access token the app signs in with. | `token` | password, key |
+| **sign-in provider** | A site the memos server lets people sign in through, such as Google. | `SignInProvider` (memos: identity provider) | SSO, IdP |
+| **browser sign-in** | Signing in on a sign-in provider's page in the browser, after which the server makes the app an access token. | `BrowserSignIn` | login (except the `login` command), OAuth |
 | **conflict copy** | A new note holding the server's version when both sides changed a note. | `keepServerCopy` | duplicate |

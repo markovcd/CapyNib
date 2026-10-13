@@ -18,6 +18,9 @@ import org.junit.Assume.assumeTrue
 class LiveMemos private constructor(val server: ServerAddress, val token: String) {
     fun api() = HttpMemosApi(server, token)
 
+    /** Sends [request] to `/api/v1/[path]` as the test user, an admin; fails the test on an error reply. */
+    fun admin(path: String, request: Request.Builder): JsonObject = send(server, request.url("$server/api/v1/$path"), token)
+
     companion object {
         private const val USERNAME = "quicknib-test"
         private const val PASSWORD = "quicknib-test-password"

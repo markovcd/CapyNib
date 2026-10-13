@@ -29,6 +29,8 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(testFixtures(project(":core")))
+    testImplementation(libs.okhttp)
+    testImplementation(libs.okhttp.mockwebserver)
 }
 
 tasks.test {

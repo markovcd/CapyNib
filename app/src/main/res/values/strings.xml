@@ -47,7 +47,13 @@
     <string name="settings_server">Memos server address</string>
     <string name="settings_server_example">https://memos.example.com</string>
     <string name="settings_token">Access token</string>
-    <string name="settings_token_help">Create one in the memos web app under Settings, Access Tokens.</string>
+    <string name="settings_token_help">Or create one in the memos web app under Settings, Access Tokens, and tap Connect.</string>
+    <string name="settings_sign_in">Sign in with browser</string>
+    <string name="settings_sign_in_help">Signs in the way your memos server offers, such as Google, and makes an access token for QuickNib.</string>
+    <string name="settings_waiting_for_browser">Finish signing in with %1$s in the browser, then come back.</string>
+    <string name="settings_no_sign_in_provider">This server offers no sign-in with another site. Use an access token.</string>
+    <string name="settings_sign_in_refused">Sign-in did not finish: %1$s</string>
+    <string name="settings_no_browser">No browser to sign in with. Use an access token.</string>
     <string name="settings_connect">Connect</string>
     <string name="settings_disconnect">Disconnect</string>
     <string name="settings_sync_now">Sync now</string>

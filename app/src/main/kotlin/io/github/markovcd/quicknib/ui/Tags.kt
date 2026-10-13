@@ -31,6 +31,7 @@ object Tags {
 
     const val SERVER = "server"
     const val TOKEN = "token"
+    const val SIGN_IN = "sign-in"
     const val CONNECT = "connect"
     const val DISCONNECT = "disconnect"
     const val SYNC_NOW = "sync-now"

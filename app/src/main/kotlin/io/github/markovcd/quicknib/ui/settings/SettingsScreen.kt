@@ -1,5 +1,6 @@
 package io.github.markovcd.quicknib.ui.settings
 
+import android.content.ActivityNotFoundException
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -28,9 +29,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -49,9 +52,22 @@ fun SettingsScreen(model: SettingsViewModel, onClose: () -> Unit) {
     val token by model.token.collectAsStateWithLifecycle()
     val message by model.message.collectAsStateWithLifecycle()
     val status by model.status.collectAsStateWithLifecycle()
+    val signInPage by model.signInPage.collectAsStateWithLifecycle()
+    val uriHandler = LocalUriHandler.current
     val colors = MaterialTheme.colorScheme
     val fieldShape = RoundedCornerShape(12.dp)
     BackHandler(onBack = onClose)
+    LaunchedEffect(signInPage) {
+        val page = signInPage ?: return@LaunchedEffect
+        try {
+            uriHandler.openUri(page)
+            model.signInPageOpened()
+        } catch (e: IllegalArgumentException) {
+            model.signInPageFailed()
+        } catch (e: ActivityNotFoundException) {
+            model.signInPageFailed()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -83,6 +99,12 @@ fun SettingsScreen(model: SettingsViewModel, onClose: () -> Unit) {
                 shape = fieldShape,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
             )
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Button(onClick = model::signInWithBrowser, modifier = Modifier.fillMaxWidth().testTag(Tags.SIGN_IN)) {
+                    Text(stringResource(R.string.settings_sign_in))
+                }
+                Text(stringResource(R.string.settings_sign_in_help), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            }
             OutlinedTextField(
                 value = token,
                 onValueChange = { model.token.value = it },
@@ -134,6 +156,10 @@ private fun messageText(message: SettingsMessage): String = when (message) {
     SettingsMessage.TokenMissing -> stringResource(R.string.settings_token_missing)
     SettingsMessage.Checking -> stringResource(R.string.settings_checking)
     is SettingsMessage.Connected -> stringResource(R.string.settings_connected, message.username)
+    is SettingsMessage.WaitingForBrowser -> stringResource(R.string.settings_waiting_for_browser, message.provider)
+    SettingsMessage.NoSignInProvider -> stringResource(R.string.settings_no_sign_in_provider)
+    is SettingsMessage.SignInRefused -> stringResource(R.string.settings_sign_in_refused, message.reason)
+    SettingsMessage.NoBrowser -> stringResource(R.string.settings_no_browser)
     is SettingsMessage.Failed -> when (message.failure) {
         is SyncFailure.Unreachable -> stringResource(R.string.sync_offline)
         is SyncFailure.Unauthorized -> stringResource(R.string.sync_unauthorized)

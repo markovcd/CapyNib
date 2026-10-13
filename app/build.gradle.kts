@@ -81,4 +81,6 @@ dependencies {
     testImplementation(libs.coroutines.test)
     testImplementation(platform(libs.compose.bom))
     testImplementation(libs.compose.ui.test.junit4)
+    // Canned memos replies for browser sign-in, through the client core uses.
+    testImplementation(libs.okhttp)
 }
