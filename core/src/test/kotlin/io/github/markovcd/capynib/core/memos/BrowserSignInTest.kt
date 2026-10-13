@@ -112,6 +112,23 @@ class BrowserSignInTest {
     }
 
     @Test
+    fun The_page_the_browser_comes_back_to_shows_the_providers_error_as_text() = runTest {
+        var page = ""
+        var browser: Thread? = null
+
+        signIn.signIn(provider) { url ->
+            val back = url.toHttpUrl().queryParameter("redirect_uri")!!.toHttpUrl().newBuilder()
+                .addQueryParameter("error", "<script>alert(1)</script>")
+                .addQueryParameter("state", url.toHttpUrl().queryParameter("state")!!)
+                .build()
+            browser = thread { page = browserClient.newCall(Request.Builder().url(back).build()).execute().use { it.body.string() } }
+        }
+        browser!!.join(5_000)
+
+        assertTrue(page, page.contains("(&lt;script&gt;alert(1)&lt;/script&gt;)"))
+    }
+
+    @Test
     fun A_return_with_the_wrong_state_is_turned_away_and_the_wait_goes_on() = runTest {
         reply(200, """{"user":{"name":"users/arek","username":"arek"},"accessToken":"session-jwt"}""")
         reply(200, """{"token":"memos_pat_new"}""")

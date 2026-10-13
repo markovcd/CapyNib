@@ -87,7 +87,7 @@ class LoopbackReceiver private constructor(private val socket: ServerSocket) : C
     private fun respond(connection: Socket, callback: BrowserCallback?) {
         val (status, text) = when (callback) {
             is BrowserCallback.Code -> "200 OK" to "Capynib got the sign-in. You can close this tab and go back to the app."
-            is BrowserCallback.Error -> "200 OK" to "Sign-in did not finish (${callback.error}). You can close this tab."
+            is BrowserCallback.Error -> "200 OK" to "Sign-in did not finish (${escapeHtml(callback.error)}). You can close this tab."
             null -> "404 Not Found" to "Not a Capynib sign-in."
         }
         val body = "<!doctype html><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width\">" +
@@ -104,6 +104,10 @@ class LoopbackReceiver private constructor(private val socket: ServerSocket) : C
             // The browser went away; the callback it carried still counts.
         }
     }
+
+    /** [text] from the query string, safe to put in the page: the provider's error is not trusted markup. */
+    private fun escapeHtml(text: String): String =
+        text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;")
 
     companion object {
         /** The port Capynib's redirect address uses; the sign-in provider must allow that address. */
