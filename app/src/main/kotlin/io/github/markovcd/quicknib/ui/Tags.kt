@@ -9,6 +9,8 @@ object Tags {
     const val ARCHIVE_TOGGLE = "archive-toggle"
     const val SYNC_STATUS = "sync-status"
     const val EMPTY_BOARD = "empty-board"
+    const val PINNED = "pinned"
+    const val OTHERS = "others"
 
     fun card(id: String) = "card-$id"
 

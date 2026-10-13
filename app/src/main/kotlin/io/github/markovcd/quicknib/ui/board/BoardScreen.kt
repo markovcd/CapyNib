@@ -123,8 +123,8 @@ fun BoardLayout(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalItemSpacing = 8.dp,
         ) {
-            section(R.string.board_pinned.takeIf { content.pinned.isNotEmpty() }, content.pinned, onOpen)
-            section(R.string.board_others.takeIf { content.pinned.isNotEmpty() && content.others.isNotEmpty() }, content.others, onOpen)
+            section(R.string.board_pinned.takeIf { content.pinned.isNotEmpty() }, Tags.PINNED, content.pinned, onOpen)
+            section(R.string.board_others.takeIf { content.pinned.isNotEmpty() && content.others.isNotEmpty() }, Tags.OTHERS, content.others, onOpen)
         }
     }
 }
@@ -168,14 +168,14 @@ private fun SearchBar(
     }
 }
 
-private fun LazyStaggeredGridScope.section(heading: Int?, notes: List<Note>, onOpen: (String) -> Unit) {
+private fun LazyStaggeredGridScope.section(heading: Int?, tag: String, notes: List<Note>, onOpen: (String) -> Unit) {
     if (heading != null) {
         item(span = StaggeredGridItemSpan.FullLine, key = "heading-$heading") {
             Text(
                 stringResource(heading).uppercase(),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 4.dp, top = 12.dp),
+                modifier = Modifier.padding(start = 4.dp, top = 12.dp).testTag(tag),
             )
         }
     }

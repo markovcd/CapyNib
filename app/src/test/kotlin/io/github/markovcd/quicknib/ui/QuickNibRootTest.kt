@@ -131,7 +131,7 @@ class QuickNibRootTest {
         compose.onNodeWithTag(Tags.ARCHIVE).performClick()
 
         waitForStore { graph.store.get(archived)?.archived == true && graph.store.get(pinned)?.pinned == true }
-        awaitText("Pinned")
+        awaitTag(Tags.PINNED)
         awaitTag(Tags.card(plain))
         awaitNoTag(Tags.card(archived))
 
