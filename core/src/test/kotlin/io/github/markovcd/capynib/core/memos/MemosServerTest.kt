@@ -1,9 +1,16 @@
 package io.github.markovcd.capynib.core.memos
 
+import io.github.markovcd.capynib.core.note.MemoCodec
+import io.github.markovcd.capynib.core.note.MemoContent
 import io.github.markovcd.capynib.core.note.NoteColor
+import io.github.markovcd.capynib.core.note.NoteTags
 import io.github.markovcd.capynib.core.store.TempStores
 import io.github.markovcd.capynib.core.sync.SyncEngine
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.Request
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -64,6 +71,29 @@ class MemosServerTest {
         api.create("bytes-1", MemoState(content, pinned = false, archived = false))
 
         assertEquals(content, (api.listAll() as ApiResult.Ok).value.single().state.content)
+    }
+
+    @Test
+    fun A_notes_tags_are_the_ones_memos_lists_for_its_memo() = runTest {
+        val live = LiveMemos.connect()
+        val store = stores.open("tags-")
+        val notes = listOf(
+            store.create(++now, "Lisbon #travel", "- [ ] socks #packing\n- [x] passport #packing/documents", NoteColor.Sand),
+            store.create(++now, "", "see https://example.com/page#section and `#code` but #real-tag."),
+            store.create(++now, "Shopping", "milk, #café, #C++ and #O'Brien's #测试", NoteColor.Mint),
+            store.create(++now, "", "[link #text](https://example.com#frag) #after\n\n```\n#fenced\n```"),
+        )
+        assertEquals(null, SyncEngine(store, live.api()) { now }.sync().failure)
+
+        val listed = live.admin("memos?pageSize=1000", Request.Builder().get())["memos"]!!.jsonArray.map { it.jsonObject }
+        val serverTags = listed.associate { memo ->
+            memo["content"]!!.jsonPrimitive.content to memo["tags"]?.jsonArray.orEmpty().map { it.jsonPrimitive.content }
+        }
+        for (note in notes) {
+            val content = MemoCodec.encode(MemoContent(note.title, note.body, note.color))
+            val expected = serverTags.getValue(content).filterNot { it == "color" || it.startsWith("color/") }
+            assertEquals(content, expected, NoteTags.of(note).flatMap(NoteTags::withParents).distinct())
+        }
     }
 
     @Test

@@ -169,6 +169,17 @@ class CliTest {
     }
 
     @Test
+    fun Tags_lists_the_tags_and_list_narrows_to_one() {
+        run("add", "--title", "Groceries", "--body", "milk #shop/food")
+        run("add", "--title", "Ideas #work")
+
+        assertEquals("shop\nshop/food\nwork\n", run("tags").out)
+        val listed = json(run("list", "--tag", "shop", "--json").out).jsonArray.single().jsonObject
+        assertEquals("Groceries", listed["title"]!!.jsonPrimitive.content)
+        assertEquals(listOf("shop/food"), listed["tags"]!!.jsonArray.map { it.jsonPrimitive.content })
+    }
+
+    @Test
     fun Help_prints_the_usage_and_succeeds() {
         val ran = run("--help")
 

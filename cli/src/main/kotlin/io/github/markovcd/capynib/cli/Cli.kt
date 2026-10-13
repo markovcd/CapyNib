@@ -51,6 +51,7 @@ class Cli(
 
         return when (command) {
             "list" -> list(store, parsed, out)
+            "tags" -> tags(store, parsed, out)
             "show" -> withNote(store, operands, err) { note -> print(note, parsed, out) }
             "add" -> add(store, parsed, out, err)
             "edit" -> withNote(store, operands, err) { note -> edit(store, note, parsed, out, err) }
@@ -79,12 +80,7 @@ class Cli(
     }
 
     private fun list(store: NoteStore, args: Arguments, out: Appendable): Int {
-        val shelf = when {
-            args.flag("trashed") -> Shelf.Trash
-            args.flag("archived") -> Shelf.Archive
-            else -> Shelf.Notes
-        }
-        val content = BoardContent.of(store.visible(), args.option("search").orEmpty(), shelf)
+        val content = BoardContent.of(store.visible(), args.option("search").orEmpty(), shelf(args), args.option("tag"))
         val notes = content.pinned + content.others
         if (args.flag("json")) {
             out.appendLine(json.encodeToString(notes.map(NoteJson::of)))
@@ -95,6 +91,18 @@ class Cli(
             }
         }
         return ExitCode.OK
+    }
+
+    private fun tags(store: NoteStore, args: Arguments, out: Appendable): Int {
+        val tags = BoardContent.of(store.visible(), shelf = shelf(args), tag = null).tags
+        if (args.flag("json")) out.appendLine(json.encodeToString(tags)) else tags.forEach(out::appendLine)
+        return ExitCode.OK
+    }
+
+    private fun shelf(args: Arguments) = when {
+        args.flag("trashed") -> Shelf.Trash
+        args.flag("archived") -> Shelf.Archive
+        else -> Shelf.Notes
     }
 
     private fun add(store: NoteStore, args: Arguments, out: Appendable, err: Appendable): Int {
@@ -249,9 +257,10 @@ class Cli(
     private data class Command(val options: Set<String> = emptySet(), val flags: Set<String> = emptySet())
 
     private companion object {
-        val VALUED = setOf("db", "title", "body", "color", "search", "server", "trash-days")
+        val VALUED = setOf("db", "title", "body", "color", "search", "tag", "server", "trash-days")
         val COMMANDS = mapOf(
-            "list" to Command(setOf("search"), setOf("archived", "trashed", "json")),
+            "list" to Command(setOf("search", "tag"), setOf("archived", "trashed", "json")),
+            "tags" to Command(flags = setOf("archived", "trashed", "json")),
             "show" to Command(flags = setOf("json")),
             "add" to Command(setOf("title", "body", "color"), setOf("checklist", "pinned", "json")),
             "edit" to Command(setOf("title", "body", "color"), setOf("pin", "unpin", "archive", "unarchive", "json")),
@@ -265,7 +274,8 @@ class Cli(
         )
         val USAGE = """
             |usage: capynib [--db FILE] COMMAND
-            |  list [--archived|--trashed] [--search TEXT] [--json]
+            |  list [--archived|--trashed] [--search TEXT] [--tag TAG] [--json]
+            |  tags [--archived|--trashed] [--json]  the tags on the notes, with the tags they are inside
             |  show ID [--json]
             |  add [--title T] [--body B] [--color C] [--checklist] [--pinned] [--json]
             |  edit ID [--title T] [--body B] [--color C] [--pin|--unpin] [--archive|--unarchive] [--json]

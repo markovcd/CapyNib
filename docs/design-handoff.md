@@ -44,12 +44,14 @@ quiet.
   (archive box; a light bulb when showing the archive), a trash toggle (trash can; a light bulb
   when showing the trash), and a settings gear. The trash opens with one line saying how many days
   notes stay there.
+- Tag bar, under the top bar when any note has a tag: a row of filter chips ("#travel"), one per
+  tag on the shelf, scrolling sideways. Tapping one shows only its notes; tapping it again shows all.
 - Body: a staggered grid of note cards, about 160 dp wide columns. Sections "Pinned" and
   "Others" get small labels when there are pinned notes. An empty board shows one centered line
   ("Notes you add appear here").
 - A card: the note color as fill (default notes have a thin outline instead), the title in a
   title style, then up to 10 lines of the body; checklist items show a small checkbox glyph,
-  ticked ones struck through.
+  ticked ones struck through. The note's tags follow as small tinted pills ("#travel").
 - Floating buttons: an extended "New note" button with a pencil, and a small "New list" button
   with a checkbox above it.
 

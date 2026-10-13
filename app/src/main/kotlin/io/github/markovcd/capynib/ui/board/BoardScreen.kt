@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridScope
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
@@ -27,6 +29,7 @@ import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -69,6 +72,7 @@ fun BoardScreen(model: BoardViewModel, onOpen: (String) -> Unit, onSettings: () 
         trashDays = trashDays,
         onQuery = { model.query.value = it },
         onShelf = { model.shelf.value = it },
+        onTag = { model.tag.value = it },
         onOpen = onOpen,
         onNew = { checklist -> onOpen(model.newNote(checklist)) },
         onSettings = onSettings,
@@ -84,13 +88,18 @@ fun BoardLayout(
     trashDays: Int,
     onQuery: (String) -> Unit,
     onShelf: (Shelf) -> Unit,
+    onTag: (String?) -> Unit,
     onOpen: (String) -> Unit,
     onNew: (checklist: Boolean) -> Unit,
     onSettings: () -> Unit,
 ) {
     Scaffold(
         topBar = {
-            SearchBar(query, shelf, status, onQuery, onShelf, onSettings)
+            Column {
+                SearchBar(query, shelf, status, onQuery, onShelf, onSettings)
+                val tags = content?.tags.orEmpty()
+                if (tags.isNotEmpty()) TagBar(tags, content?.tag, onTag)
+            }
         },
         floatingActionButton = {
             if (shelf == Shelf.Notes) {
@@ -179,6 +188,25 @@ private fun SearchBar(
         ShelfToggle(Shelf.Trash, shelf, Tags.TRASH_TOGGLE, Icons.Outlined.Delete, R.string.board_show_trash, onShelf)
         IconButton(onClick = onSettings, modifier = Modifier.testTag(Tags.SETTINGS)) {
             Icon(Icons.Outlined.Settings, contentDescription = stringResource(R.string.board_settings), tint = colors.onSurfaceVariant)
+        }
+    }
+}
+
+/** The tags on the shelf; tapping one shows only its notes, tapping it again shows them all. */
+@Composable
+private fun TagBar(tags: List<String>, picked: String?, onTag: (String?) -> Unit) {
+    LazyRow(
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp).testTag(Tags.TAG_BAR),
+        contentPadding = PaddingValues(horizontal = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        items(tags, key = { it }) { tag ->
+            FilterChip(
+                selected = tag == picked,
+                onClick = { onTag(if (tag == picked) null else tag) },
+                label = { Text("#$tag") },
+                modifier = Modifier.testTag(Tags.tag(tag)),
+            )
         }
     }
 }

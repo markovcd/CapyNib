@@ -1,7 +1,7 @@
 # Capynib
 
 Quick notes for Android in the style of Google Keep: colored cards, checklists you can tick, pinned
-notes and an archive. Notes live on the phone and work offline; when a [memos](https://usememos.com)
+notes, tags and an archive. Notes live on the phone and work offline; when a [memos](https://usememos.com)
 server is set up, every change syncs to it about a second after you type, and edits made on the
 server (or another device) come back.
 
@@ -35,7 +35,7 @@ Each note is one private memo. The title is the memo's first-line heading and th
 | Release APK, as F-Droid builds it | `./gradlew :app:assembleRelease` |
 | The command line | `./gradlew :cli:installDist` then `cli/build/install/capynib/bin/capynib --help` |
 
-The command line works on the same notes and sync as the app (`list`, `add`, `edit`, `check`,
+The command line works on the same notes and sync as the app (`list`, `tags`, `add`, `edit`, `check`,
 `delete`, `restore`, `empty-trash`, `sync`, with `--json`), against a local database file. `capynib login --server URL` signs in with
 the browser the same way and prints the new access token, for `CAPYNIB_TOKEN`.
 

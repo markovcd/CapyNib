@@ -16,6 +16,12 @@ object Tags {
 
     fun card(id: String) = "card-$id"
 
+    fun cardTags(id: String) = "card-tags-$id"
+
+    const val TAG_BAR = "tag-bar"
+
+    fun tag(name: String) = "tag-$name"
+
     const val BACK = "back"
     const val PIN = "pin"
     const val ARCHIVE = "archive"

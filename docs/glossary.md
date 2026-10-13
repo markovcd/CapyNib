@@ -16,6 +16,7 @@ the docs, ADRs, comments, test names and commit messages.
 | **body** | A note's text below the title, plain text with checklist items in it. | `Note.body` | content (that is the memo's Markdown) |
 | **checklist item** | A body line with a checkbox, stored as `- [ ] ` or `- [x] `. | `ChecklistLine.Item` | bullet point, task, todo |
 | **checklist** | A note whose body has checklist items. | `Checklist` | list note |
+| **tag** | A `#word` in a note's title or body, which memos makes a tag of too. `#a/b` is the tag `a/b`, inside the tag `a`. | `NoteTags` | label (Keep's word), hashtag, category |
 | **color** | The background a note is shown on, one of a fixed set. | `NoteColor` | theme, label |
 | **pinned** | Kept at the top of the board. | `pinned` | starred, favorite |
 | **archive** | Notes put away: off the board but kept and synced. | `archived` | trash (deleting is separate) |

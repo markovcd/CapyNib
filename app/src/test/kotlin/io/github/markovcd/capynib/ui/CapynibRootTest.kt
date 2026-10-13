@@ -196,6 +196,22 @@ class CapynibRootTest {
     }
 
     @Test
+    fun A_tag_written_in_a_note_shows_on_its_card_and_picking_it_narrows_the_board() {
+        val milk = graph.store.create(graph.clock(), title = "Buy milk", body = "2 litres #shopping").id
+        val idea = graph.store.create(graph.clock(), title = "App idea #work").id
+
+        awaitTag(Tags.card(milk))
+        // The card is one button to accessibility, so its tags are read from its merged text.
+        compose.onNodeWithTag(Tags.card(milk)).assertTextContains("#shopping", substring = false)
+        compose.onNodeWithTag(Tags.tag("shopping")).performClick()
+
+        awaitNoTag(Tags.card(idea))
+        compose.onNodeWithTag(Tags.card(milk)).assertIsDisplayed()
+        compose.onNodeWithTag(Tags.tag("shopping")).performClick()
+        awaitTag(Tags.card(idea))
+    }
+
+    @Test
     fun Connecting_a_server_syncs_the_notes_written_before() {
         graph.store.create(graph.clock(), body = "written offline")
         compose.onNodeWithTag(Tags.SETTINGS).performClick()

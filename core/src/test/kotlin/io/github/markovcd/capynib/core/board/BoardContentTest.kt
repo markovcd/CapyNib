@@ -45,4 +45,32 @@ class BoardContentTest {
     fun A_checklist_with_only_empty_items_counts_as_empty() {
         assertEquals(true, BoardContent.of(listOf(note("c", title = "", body = "- [ ] \n- [ ] "))).isEmpty)
     }
+
+    private val tagged = listOf(
+        note("trip", title = "Lisbon #travel/2026", pinned = true),
+        note("socks", body = "- [ ] socks #packing #Travel"),
+        note("milk", body = "milk #shopping"),
+        note("old", body = "#archived-tag", archived = true),
+    )
+
+    @Test
+    fun The_board_offers_every_tag_on_the_shelf_with_its_parents_sorted_ignoring_case() {
+        assertEquals(listOf("packing", "shopping", "Travel", "travel", "travel/2026"), BoardContent.of(tagged).tags)
+        assertEquals(listOf("archived-tag"), BoardContent.of(tagged, shelf = Shelf.Archive).tags)
+    }
+
+    @Test
+    fun Picking_a_tag_shows_the_notes_that_have_it_or_a_tag_inside_it() {
+        assertEquals(listOf("trip") to emptyList<String>(), BoardContent.of(tagged, tag = "travel").ids())
+        assertEquals(emptyList<String>() to listOf("socks"), BoardContent.of(tagged, tag = "Travel").ids())
+        assertEquals(emptyList<String>() to listOf("milk"), BoardContent.of(tagged, query = "milk", tag = "shopping").ids())
+        assertEquals(emptyList<String>() to emptyList<String>(), BoardContent.of(tagged, query = "socks", tag = "shopping").ids())
+    }
+
+    @Test
+    fun A_tag_no_note_on_the_shelf_has_narrows_nothing() {
+        val content = BoardContent.of(tagged, shelf = Shelf.Archive, tag = "shopping")
+        assertEquals(null, content.tag)
+        assertEquals(emptyList<String>() to listOf("old"), content.ids())
+    }
 }

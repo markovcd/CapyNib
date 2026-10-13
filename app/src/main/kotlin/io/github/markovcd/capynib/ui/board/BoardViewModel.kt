@@ -18,9 +18,10 @@ import kotlinx.coroutines.launch
 class BoardViewModel(private val graph: AppGraph) : ViewModel() {
     val query = MutableStateFlow("")
     val shelf = MutableStateFlow(Shelf.Notes)
+    val tag = MutableStateFlow<String?>(null)
 
     val content: StateFlow<BoardContent?> =
-        combine(graph.store.observeVisible(), query, shelf) { notes, query, shelf -> BoardContent.of(notes, query, shelf) }
+        combine(graph.store.observeVisible(), query, shelf, tag) { notes, query, shelf, tag -> BoardContent.of(notes, query, shelf, tag) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     init {

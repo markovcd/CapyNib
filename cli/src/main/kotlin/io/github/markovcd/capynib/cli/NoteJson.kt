@@ -3,9 +3,13 @@ package io.github.markovcd.capynib.cli
 import io.github.markovcd.capynib.core.note.Checklist
 import io.github.markovcd.capynib.core.note.ChecklistLine
 import io.github.markovcd.capynib.core.note.Note
+import io.github.markovcd.capynib.core.note.NoteTags
 import kotlinx.serialization.Serializable
 
-/** A note as `--json` prints it. `lines` is the body split into text lines and checklist items. */
+/**
+ * A note as `--json` prints it. `lines` is the body split into text lines and checklist items;
+ * `tags` are the tags written in the title and body.
+ */
 @Serializable
 data class NoteJson(
     val id: String,
@@ -18,6 +22,7 @@ data class NoteJson(
     val updatedAt: Long,
     val trashedAt: Long?,
     val lines: List<LineJson>,
+    val tags: List<String>,
 ) {
     @Serializable
     data class LineJson(val text: String, val checked: Boolean? = null)
@@ -39,6 +44,7 @@ data class NoteJson(
                     is ChecklistLine.Item -> LineJson(line.text, line.checked)
                 }
             },
+            tags = NoteTags.of(note),
         )
     }
 }
