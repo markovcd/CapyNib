@@ -54,8 +54,9 @@ class LoopbackReceiver private constructor(private val socket: ServerSocket) : C
     override fun close() = socket.close()
 
     private fun serve(connection: Socket, state: String): BrowserCallback? {
-        connection.soTimeout = READ_TIMEOUT_MS
+        // The wait may already be over and this connection closed under it; that is not an error.
         val target = try {
+            connection.soTimeout = READ_TIMEOUT_MS
             readTarget(connection.getInputStream())
         } catch (e: IOException) {
             null
