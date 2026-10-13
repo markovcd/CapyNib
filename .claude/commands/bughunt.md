@@ -31,3 +31,12 @@ $ARGUMENTS narrows the hunt to a subsystem when it is given. With nothing, sweep
 ## Reporting
 
 Lead with the count and the list. Per bug: one sentence on what is wrong, the repro as a test name or a shell line, and where it is reachable from. Say plainly where you looked and found nothing — that is half of what makes the next hunt cheaper — and add those areas to a "where the repo is already strong" list in this file so the next hunt skips them unless the code moved.
+
+## Where the repo is already strong
+
+Hunted 2026-10-13 and found nothing; skip these unless the code moved:
+
+- `MemoCodec` round trips: 400k random notes of Markdown, escapes, color tags and control characters decode to what was encoded.
+- `NoteTags` and `BoardContent.of`: total over the same random text, as tag, query and note.
+- `BoardContent.move`: random sections with tied positions always put the note where it was dropped.
+- `Capture.shared`: blank text and subject is no capture.
