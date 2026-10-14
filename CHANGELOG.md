@@ -5,6 +5,7 @@
 ### Features
 
 - The home screen widgets are one tile each: a pen for a new note and a checkbox for a new checklist, on a see-through circle.
+- The note editor keeps its colors folded behind a palette button, as Keep does.
 
 ## 0.1.1 - 2026-10-13
 

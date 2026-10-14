@@ -70,8 +70,9 @@ quiet.
 - A borderless title field ("Title") and either a borderless body field ("Note") or a checklist:
   rows of checkbox, item text and a remove (x) button; an "+ List item" row; then "N checked
   items" and the ticked rows, struck through.
-- Bottom bar: a "show/hide checkboxes" button and a row of 12 round color swatches (the selected
-  one has a ring and a check mark).
+- Bottom bar: a "show/hide checkboxes" button and a palette button. The palette button unfolds
+  rows of 12 round color swatches above the bar (the selected one has a ring and a check mark);
+  tapping it again, tapping into the note or pressing back folds them away.
 
 **Settings** (`ui/settings/SettingsScreen.kt`)
 - Not connected: server address field, a full-width Sign in with browser button with a help line

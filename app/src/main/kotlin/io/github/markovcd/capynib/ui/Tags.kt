@@ -45,6 +45,7 @@ object Tags {
     const val BODY = "body"
     const val CHECKBOXES = "checkboxes"
     const val ADD_ITEM = "add-item"
+    const val PALETTE = "palette"
 
     fun item(index: Int) = "item-$index"
 

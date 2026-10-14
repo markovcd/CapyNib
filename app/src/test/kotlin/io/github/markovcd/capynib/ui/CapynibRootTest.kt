@@ -160,9 +160,35 @@ class CapynibRootTest {
         val id = graph.store.create(graph.clock(), body = "paint me").id
         open(id)
 
+        compose.onNodeWithTag(Tags.PALETTE).performClick()
         compose.onNodeWithTag(Tags.color(NoteColor.Mint.key)).performClick()
 
         waitForStore { graph.store.get(id)?.color == NoteColor.Mint }
+    }
+
+    @Test
+    fun The_colors_stay_folded_behind_the_palette_button_until_it_is_tapped() {
+        open(graph.store.create(graph.clock(), body = "paint me").id)
+        val mint = Tags.color(NoteColor.Mint.key)
+        compose.onNodeWithTag(mint).assertDoesNotExist()
+
+        compose.onNodeWithTag(Tags.PALETTE).performClick()
+        compose.onNodeWithTag(mint).assertIsDisplayed()
+
+        compose.onNodeWithTag(Tags.PALETTE).performClick()
+        compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithTag(mint).fetchSemanticsNodes().isEmpty() }
+    }
+
+    @Test
+    fun Tapping_into_the_note_folds_the_colors_away() {
+        open(graph.store.create(graph.clock(), body = "paint me").id)
+        val mint = Tags.color(NoteColor.Mint.key)
+        compose.onNodeWithTag(Tags.PALETTE).performClick()
+        compose.onNodeWithTag(mint).assertIsDisplayed()
+
+        compose.onNodeWithTag(Tags.BODY).performClick()
+
+        compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithTag(mint).fetchSemanticsNodes().isEmpty() }
     }
 
     @Test

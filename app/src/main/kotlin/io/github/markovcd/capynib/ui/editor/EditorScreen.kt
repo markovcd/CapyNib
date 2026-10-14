@@ -3,11 +3,13 @@ package io.github.markovcd.capynib.ui.editor
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
@@ -27,6 +29,7 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.RestoreFromTrash
@@ -52,7 +55,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -89,6 +94,9 @@ fun EditorScreen(editor: NoteEditor, startTyping: Boolean, onClose: () -> Unit) 
     val checklist = Checklist.isChecklist(note.body)
     val editable = !note.inTrash
     var confirmingDelete by remember { mutableStateOf(false) }
+    var showingColors by remember { mutableStateOf(false) }
+    BackHandler(enabled = showingColors) { showingColors = false }
+    val focus = LocalFocusManager.current
     if (confirmingDelete) {
         ConfirmDeleteForever(
             count = 1,
@@ -165,12 +173,20 @@ fun EditorScreen(editor: NoteEditor, startTyping: Boolean, onClose: () -> Unit) 
                     selected = note.color,
                     checklist = checklist,
                     onColor = editor::setColor,
+                    showingColors = showingColors,
+                    onPalette = {
+                        if (!showingColors) focus.clearFocus()
+                        showingColors = !showingColors
+                    },
                     onToggleCheckboxes = { if (checklist) editor.hideCheckboxes() else editor.showCheckboxes() },
                 )
             }
         },
     ) { padding ->
-        Column(Modifier.padding(padding).fillMaxWidth().verticalScroll(rememberScrollState())) {
+        Column(
+            Modifier.padding(padding).fillMaxWidth().verticalScroll(rememberScrollState())
+                .onFocusEvent { if (it.hasFocus) showingColors = false },
+        ) {
             PlainTextField(
                 value = note.title,
                 onValueChange = editor::setTitle,
@@ -292,12 +308,23 @@ private fun ItemCheckbox(checked: Boolean, enabled: Boolean, onToggle: () -> Uni
     }
 }
 
+/** The note's tools: the checkbox toggle and, as in Keep, the colors folded behind a palette button until it is tapped. */
 @Composable
-private fun EditorBottomBar(selected: NoteColor, checklist: Boolean, onColor: (NoteColor) -> Unit, onToggleCheckboxes: () -> Unit) {
+private fun EditorBottomBar(
+    selected: NoteColor,
+    checklist: Boolean,
+    onColor: (NoteColor) -> Unit,
+    showingColors: Boolean,
+    onPalette: () -> Unit,
+    onToggleCheckboxes: () -> Unit,
+) {
     val ink = MaterialTheme.colorScheme.onSurface
     Column(Modifier.fillMaxWidth().navigationBarsPadding().imePadding()) {
         HorizontalDivider(color = ink.copy(alpha = RULE_ALPHA))
-        Column(Modifier.padding(start = 10.dp, end = 10.dp, top = 6.dp, bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        AnimatedVisibility(showingColors) {
+            ColorPalette(selected, onColor, Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp))
+        }
+        Row(Modifier.padding(start = 10.dp, end = 10.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onToggleCheckboxes, modifier = Modifier.testTag(Tags.CHECKBOXES)) {
                 Icon(Icons.Outlined.CheckBox, contentDescription = null, modifier = Modifier.size(22.dp), tint = ink)
                 Text(
@@ -306,7 +333,10 @@ private fun EditorBottomBar(selected: NoteColor, checklist: Boolean, onColor: (N
                     color = ink,
                 )
             }
-            ColorPalette(selected, onColor)
+            Spacer(Modifier.weight(1f))
+            IconButton(onClick = onPalette, modifier = Modifier.testTag(Tags.PALETTE)) {
+                Icon(Icons.Outlined.Palette, contentDescription = stringResource(R.string.editor_colors), tint = ink)
+            }
         }
     }
 }
