@@ -14,10 +14,13 @@ import io.github.markovcd.capynib.AppGraph
 import io.github.markovcd.capynib.TestGraphs
 import io.github.markovcd.capynib.capture.CapturedNote
 import io.github.markovcd.capynib.core.note.Capture
+import io.github.markovcd.capynib.core.note.Note
 import io.github.markovcd.capynib.core.note.Photo
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -26,6 +29,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import java.io.File
+import java.io.FileNotFoundException
+import java.io.InputStream
 
 /** Taking and choosing photos into notes, viewing them, and the camera widget's note, over a real store and a stand-in camera app. */
 @RunWith(RobolectricTestRunner::class)
@@ -176,5 +181,43 @@ class PhotosTest {
 
         awaitTag(Tags.NEW_NOTE)
         waitForStore { graph.store.visible().isEmpty() }
+    }
+
+    /** An image another app holds at [uri], as its content provider would hand it over. */
+    private fun heldByAnotherApp(uri: Uri, image: String): Uri {
+        shadowOf(graph.resolver).registerInputStream(uri, image.byteInputStream())
+        return uri
+    }
+
+    @Test
+    fun Images_shared_from_another_app_open_as_a_new_note_holding_copies_of_them() {
+        val shared = listOf(
+            heldByAnotherApp(Uri.parse("content://com.example.gallery/images/1"), "first"),
+            heldByAnotherApp(Uri.parse("content://com.example.gallery/images/2"), "second"),
+        )
+
+        val id = runBlocking { graph.capture(Capture(body = "Zoo"), shared) }!!
+        captured.trySend(CapturedNote(id))
+
+        val note = graph.store.visible().single()
+        assertEquals("Zoo", note.body)
+        assertEquals(listOf("first", "second"), note.photos.map { graph.store.readAttachment(it.id)!!.decodeToString() })
+        awaitTag(Tags.photo(note.photos.first().id))
+    }
+
+    @Test
+    fun A_shared_image_that_cannot_be_read_makes_no_note() {
+        val unreadable = Uri.parse("content://com.example.gallery/images/gone")
+        shadowOf(graph.resolver).registerInputStream(
+            unreadable,
+            object : InputStream() {
+                override fun read(): Int = throw FileNotFoundException("gone")
+            },
+        )
+
+        assertNull(runBlocking { graph.capture(Capture.EmptyNote, listOf(unreadable)) })
+
+        assertEquals(emptyList<Note>(), graph.store.visible())
+        assertEquals(emptyList<String>(), photosFolder().list().orEmpty().toList())
     }
 }

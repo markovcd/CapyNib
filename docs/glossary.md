@@ -29,7 +29,7 @@ the docs, ADRs, comments, test names and commit messages.
 | **trash** | Deleted notes, kept for the days set in settings (a week by default) and read-only until restored or deleted for good. Their memos are archived meanwhile. | `trashedAt`, `Shelf.Trash`, `Trash` | bin, recycle bin, archive |
 | **shelf** | Which notes the board shows: the notes in use, the archive or the trash. | `Shelf` | tab, filter, view |
 | **delete forever** | Deleting a note for good, from the trash or when its days there are up. | `deleteForever` | purge (that is dropping the local row once the server agrees) |
-| **quick capture** | Starting a note from outside the board: a home screen widget, a launcher shortcut, the Quick Settings tile, or text shared from another app. It opens ready to type. | `Capture`, `CaptureIntents` | quick note, share sheet |
+| **quick capture** | Starting a note from outside the board: a home screen widget, a launcher shortcut, the Quick Settings tile, or text or photos shared from another app. It opens ready to type. | `Capture`, `CaptureIntents` | quick note, share sheet |
 | **board** | The screen of all notes as cards. | `BoardContent`, `BoardScreen` | home, list, grid |
 | **calendar** | The board's other layout: a month of days, each marked with a dot per note dated on it (its memo's create time), and the picked day's notes as cards below. | `BoardMode.Calendar`, `CalendarMonth`, `NoteCalendar` | timeline, heatmap, view (that is not a shelf either) |
 | **memos server** | The user's self-hosted [memos](https://usememos.com) instance. | `MemosApi`, `ServerAddress` | cloud, backend |

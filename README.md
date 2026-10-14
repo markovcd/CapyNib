@@ -10,8 +10,8 @@ server (or another device) come back.
 1. Install the debug APK from the latest [gate run](../../actions/workflows/gate.yml) (artifact `capynib-debug-apk`).
 2. Write notes. Without a server they stay on the phone. To start one without opening the board,
    add the Capynib pen, checkbox, microphone or camera widget to the home screen, long-press the app icon for **New note**,
-   **New checklist** or **New audio note**, add the **New note** tile to Quick Settings, or share text or a link to Capynib
-   from another app (a link's page title becomes the note's title). The microphone at the bottom
+   **New checklist** or **New audio note**, add the **New note** tile to Quick Settings, or share text, a link or photos to Capynib
+   from another app (a link's page title becomes the note's title; shared photos become a photo note). The microphone at the bottom
    of a note records a voice clip into it, which plays from the note and from its card; the microphone
    widget and **New audio note** open a new note already recording. The image button beside it takes a
    photo or adds an image from the phone; photos sit at the top of the note and its card, and tapping

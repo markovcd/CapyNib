@@ -1,7 +1,7 @@
 package io.github.markovcd.capynib.core.note
 
 /**
- * What a quick capture (a widget, a launcher shortcut, the tile, or text shared from another app) starts a note with.
+ * What a quick capture (a widget, a launcher shortcut, the tile, or text or photos shared from another app) starts a note with.
  * With [record] the note opens recording a clip; with [photo] it opens the camera to take a photo into it.
  */
 data class Capture(val title: String = "", val body: String = "", val record: Boolean = false, val photo: Boolean = false) {

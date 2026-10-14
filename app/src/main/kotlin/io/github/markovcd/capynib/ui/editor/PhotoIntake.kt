@@ -3,10 +3,8 @@ package io.github.markovcd.capynib.ui.editor
 import android.content.ContentResolver
 import android.net.Uri
 import io.github.markovcd.capynib.core.note.Photo
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import io.github.markovcd.capynib.photo.PhotoCopier
 import java.io.File
-import java.io.IOException
 
 /**
  * Brings photos into the open note: one the camera app wrote into a file from [newFile], reached
@@ -16,9 +14,11 @@ import java.io.IOException
 class PhotoIntake(
     private val newFile: () -> File,
     val uriOf: (File) -> Uri,
-    private val resolver: ContentResolver,
+    resolver: ContentResolver,
     private val onPhoto: (File, String) -> Unit,
 ) {
+    private val copier = PhotoCopier(newFile, resolver)
+
     /** A file for the camera app to write a photo into. */
     fun newShot(): File = newFile()
 
@@ -34,19 +34,8 @@ class PhotoIntake(
 
     /** Copies the image at [uri] into the note; false when it could not be read. */
     suspend fun picked(uri: Uri): Boolean {
-        val copy = newFile()
-        val copied = withContext(Dispatchers.IO) {
-            try {
-                resolver.openInputStream(uri)?.use { input -> copy.outputStream().use { input.copyTo(it) } } != null
-            } catch (e: IOException) {
-                false
-            }
-        }
-        if (!copied || copy.length() == 0L) {
-            copy.delete()
-            return false
-        }
-        onPhoto(copy, resolver.getType(uri)?.takeIf(Photo::isPhoto) ?: Photo.JPEG)
+        val photo = copier.copy(uri) ?: return false
+        onPhoto(photo.file, photo.type)
         return true
     }
 }

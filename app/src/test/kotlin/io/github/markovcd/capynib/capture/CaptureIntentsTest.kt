@@ -2,6 +2,7 @@ package io.github.markovcd.capynib.capture
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import io.github.markovcd.capynib.R
 import io.github.markovcd.capynib.core.note.Capture
@@ -33,8 +34,45 @@ class CaptureIntentsTest {
     }
 
     @Test
-    fun A_share_that_is_not_text_captures_nothing() {
-        assertNull(CaptureIntents.capture(shared("image/png", "photo")))
+    fun A_share_that_is_neither_text_nor_images_captures_nothing() {
+        assertNull(CaptureIntents.capture(shared("video/mp4", "clip")))
+    }
+
+    @Test
+    fun An_image_shared_from_a_gallery_captures_a_note_that_takes_it() {
+        val intent = shared("image/jpeg", null).putExtra(Intent.EXTRA_STREAM, GALLERY_IMAGE)
+
+        assertEquals(Capture.EmptyNote, CaptureIntents.capture(intent))
+        assertEquals(listOf(GALLERY_IMAGE), CaptureIntents.sharedPhotos(intent, context.packageName))
+    }
+
+    @Test
+    fun Images_shared_together_are_all_taken_and_their_caption_is_the_body() {
+        val images = arrayListOf(GALLERY_IMAGE, Uri.parse("content://com.example.gallery/images/2"))
+        val intent = Intent(Intent.ACTION_SEND_MULTIPLE).setType("image/*")
+            .putParcelableArrayListExtra(Intent.EXTRA_STREAM, images)
+            .putExtra(Intent.EXTRA_TEXT, "Capybaras at the zoo")
+
+        assertEquals(Capture(body = "Capybaras at the zoo"), CaptureIntents.capture(intent))
+        assertEquals(images, CaptureIntents.sharedPhotos(intent, context.packageName))
+    }
+
+    @Test
+    fun A_shared_file_path_or_an_address_of_the_apps_own_is_not_taken() {
+        val own = listOf(
+            Uri.fromFile(context.filesDir.resolve("capynib.db")),
+            Uri.parse("content://${context.packageName}.photos/photos/photo1.jpg"),
+            Uri.parse("content://${context.packageName}/anything"),
+        )
+        for (uri in own) {
+            assertEquals(uri.toString(), emptyList<Uri>(), CaptureIntents.sharedPhotos(shared("image/jpeg", null).putExtra(Intent.EXTRA_STREAM, uri), context.packageName))
+        }
+    }
+
+    @Test
+    fun Shared_text_brings_no_images() {
+        val intent = shared("text/plain", "buy milk").putExtra(Intent.EXTRA_STREAM, GALLERY_IMAGE)
+        assertEquals(emptyList<Uri>(), CaptureIntents.sharedPhotos(intent, context.packageName))
     }
 
     @Test
@@ -70,6 +108,10 @@ class CaptureIntentsTest {
             assertEquals(id, context.packageName, intent.component?.packageName)
             assertEquals(id, captures[id], CaptureIntents.capture(intent))
         }
+    }
+
+    private companion object {
+        val GALLERY_IMAGE: Uri = Uri.parse("content://com.example.gallery/images/1")
     }
 
     /** Each shortcut's id and intent, as res/xml/shortcuts.xml declares them. */

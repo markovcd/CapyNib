@@ -10,6 +10,7 @@
 - Voice recordings: record a clip into a note and play it from the note or its card, or start an audio note from a home screen widget or the app icon.
 - Photos in notes, taken with the camera or chosen from the phone, and a camera widget for a new photo note.
 - A calendar on the board: each day marks the notes made on it, and tapping a day lists them.
+- Share photos to Capynib from another app to make a photo note.
 
 ## 0.1.1 - 2026-10-13
 

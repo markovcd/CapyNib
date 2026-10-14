@@ -20,6 +20,7 @@ import io.github.markovcd.capynib.core.store.AttachmentFiles
 import io.github.markovcd.capynib.core.store.NoteStore
 import io.github.markovcd.capynib.core.sync.SyncEngine
 import io.github.markovcd.capynib.core.sync.SyncScheduler
+import io.github.markovcd.capynib.photo.PhotoCopier
 import io.github.markovcd.capynib.photo.PhotoLoader
 import io.github.markovcd.capynib.settings.KeystoreTokenCipher
 import io.github.markovcd.capynib.settings.SyncSettings
@@ -64,6 +65,8 @@ class AppGraph(
 
     val resolver = context.contentResolver
 
+    private val copier = PhotoCopier(::newPhotoFile, resolver)
+
     val settings = SyncSettingsStore(context.getSharedPreferences("sync", Context.MODE_PRIVATE), cipher)
 
     val trash = TrashSettingsStore(context.getSharedPreferences("trash", Context.MODE_PRIVATE))
@@ -94,6 +97,19 @@ class AppGraph(
     fun capture(capture: Capture): String {
         val note = store.create(clock(), title = capture.title, body = capture.body)
         if (!note.isBlank) scheduler.requestSync()
+        return note.id
+    }
+
+    /**
+     * Makes a note from [capture] holding copies of the images at [photos], another app's, and returns
+     * its id to open it; null when none could be read and the capture holds nothing else.
+     */
+    suspend fun capture(capture: Capture, photos: List<Uri>): String? {
+        val copied = photos.mapNotNull { copier.copy(it) }
+        if (copied.isEmpty() && capture == Capture.EmptyNote) return null
+        val note = store.create(clock(), title = capture.title, body = capture.body)
+        for (photo in copied) store.addPhoto(store.newPhoto(note.id, photo.type, clock()), photo.file)
+        scheduler.requestSync()
         return note.id
     }
 
