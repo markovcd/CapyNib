@@ -7,7 +7,7 @@ import io.github.markovcd.capynib.audio.Playback
 import io.github.markovcd.capynib.core.editor.NoteEditor
 import kotlinx.coroutines.Dispatchers
 
-/** Holds the open note's [NoteEditor], null when the note no longer exists, and records clips into it. */
+/** Holds the open note's [NoteEditor], null when the note no longer exists, and records clips and takes photos into it. */
 class EditorViewModel(graph: AppGraph, noteId: String) : ViewModel() {
     val editor: NoteEditor? = graph.store.get(noteId)?.let { note ->
         NoteEditor(
@@ -22,6 +22,8 @@ class EditorViewModel(graph: AppGraph, noteId: String) : ViewModel() {
     }
 
     val recorder = Recorder(graph.microphone, graph::newClipFile, graph.clock) { file, duration -> editor?.addRecording(file, duration) }
+
+    val photos = PhotoIntake(graph::newPhotoFile, graph::photoUri, graph.resolver) { file, type -> editor?.addPhoto(file, type) }
 
     val playback: Playback = graph.playback
 

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The one folder the camera app may write into: where a photo waits until the note takes it in. -->
+<paths>
+    <cache-path name="photos" path="photos/" />
+</paths>

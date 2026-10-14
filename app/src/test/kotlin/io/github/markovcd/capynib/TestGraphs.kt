@@ -1,5 +1,6 @@
 package io.github.markovcd.capynib
 
+import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import io.github.markovcd.capynib.audio.FakeMicrophone
 import io.github.markovcd.capynib.audio.FakePlayback
@@ -19,7 +20,8 @@ import okhttp3.ResponseBody.Companion.toResponseBody
 /**
  * An [AppGraph] over an in-memory database, a reversible fake cipher, a fake memos server, and
  * browser sign-in against canned memos replies that sign in as `tester`, with [browser] in place of
- * the phone's browser and [microphone] and [playback] in place of its microphone and speaker.
+ * the phone's browser and [microphone] and [playback] in place of its microphone and speaker. Photo
+ * files are lent to the camera app by path: the file provider caches the first test's folders.
  */
 object TestGraphs {
     fun create(
@@ -37,6 +39,7 @@ object TestGraphs {
         browser = browser,
         microphone = microphone,
         playback = { playback },
+        lend = Uri::fromFile,
     )
 
     /** The memos replies a browser sign-in reads: one Google provider, a session, then an access token. */

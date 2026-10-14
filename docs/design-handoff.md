@@ -49,7 +49,7 @@ quiet.
 - Body: a staggered grid of note cards, about 160 dp wide columns. Sections "Pinned" and
   "Others" get small labels when there are pinned notes. An empty board shows one centered line
   ("Notes you add appear here").
-- A card: the note color as fill (default notes have a thin outline instead), the title in a
+- A card: its photos across the top, edge to edge (up to 260 dp tall), the note color as fill (default notes have a thin outline instead), the title in a
   title style, then up to 10 lines of the body; checklist items show a small checkbox glyph,
   ticked ones struck through. The note's tags follow as small tinted pills ("#travel"). A picked card wears a 2 dp `onSurface` outline.
 - Gestures: a long press picks a card and the top bar becomes the selection bar (close, "N
@@ -70,7 +70,11 @@ quiet.
 - A borderless title field ("Title") and either a borderless body field ("Note") or a checklist:
   rows of drag handle, checkbox, item text and a remove (x) button; an "+ List item" row; then "N checked
   items" and the ticked rows, struck through.
-- Bottom bar: a "show/hide checkboxes" button and a palette button. The palette button unfolds
+- Photos at the top of the note, edge to edge: one alone at its own shape (up to 480 dp tall), more in
+  rows of up to three squares. Tapping one shows the photos full screen on black, swiped through
+  sideways, with close and remove buttons on top.
+- Bottom bar: a "show/hide checkboxes" button, an image button whose menu offers "Take photo" and
+  "Choose image", and a palette button. The palette button unfolds
   rows of 12 round color swatches above the bar (the selected one has a ring and a check mark);
   tapping it again, tapping into the note or pressing back folds them away.
 
@@ -82,7 +86,8 @@ quiet.
 
 **Quick capture** (`capture/`, `res/layout/widget_new_note.xml`)
 - Home screen widgets: one tile each, a pen (new note), a checkbox (new checklist) or a
-  microphone (new note, already recording) on a see-through circle of the theme's surface.
+  microphone (new note, already recording) or a camera (opens the camera; the photo becomes a new note)
+  on a see-through circle of the theme's surface.
 - Launcher shortcuts "New note", "New checklist" and "New audio note", each an adaptive icon of the same glyph on
   a container color, and a "New note" Quick Settings tile.
 

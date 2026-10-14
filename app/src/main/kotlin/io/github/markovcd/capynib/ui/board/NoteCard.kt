@@ -37,6 +37,7 @@ import io.github.markovcd.capynib.core.note.ChecklistLine
 import io.github.markovcd.capynib.core.note.Note
 import io.github.markovcd.capynib.core.note.NoteTags
 import io.github.markovcd.capynib.core.note.Recording
+import io.github.markovcd.capynib.ui.PhotoGrid
 import io.github.markovcd.capynib.ui.RecordingPlayer
 import io.github.markovcd.capynib.ui.Tags
 import io.github.markovcd.capynib.ui.theme.NoteColors
@@ -44,10 +45,11 @@ import io.github.markovcd.capynib.ui.theme.NoteColors
 private const val PREVIEW_LINES = 10
 private const val TICKED_ALPHA = 0.62f
 private const val TAG_ALPHA = 0.08f
+private const val CARD_PHOTO_PIXELS = 540
 
 /**
- * A note on the board: its color, title, the start of its text or checklist, its recordings as small
- * players, and its tags; a picked note wears a thick outline.
+ * A note on the board: its photos across the top, its color, title, the start of its text or checklist,
+ * its recordings as small players, and its tags; a picked note wears a thick outline.
  */
 @Composable
 fun NoteCard(note: Note, selected: Boolean, playing: PlayingClip?, onPlay: (Recording) -> Unit, onOpen: () -> Unit, modifier: Modifier = Modifier) {
@@ -65,6 +67,7 @@ fun NoteCard(note: Note, selected: Boolean, playing: PlayingClip?, onPlay: (Reco
             else -> null
         },
     ) {
+        PhotoGrid(note.photos, CARD_PHOTO_PIXELS, maxHeight = 260.dp, onOpen = null)
         Column(Modifier.padding(horizontal = 14.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             if (note.title.isNotBlank()) {
                 Text(note.title, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)

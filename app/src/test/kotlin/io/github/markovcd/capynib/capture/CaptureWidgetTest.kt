@@ -38,4 +38,9 @@ class CaptureWidgetTest {
     fun Tapping_the_microphone_widget_opens_a_new_note_recording() {
         assertEquals(Capture.EmptyRecording, tapped(NewAudioNoteWidget()))
     }
+
+    @Test
+    fun Tapping_the_camera_widget_opens_a_new_note_taking_a_photo() {
+        assertEquals(Capture.EmptyPhoto, tapped(NewPhotoWidget()))
+    }
 }

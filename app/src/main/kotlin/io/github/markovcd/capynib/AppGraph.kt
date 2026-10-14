@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import androidx.core.content.FileProvider
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
 import io.github.markovcd.capynib.audio.AndroidMicrophone
 import io.github.markovcd.capynib.audio.AndroidPlayback
@@ -19,6 +20,7 @@ import io.github.markovcd.capynib.core.store.AttachmentFiles
 import io.github.markovcd.capynib.core.store.NoteStore
 import io.github.markovcd.capynib.core.sync.SyncEngine
 import io.github.markovcd.capynib.core.sync.SyncScheduler
+import io.github.markovcd.capynib.photo.PhotoLoader
 import io.github.markovcd.capynib.settings.KeystoreTokenCipher
 import io.github.markovcd.capynib.settings.SyncSettings
 import io.github.markovcd.capynib.settings.SyncSettingsStore
@@ -33,7 +35,8 @@ import java.io.File
 /**
  * The app's long-lived objects, made once per process. Tests make their own with an in-memory
  * database (null [databaseName]), a fake cipher, a fake server, canned sign-in replies, a browser
- * that only records the pages it is asked to open, and a fake microphone and speaker.
+ * that only records the pages it is asked to open, a fake microphone and speaker, and photo files lent to
+ * the camera app by path, since the file provider keeps the first test's folders for the rest.
  */
 class AppGraph(
     context: Context,
@@ -46,6 +49,7 @@ class AppGraph(
     private val browser: (String) -> Boolean = { openInBrowser(context, it) },
     val microphone: Microphone = AndroidMicrophone(context),
     playback: ((String) -> File) -> Playback = { AndroidPlayback(MainScope(), it) },
+    private val lend: (File) -> Uri = { FileProvider.getUriForFile(context, "${context.packageName}.photos", it) },
 ) {
     val store = NoteStore(
         AndroidSqliteDriver(NoteStore.schema, context, databaseName),
@@ -54,7 +58,11 @@ class AppGraph(
 
     val playback: Playback = playback(store::attachmentFile)
 
+    val photos = PhotoLoader(store::attachmentFile)
+
     private val cache = context.cacheDir
+
+    val resolver = context.contentResolver
 
     val settings = SyncSettingsStore(context.getSharedPreferences("sync", Context.MODE_PRIVATE), cipher)
 
@@ -72,6 +80,12 @@ class AppGraph(
 
     /** A file in the cache for a clip being recorded; the store moves it in once the clip is kept. */
     fun newClipFile(): File = File.createTempFile("clip", ".m4a", cache)
+
+    /** A file in the cache for a photo on its way into a note; the store moves it in once the note takes it. */
+    fun newPhotoFile(): File = File.createTempFile("photo", ".jpg", File(cache, "photos").apply { mkdirs() })
+
+    /** The address the camera app writes [file] through; `res/xml/photo_paths.xml` lends it the folder. */
+    fun photoUri(file: File): Uri = lend(file)
 
     /** Opens [page] in the browser; false when the phone has none. */
     fun openPage(page: String): Boolean = browser(page)

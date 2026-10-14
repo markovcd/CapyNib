@@ -8,6 +8,7 @@
 - The note editor keeps its colors folded behind a palette button, as Keep does.
 - Drag a checklist item by its handle to reorder the list.
 - Voice recordings: record a clip into a note and play it from the note or its card, or start an audio note from a home screen widget or the app icon.
+- Photos in notes, taken with the camera or chosen from the phone, and a camera widget for a new photo note.
 
 ## 0.1.1 - 2026-10-13
 

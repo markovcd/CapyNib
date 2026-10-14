@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Nothing in the widget changes, so it never asks to be updated. xml-v31 adds the preview and cell size. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/capture_photo_widget_description"
+    android:initialLayout="@layout/widget_new_photo"
+    android:minWidth="40dp"
+    android:minHeight="40dp"
+    android:resizeMode="none"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen" />

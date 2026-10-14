@@ -45,6 +45,11 @@ class CaptureIntentsTest {
     }
 
     @Test
+    fun The_new_photo_intent_captures_an_empty_note_that_takes_a_photo() {
+        assertEquals(Capture.EmptyPhoto, CaptureIntents.capture(CaptureIntents.newNote(context, CaptureIntents.NEW_PHOTO)))
+    }
+
+    @Test
     fun Opening_the_app_from_the_launcher_captures_nothing() {
         assertNull(CaptureIntents.capture(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)))
     }

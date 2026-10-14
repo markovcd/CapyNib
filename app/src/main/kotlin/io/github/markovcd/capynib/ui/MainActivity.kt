@@ -32,6 +32,6 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun capture(intent: Intent) {
-        CaptureIntents.capture(intent)?.let { captured.trySend(CapturedNote(graph.capture(it), it.record)) }
+        CaptureIntents.capture(intent)?.let { captured.trySend(CapturedNote(graph.capture(it), it.record, it.photo)) }
     }
 }

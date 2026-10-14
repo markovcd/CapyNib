@@ -49,6 +49,12 @@ object Tags {
     const val RECORD = "record"
     const val STOP_RECORDING = "stop-recording"
     const val RECORDING_ELAPSED = "recording-elapsed"
+    const val ADD_PHOTO = "add-photo"
+    const val TAKE_PHOTO = "take-photo"
+    const val CHOOSE_PHOTO = "choose-photo"
+    const val PHOTO_VIEWER = "photo-viewer"
+    const val CLOSE_PHOTO = "close-photo"
+    const val REMOVE_PHOTO = "remove-photo"
 
     fun recording(id: String) = "recording-$id"
 
@@ -57,6 +63,10 @@ object Tags {
     fun recordingTime(id: String) = "recording-time-$id"
 
     fun recordingRemove(id: String) = "recording-remove-$id"
+
+    fun photo(id: String) = "photo-$id"
+
+    fun viewedPhoto(id: String) = "viewed-photo-$id"
 
     fun item(index: Int) = "item-$index"
 

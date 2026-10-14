@@ -75,6 +75,15 @@
     <string name="recording_play">Play recording</string>
     <string name="recording_stop">Stop playing</string>
     <string name="recording_remove">Remove recording</string>
+    <string name="editor_add_photo">Add photo</string>
+    <string name="editor_take_photo">Take photo</string>
+    <string name="editor_choose_photo">Choose image</string>
+    <string name="editor_no_camera">No camera app to take a photo with</string>
+    <string name="editor_photo_failed">Could not add that image</string>
+    <string name="photo_open">Open photo</string>
+    <string name="photo_not_downloaded">Photo not downloaded yet</string>
+    <string name="photo_close">Close photo</string>
+    <string name="photo_remove">Remove photo</string>
     <string name="recording_not_downloaded">Downloads at the next sync</string>
 
     <string name="sync_local">Notes are on this phone only</string>
@@ -122,4 +131,6 @@
     <string name="capture_checklist_widget_description">Start a checklist from the home screen</string>
     <string name="capture_new_audio_note">New audio note</string>
     <string name="capture_audio_widget_description">Record a voice note from the home screen</string>
+    <string name="capture_new_photo">New photo</string>
+    <string name="capture_photo_widget_description">Take a photo into a new note from the home screen</string>
 </resources>

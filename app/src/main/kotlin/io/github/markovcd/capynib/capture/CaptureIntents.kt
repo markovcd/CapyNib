@@ -11,6 +11,7 @@ object CaptureIntents {
     const val NEW_NOTE = "io.github.markovcd.capynib.action.NEW_NOTE"
     const val NEW_CHECKLIST = "io.github.markovcd.capynib.action.NEW_CHECKLIST"
     const val NEW_AUDIO_NOTE = "io.github.markovcd.capynib.action.NEW_AUDIO_NOTE"
+    const val NEW_PHOTO = "io.github.markovcd.capynib.action.NEW_PHOTO"
 
     /** Opens the app on a new note for [action], one of the actions above, over whatever it was showing. */
     fun newNote(context: Context, action: String): Intent =
@@ -25,6 +26,7 @@ object CaptureIntents {
             NEW_NOTE -> Capture.EmptyNote
             NEW_CHECKLIST -> Capture.EmptyChecklist
             NEW_AUDIO_NOTE -> Capture.EmptyRecording
+            NEW_PHOTO -> Capture.EmptyPhoto
             Intent.ACTION_SEND ->
                 if (intent.type?.startsWith("text/") == true) {
                     Capture.shared(

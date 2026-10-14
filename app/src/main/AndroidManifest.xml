@@ -73,6 +73,29 @@
                 android:resource="@xml/new_audio_note_widget" />
         </receiver>
 
+        <receiver
+            android:name=".capture.NewPhotoWidget"
+            android:exported="false"
+            android:label="@string/capture_new_photo">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/new_photo_widget" />
+        </receiver>
+
+        <!-- Lends the camera app the one file it writes a photo into; the authority is also in AppGraph. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.photos"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/photo_paths" />
+        </provider>
+
         <service
             android:name=".capture.NewNoteTile"
             android:exported="true"
