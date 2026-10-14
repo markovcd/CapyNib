@@ -160,7 +160,8 @@ class NoteEditorTest {
     fun A_dragged_item_is_saved_in_its_new_place() = runTest {
         val editor = editor("- [ ] a\n- [ ] b\n- [ ] c")
 
-        editor.moveItem(2, 0)
+        editor.swapItems(2, 1)
+        editor.swapItems(1, 0)
         editor.flush()
 
         assertEquals("- [ ] c\n- [ ] a\n- [ ] b", store.get(editor.note.value.id)?.body)

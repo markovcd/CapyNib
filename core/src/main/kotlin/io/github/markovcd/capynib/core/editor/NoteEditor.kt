@@ -86,8 +86,8 @@ class NoteEditor(
 
     fun removeItem(index: Int) = change { it.copy(body = Checklist.remove(it.body, index)) }
 
-    /** Drags the line at [from] to [to], as [Checklist.move] does. */
-    fun moveItem(from: Int, to: Int) = change { it.copy(body = Checklist.move(it.body, from, to)) }
+    /** Trades the places of lines [a] and [b], as a line dragged past its neighbor does. */
+    fun swapItems(a: Int, b: Int) = change { it.copy(body = Checklist.swap(it.body, a, b)) }
 
     /** Adds the clip recorded into [source], [durationMillis] long, as the note's newest recording. */
     fun addRecording(source: File, durationMillis: Long) {

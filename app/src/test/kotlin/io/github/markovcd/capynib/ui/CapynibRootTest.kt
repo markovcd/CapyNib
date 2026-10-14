@@ -196,7 +196,18 @@ class CapynibRootTest {
 
         dragItem(0, rows = 1.2f, neighbor = 2)
 
-        waitForStore { graph.store.get(id)?.body == "- [x] done\n- [ ] b\n- [ ] a" }
+        waitForStore { graph.store.get(id)?.body == "- [ ] b\n- [x] done\n- [ ] a" }
+    }
+
+    @Test
+    fun An_item_dragged_past_a_ticked_one_keeps_following_the_finger() {
+        val id = graph.store.create(graph.clock(), body = "- [ ] a\n- [x] done\n- [ ] b\n- [ ] c").id
+        open(id)
+        awaitTag(Tags.itemDrag(3))
+
+        dragItem(0, rows = 2.2f, neighbor = 2)
+
+        waitForStore { graph.store.get(id)?.body == "- [ ] b\n- [x] done\n- [ ] c\n- [ ] a" }
     }
 
     @Test

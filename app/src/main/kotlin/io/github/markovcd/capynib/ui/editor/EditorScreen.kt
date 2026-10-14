@@ -382,7 +382,8 @@ private fun sections(body: String): Pair<List<Int>, List<Int>> {
 
 /**
  * Unticked items and text in their order, then the ticked items under a count, as Keep does.
- * A line dragged by its handle swaps with a neighbor of its own section once it is past half of it.
+ * A line dragged by its handle swaps with a neighbor of its own section once it is past half of it. A swap leaves
+ * the other section's lines at their indexes, so no row changes section under the finger.
  */
 @Composable
 private fun ChecklistEditor(body: String, editor: NoteEditor, editable: Boolean, startTyping: Boolean, fill: Color) {
@@ -415,7 +416,7 @@ private fun ChecklistEditor(body: String, editor: NoteEditor, editable: Boolean,
                 else -> break
             }
             val height = heights.getOrDefault(target, 0)
-            editor.moveItem(from, target)
+            editor.swapItems(from, target)
             dragged = target
             dragOffset += if (target > from) -height else height
         }

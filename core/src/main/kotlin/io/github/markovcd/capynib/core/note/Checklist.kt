@@ -73,11 +73,11 @@ object Checklist {
         return render(lines)
     }
 
-    /** Takes the line at [from] out and puts it back so it ends up at [to]. */
-    fun move(body: String, from: Int, to: Int): String {
+    /** Trades the places of lines [a] and [b]; the lines between them stay where they are. */
+    fun swap(body: String, a: Int, b: Int): String {
         val lines = parse(body).toMutableList()
-        require(from in lines.indices && to in lines.indices) { "lines $from and $to must be inside 0..${lines.lastIndex}" }
-        lines.add(to, lines.removeAt(from))
+        require(a in lines.indices && b in lines.indices) { "lines $a and $b must be inside 0..${lines.lastIndex}" }
+        lines[a] = lines[b].also { lines[b] = lines[a] }
         return render(lines)
     }
 

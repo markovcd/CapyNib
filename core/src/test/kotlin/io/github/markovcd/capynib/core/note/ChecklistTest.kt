@@ -64,10 +64,10 @@ class ChecklistTest {
     }
 
     @Test
-    fun A_moved_item_takes_the_place_of_the_line_it_was_dropped_on() {
+    fun Swapped_items_trade_places_and_the_lines_between_them_stay_put() {
         val body = "- [ ] a\n- [x] b\n- [ ] c"
-        assertEquals("- [x] b\n- [ ] c\n- [ ] a", Checklist.move(body, 0, 2))
-        assertEquals("- [ ] c\n- [ ] a\n- [x] b", Checklist.move(body, 2, 0))
+        assertEquals("- [ ] c\n- [x] b\n- [ ] a", Checklist.swap(body, 0, 2))
+        assertEquals("- [ ] c\n- [x] b\n- [ ] a", Checklist.swap(body, 2, 0))
     }
 
     @Test
