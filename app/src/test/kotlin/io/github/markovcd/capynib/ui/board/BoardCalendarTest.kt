@@ -56,9 +56,12 @@ class BoardCalendarTest {
 
     private fun today(): LocalDate = Instant.ofEpochMilli(graph.clock()).atZone(zone).toLocalDate()
 
-    /** A note made at noon on [date]. */
-    private fun madeOn(date: LocalDate, title: String): String =
-        graph.store.create(date.atTime(12, 0).atZone(zone).toInstant().toEpochMilli(), title = title).id
+    /** A note whose memo is dated noon on [date]. */
+    private fun madeOn(date: LocalDate, title: String): String {
+        val id = graph.store.create(graph.clock(), title = title).id
+        graph.store.move(mapOf(id to date.atTime(12, 0).atZone(zone).toEpochSecond()))
+        return id
+    }
 
     private fun showCalendar() {
         compose.onNodeWithTag(Tags.CALENDAR_TOGGLE).performClick()

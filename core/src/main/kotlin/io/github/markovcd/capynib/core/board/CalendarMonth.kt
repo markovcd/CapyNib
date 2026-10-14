@@ -19,12 +19,15 @@ data class CalendarMonth(val month: YearMonth, val firstDay: DayOfWeek, val week
     fun day(date: LocalDate): CalendarDay? = weeks.firstNotNullOfOrNull { week -> week.firstOrNull { it?.date == date } }
 
     companion object {
-        /** [month] with each of [notes] on the day it was made in [zone]. */
+        /**
+         * [month] with each of [notes] on its day in [zone]. The day is the note's position, which is its
+         * memo's create time (ADR 0008), so every device puts a note on the same day.
+         */
         fun of(notes: List<Note>, month: YearMonth, zone: ZoneId, firstDay: DayOfWeek): CalendarMonth {
-            val byDate = notes.groupBy { Instant.ofEpochMilli(it.createdAt).atZone(zone).toLocalDate() }
+            val byDate = notes.groupBy { Instant.ofEpochSecond(it.position).atZone(zone).toLocalDate() }
             val lead = (month.atDay(1).dayOfWeek.value - firstDay.value + 7) % 7
             val days = (1..month.lengthOfMonth()).map { month.atDay(it) }
-                .map { date -> CalendarDay(date, byDate[date].orEmpty().sortedByDescending { it.createdAt }) }
+                .map { date -> CalendarDay(date, byDate[date].orEmpty().sortedByDescending { it.position }) }
             val weeks = (List(lead) { null } + days).chunked(7).map { week -> week + List(7 - week.size) { null } }
             return CalendarMonth(month, firstDay, weeks)
         }

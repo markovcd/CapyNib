@@ -25,3 +25,9 @@ create time, and lets a client set `create_time` on create and update (`display_
 - Positions are whole seconds, the precision memos keeps, so two notes made in the same second
   can share one; the board then orders them by id, and a move between them still lands where it
   was dropped.
+
+## Amendment (2026-10-14)
+
+The board's calendar puts a note on the day of its position, not of the moment this device made it.
+Before a note is synced its position is the time it was made; once synced it is its memo's create
+time, the same on every device. A note moved on the board moves to another day with it.

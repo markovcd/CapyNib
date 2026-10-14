@@ -16,8 +16,11 @@ class CalendarMonthTest {
     private val warsaw = ZoneId.of("Europe/Warsaw")
     private val october = YearMonth.of(2026, 10)
 
-    private fun note(id: String, made: LocalDateTime, zone: ZoneId = warsaw) =
-        Note(id, id, "", NoteColor.Default, false, false, made.atZone(zone).toInstant().toEpochMilli(), 0, 0)
+    /** A note made at [made], whose memo is dated the same unless it was [dated] otherwise. */
+    private fun note(id: String, made: LocalDateTime, zone: ZoneId = warsaw, dated: LocalDateTime = made): Note {
+        val createdAt = made.atZone(zone).toInstant().toEpochMilli()
+        return Note(id, id, "", NoteColor.Default, false, false, createdAt, createdAt, dated.atZone(zone).toEpochSecond())
+    }
 
     /** Each week as day numbers, 0 where the week runs outside the month. */
     private fun CalendarMonth.numbers() = weeks.map { week -> week.map { it?.date?.dayOfMonth ?: 0 } }
@@ -54,6 +57,17 @@ class CalendarMonthTest {
         assertEquals(listOf("evening", "morning"), calendar.day(LocalDate.of(2026, 10, 14))!!.notes.map { it.id })
         assertEquals(listOf("other"), calendar.day(LocalDate.of(2026, 10, 2))!!.notes.map { it.id })
         assertEquals(emptyList<Note>(), calendar.day(LocalDate.of(2026, 10, 15))!!.notes)
+    }
+
+    @Test
+    fun A_note_falls_on_the_day_its_memo_is_dated_on_every_device() {
+        // Synced from a memo dated the 2nd, though this device received it on the 14th.
+        val synced = note("synced", LocalDateTime.of(2026, 10, 14, 9, 0), dated = LocalDateTime.of(2026, 10, 2, 9, 0))
+
+        val calendar = CalendarMonth.of(listOf(synced), october, warsaw, DayOfWeek.MONDAY)
+
+        assertEquals(listOf("synced"), calendar.day(LocalDate.of(2026, 10, 2))!!.notes.map { it.id })
+        assertEquals(emptyList<Note>(), calendar.day(LocalDate.of(2026, 10, 14))!!.notes)
     }
 
     @Test

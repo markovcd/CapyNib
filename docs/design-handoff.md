@@ -53,9 +53,10 @@ quiet.
 - Calendar (`NoteCalendar.kt`), in place of the grid while toggled on: the month's name between
   previous and next arrows (a sideways swipe over the days turns the month too), a row of short
   weekday names, then the days as 44 dp circles, today's number bold in `primary`, the picked day
-  filled with `primaryContainer`. Under a day's number, one small `primary` dot per note made on it,
+  filled with `primaryContainer`. Under a day's number, one small `primary` dot per note dated on it,
   up to three. Below the month, the picked day spelled out as a small label and its notes as cards,
-  or "No notes made on this day". It opens on today.
+  or "No notes made on this day". It opens on today. A note is dated by its memo's create time,
+  which is also its place on the board (ADR 0008).
 - A card: its photos across the top, edge to edge (up to 260 dp tall), the note color as fill (default notes have a thin outline instead), the title in a
   title style, then up to 10 lines of the body; checklist items show a small checkbox glyph,
   ticked ones struck through. The note's tags follow as small tinted pills ("#travel"). A picked card wears a 2 dp `onSurface` outline.
