@@ -84,6 +84,9 @@ class NoteEditor(
 
     fun removeItem(index: Int) = change { it.copy(body = Checklist.remove(it.body, index)) }
 
+    /** Drags the line at [from] to [to], as [Checklist.move] does. */
+    fun moveItem(from: Int, to: Int) = change { it.copy(body = Checklist.move(it.body, from, to)) }
+
     /** Moves the note to the trash. */
     fun trash() {
         val id = current.value.id

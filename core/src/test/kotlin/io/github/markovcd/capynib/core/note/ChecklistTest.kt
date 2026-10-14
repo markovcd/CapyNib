@@ -64,6 +64,13 @@ class ChecklistTest {
     }
 
     @Test
+    fun A_moved_item_takes_the_place_of_the_line_it_was_dropped_on() {
+        val body = "- [ ] a\n- [x] b\n- [ ] c"
+        assertEquals("- [x] b\n- [ ] c\n- [ ] a", Checklist.move(body, 0, 2))
+        assertEquals("- [ ] c\n- [ ] a\n- [x] b", Checklist.move(body, 2, 0))
+    }
+
+    @Test
     fun Editing_an_item_keeps_its_check() {
         assertEquals("- [x] oat milk", Checklist.setText("- [x] milk", 0, "oat milk"))
     }

@@ -53,6 +53,8 @@ object Tags {
 
     fun itemRemove(index: Int) = "item-remove-$index"
 
+    fun itemDrag(index: Int) = "item-drag-$index"
+
     fun color(key: String) = "color-$key"
 
     const val SERVER = "server"

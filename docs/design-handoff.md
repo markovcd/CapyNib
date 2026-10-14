@@ -68,7 +68,7 @@ quiet.
   in the trash is read-only, with no bottom bar, and its top bar has restore and delete forever, which asks
   first in a dialog.
 - A borderless title field ("Title") and either a borderless body field ("Note") or a checklist:
-  rows of checkbox, item text and a remove (x) button; an "+ List item" row; then "N checked
+  rows of drag handle, checkbox, item text and a remove (x) button; an "+ List item" row; then "N checked
   items" and the ticked rows, struck through.
 - Bottom bar: a "show/hide checkboxes" button and a palette button. The palette button unfolds
   rows of 12 round color swatches above the bar (the selected one has a ring and a check mark);

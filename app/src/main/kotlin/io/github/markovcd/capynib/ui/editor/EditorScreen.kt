@@ -3,6 +3,7 @@ package io.github.markovcd.capynib.ui.editor
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -31,6 +32,7 @@ import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.DeleteForever
+import androidx.compose.material.icons.outlined.DragIndicator
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material.icons.outlined.RestoreFromTrash
 import androidx.compose.material.icons.outlined.Unarchive
@@ -47,8 +49,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,6 +61,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
@@ -64,6 +71,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.markovcd.capynib.R
 import io.github.markovcd.capynib.core.editor.NoteEditor
@@ -196,7 +204,7 @@ fun EditorScreen(editor: NoteEditor, startTyping: Boolean, onClose: () -> Unit) 
                 readOnly = !editable,
             )
             if (checklist) {
-                ChecklistEditor(note.body, editor, editable, startTyping)
+                ChecklistEditor(note.body, editor, editable, startTyping, fill)
             } else {
                 val body = remember { FocusRequester() }
                 LaunchedEffect(Unit) { if (startTyping && editable) body.requestFocus() }
@@ -213,18 +221,76 @@ fun EditorScreen(editor: NoteEditor, startTyping: Boolean, onClose: () -> Unit) 
     }
 }
 
-/** Unticked items and text in their order, then the ticked items under a count, as Keep does. */
+/** The open lines (unticked items and text) and the ticked items, each a list of line indexes in body order. */
+private fun sections(body: String): Pair<List<Int>, List<Int>> {
+    val (checked, open) = Checklist.parse(body).withIndex().partition { (it.value as? ChecklistLine.Item)?.checked == true }
+    return open.map { it.index } to checked.map { it.index }
+}
+
+/**
+ * Unticked items and text in their order, then the ticked items under a count, as Keep does.
+ * A line dragged by its handle swaps with a neighbor of its own section once it is past half of it.
+ */
 @Composable
-private fun ChecklistEditor(body: String, editor: NoteEditor, editable: Boolean, startTyping: Boolean) {
-    val lines = Checklist.parse(body).withIndex().toList()
-    val (checked, open) = lines.partition { (it.value as? ChecklistLine.Item)?.checked == true }
-    var focus by remember { mutableStateOf(open.firstOrNull()?.index?.takeIf { startTyping && editable }) }
+private fun ChecklistEditor(body: String, editor: NoteEditor, editable: Boolean, startTyping: Boolean, fill: Color) {
+    val lines = Checklist.parse(body)
+    val (open, checked) = sections(body)
+    var focus by remember { mutableStateOf(open.firstOrNull()?.takeIf { startTyping && editable }) }
+    var dragged by remember { mutableStateOf<Int?>(null) }
+    var dragOffset by remember { mutableFloatStateOf(0f) }
+    val heights = remember { mutableMapOf<Int, Int>() }
+    val focusManager = LocalFocusManager.current
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
 
-    open.forEach { (index, line) -> key(index) { ChecklistRow(index, line, editor, editable, focus) { focus = it } } }
+    val onDragStart = { index: Int ->
+        focusManager.clearFocus()
+        dragged = index
+        dragOffset = 0f
+    }
+    val onDrag = { delta: Float ->
+        dragOffset += delta
+        // Reads the body from the editor: several moves can land before the next recomposition.
+        while (true) {
+            val from = dragged ?: break
+            val section = sections(editor.note.value.body).toList().first { from in it }
+            val position = section.indexOf(from)
+            val below = section.getOrNull(position + 1)
+            val above = section.getOrNull(position - 1)
+            val target = when {
+                below != null && dragOffset > heights.getOrDefault(below, 0) / 2f -> below
+                above != null && dragOffset < -heights.getOrDefault(above, 0) / 2f -> above
+                else -> break
+            }
+            val height = heights.getOrDefault(target, 0)
+            editor.moveItem(from, target)
+            dragged = target
+            dragOffset += if (target > from) -height else height
+        }
+    }
+    val onDragEnd = { dragged = null }
+
+    val itemRow: @Composable (Int) -> Unit = { index ->
+        key(index) {
+            ChecklistRow(
+                index, lines[index], editor, editable, focus, { focus = it }, onDragStart, onDrag, onDragEnd,
+                Modifier.onSizeChanged { heights[index] = it.height }.then(
+                    if (dragged == index) {
+                        Modifier.zIndex(1f).graphicsLayer {
+                            translationY = dragOffset
+                            shadowElevation = 8.dp.toPx()
+                        }.background(fill)
+                    } else {
+                        Modifier
+                    },
+                ),
+            )
+        }
+    }
+
+    open.forEach { itemRow(it) }
     if (editable) {
         Row(
-            Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { focus = editor.addItemAfter(open.lastOrNull()?.index ?: -1) }
+            Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { focus = editor.addItemAfter(open.lastOrNull() ?: -1) }
                 .padding(horizontal = 18.dp).testTag(Tags.ADD_ITEM),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -244,12 +310,23 @@ private fun ChecklistEditor(body: String, editor: NoteEditor, editable: Boolean,
             style = MaterialTheme.typography.titleSmall,
             color = muted,
         )
-        checked.forEach { (index, line) -> key(index) { ChecklistRow(index, line, editor, editable, focus) { focus = it } } }
+        checked.forEach { itemRow(it) }
     }
 }
 
 @Composable
-private fun ChecklistRow(index: Int, line: ChecklistLine, editor: NoteEditor, editable: Boolean, focus: Int?, onFocus: (Int?) -> Unit) {
+private fun ChecklistRow(
+    index: Int,
+    line: ChecklistLine,
+    editor: NoteEditor,
+    editable: Boolean,
+    focus: Int?,
+    onFocus: (Int?) -> Unit,
+    onDragStart: (Int) -> Unit,
+    onDrag: (Float) -> Unit,
+    onDragEnd: () -> Unit,
+    modifier: Modifier,
+) {
     val requester = remember { FocusRequester() }
     LaunchedEffect(focus) {
         if (focus == index) {
@@ -257,8 +334,34 @@ private fun ChecklistRow(index: Int, line: ChecklistLine, editor: NoteEditor, ed
             onFocus(null)
         }
     }
+    // The gesture outlives this row's line moving away from under the finger, so it reads the latest of both.
+    val currentIndex by rememberUpdatedState(index)
+    val currentDragStart by rememberUpdatedState(onDragStart)
+    val currentDrag by rememberUpdatedState(onDrag)
+    val currentDragEnd by rememberUpdatedState(onDragEnd)
     val ticked = (line as? ChecklistLine.Item)?.checked == true
-    Row(Modifier.heightIn(min = 48.dp).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier.heightIn(min = 48.dp).padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (editable) {
+            Box(
+                Modifier.size(width = 28.dp, height = 44.dp).testTag(Tags.itemDrag(index)).pointerInput(Unit) {
+                    detectVerticalDragGestures(
+                        onDragStart = { currentDragStart(currentIndex) },
+                        onDragEnd = { currentDragEnd() },
+                        onDragCancel = { currentDragEnd() },
+                    ) { change, amount ->
+                        change.consume()
+                        currentDrag(amount)
+                    }
+                },
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.DragIndicator,
+                    contentDescription = stringResource(R.string.editor_move_item),
+                    modifier = Modifier.size(20.dp).alpha(0.7f),
+                )
+            }
+        }
         if (line is ChecklistLine.Item) {
             ItemCheckbox(line.checked, editable, onToggle = { editor.toggleItem(index) }, modifier = Modifier.testTag(Tags.itemCheck(index)))
         } else {

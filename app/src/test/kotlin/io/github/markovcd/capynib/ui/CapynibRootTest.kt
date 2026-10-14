@@ -1,5 +1,6 @@
 package io.github.markovcd.capynib.ui
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotFocused
@@ -11,6 +12,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import io.github.markovcd.capynib.AppGraph
@@ -32,6 +34,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.util.concurrent.CopyOnWriteArrayList
+import kotlin.math.abs
 
 /** The app's screens driven the way a person uses them, over a real store and a fake server. */
 @RunWith(RobolectricTestRunner::class)
@@ -153,6 +156,46 @@ class CapynibRootTest {
         compose.onNodeWithTag(Tags.itemCheck(1)).performClick()
 
         waitForStore { graph.store.visible().singleOrNull()?.body == "- [ ] milk\n- [x] eggs" }
+    }
+
+    /**
+     * Drags line [index] by its handle down by [rows] rows (up when negative), in small steps as a finger does.
+     * A row is the distance from line [index]'s handle to that of line [neighbor], drawn right next to it.
+     */
+    private fun dragItem(index: Int, rows: Float, neighbor: Int = index + 1) {
+        val row = abs(
+            compose.onNodeWithTag(Tags.itemDrag(neighbor)).fetchSemanticsNode().boundsInRoot.center.y -
+                compose.onNodeWithTag(Tags.itemDrag(index)).fetchSemanticsNode().boundsInRoot.center.y,
+        )
+        compose.onNodeWithTag(Tags.itemDrag(index)).performTouchInput {
+            down(center)
+            repeat(20) { moveBy(Offset(0f, row * rows / 20)) }
+            up()
+        }
+    }
+
+    @Test
+    fun An_item_dragged_by_its_handle_moves_to_where_it_is_dropped() {
+        val id = graph.store.create(graph.clock(), body = "- [ ] a\n- [ ] b\n- [ ] c").id
+        open(id)
+        awaitTag(Tags.itemDrag(2))
+
+        dragItem(0, rows = 2.2f)
+        waitForStore { graph.store.get(id)?.body == "- [ ] b\n- [ ] c\n- [ ] a" }
+
+        dragItem(2, rows = -1.2f, neighbor = 1)
+        waitForStore { graph.store.get(id)?.body == "- [ ] b\n- [ ] a\n- [ ] c" }
+    }
+
+    @Test
+    fun A_dragged_item_leaves_the_ticked_items_where_they_are() {
+        val id = graph.store.create(graph.clock(), body = "- [ ] a\n- [x] done\n- [ ] b").id
+        open(id)
+        awaitTag(Tags.itemDrag(2))
+
+        dragItem(0, rows = 1.2f, neighbor = 2)
+
+        waitForStore { graph.store.get(id)?.body == "- [x] done\n- [ ] b\n- [ ] a" }
     }
 
     @Test

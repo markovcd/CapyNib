@@ -65,6 +65,7 @@
     <string name="editor_show_checkboxes">Show checkboxes</string>
     <string name="editor_hide_checkboxes">Hide checkboxes</string>
     <string name="editor_remove_item">Remove item</string>
+    <string name="editor_move_item">Move item</string>
     <string name="editor_colors">Colors</string>
     <string name="editor_color">Color %1$s</string>
 

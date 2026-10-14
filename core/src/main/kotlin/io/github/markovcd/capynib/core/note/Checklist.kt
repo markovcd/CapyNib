@@ -73,6 +73,14 @@ object Checklist {
         return render(lines)
     }
 
+    /** Takes the line at [from] out and puts it back so it ends up at [to]. */
+    fun move(body: String, from: Int, to: Int): String {
+        val lines = parse(body).toMutableList()
+        require(from in lines.indices && to in lines.indices) { "lines $from and $to must be inside 0..${lines.lastIndex}" }
+        lines.add(to, lines.removeAt(from))
+        return render(lines)
+    }
+
     private fun edit(body: String, index: Int, change: (ChecklistLine) -> ChecklistLine): String {
         val lines = parse(body).toMutableList()
         require(index in lines.indices) { "line $index is outside 0..${lines.lastIndex}" }
