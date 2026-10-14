@@ -5,6 +5,7 @@ import android.content.ActivityNotFoundException
 import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -62,6 +63,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -149,6 +151,11 @@ fun EditorScreen(
         onClose()
     }
     BackHandler(onBack = leave)
+    // Opening another note leaves this one without [leave]; a rotation leaves the clip recording.
+    val activity = LocalActivity.current
+    DisposableEffect(recorder) {
+        onDispose { if (activity?.isChangingConfigurations != true) recorder.stop() }
+    }
     val checklist = Checklist.isChecklist(note.body)
     val editable = !note.inTrash
     var confirmingDelete by remember { mutableStateOf(false) }
@@ -272,6 +279,7 @@ fun EditorScreen(
                             }
                             IconButton(
                                 onClick = {
+                                    recorder.stop()
                                     editor.trash()
                                     onClose()
                                 },

@@ -6,6 +6,9 @@ import java.io.File
 class FakeMicrophone(var clip: String = "hum", var broken: Boolean = false) : Microphone {
     private var file: File? = null
 
+    /** Whether a clip is being recorded. */
+    val recording: Boolean get() = file != null
+
     override fun start(file: File): Boolean {
         if (broken) return false
         this.file = file

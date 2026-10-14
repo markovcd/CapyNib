@@ -40,3 +40,8 @@ Hunted 2026-10-13 and found nothing; skip these unless the code moved:
 - `NoteTags` and `BoardContent.of`: total over the same random text, as tag, query and note.
 - `BoardContent.move`: random sections with tied positions always put the note where it was dropped.
 - `Capture.shared`: blank text and subject is no capture.
+
+Hunted 2026-10-14 and found nothing:
+
+- Attachment sync (`SyncEngine`, `NoteStore.syncAttachments`): lost replies, deletes on either side, account switches and conflict copies keep recordings and photos where they belong. Server attachment ids are checked before they name a file.
+- `CalendarMonth.of`: week padding, time zones and month edges.

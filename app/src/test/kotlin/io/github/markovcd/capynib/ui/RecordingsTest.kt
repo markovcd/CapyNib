@@ -156,6 +156,45 @@ class RecordingsTest {
     }
 
     @Test
+    fun Deleting_a_note_while_it_records_stops_the_microphone_and_keeps_the_clip_in_the_note() {
+        allowMicrophone()
+        val id = graph.capture(Capture(body = "Shopping"))
+        captured.trySend(CapturedNote(id, record = true))
+        awaitTag(Tags.STOP_RECORDING)
+
+        compose.onNodeWithTag(Tags.DELETE).performClick()
+
+        awaitTag(Tags.NEW_NOTE)
+        assertEquals(false, microphone.recording)
+        waitForStore { graph.store.get(id)?.let { it.inTrash && it.recordings.size == 1 } == true }
+    }
+
+    @Test
+    fun Turning_the_phone_while_a_note_records_keeps_recording() {
+        allowMicrophone()
+        captured.trySend(CapturedNote(graph.capture(Capture.EmptyRecording), record = true))
+        awaitTag(Tags.STOP_RECORDING)
+
+        compose.activityRule.scenario.recreate()
+
+        assertEquals(true, microphone.recording)
+    }
+
+    @Test
+    fun A_capture_arriving_while_a_note_records_keeps_the_clip_in_that_note() {
+        allowMicrophone()
+        val recorded = graph.capture(Capture.EmptyRecording)
+        captured.trySend(CapturedNote(recorded, record = true))
+        awaitTag(Tags.STOP_RECORDING)
+
+        captured.trySend(CapturedNote(graph.capture(Capture.EmptyNote), record = false))
+
+        awaitTag(Tags.RECORD)
+        waitForStore { graph.store.get(recorded)?.recordings?.size == 1 }
+        assertEquals(false, microphone.recording)
+    }
+
+    @Test
     fun A_note_opened_recording_records_once() {
         allowMicrophone()
         captured.trySend(CapturedNote(graph.capture(Capture.EmptyRecording), record = true))
