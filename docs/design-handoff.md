@@ -81,9 +81,9 @@ quiet.
   Trash section with a number field for the days deleted notes stay in the trash (1 to 365).
 
 **Quick capture** (`capture/`, `res/layout/widget_new_note.xml`)
-- Home screen widgets: one tile each, a pen (new note) or a checkbox (new checklist) on a
-  see-through circle of the theme's surface.
-- Launcher shortcuts "New note" and "New checklist", each an adaptive icon of the same glyph on
+- Home screen widgets: one tile each, a pen (new note), a checkbox (new checklist) or a
+  microphone (new note, already recording) on a see-through circle of the theme's surface.
+- Launcher shortcuts "New note", "New checklist" and "New audio note", each an adaptive icon of the same glyph on
   a container color, and a "New note" Quick Settings tile.
 
 **Sync status icons** (`ui/SyncStatusLabel.kt`): phone (notes only on this phone), plain cloud

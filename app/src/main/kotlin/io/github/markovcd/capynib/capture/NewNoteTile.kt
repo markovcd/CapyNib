@@ -20,7 +20,7 @@ class NewNoteTile : TileService() {
     }
 
     private fun openNewNote() {
-        val intent = CaptureIntents.newNote(this, checklist = false)
+        val intent = CaptureIntents.newNote(this, CaptureIntents.NEW_NOTE)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startActivityAndCollapse(PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
         } else {

@@ -38,9 +38,10 @@ class CaptureIntentsTest {
     }
 
     @Test
-    fun The_new_note_and_new_checklist_intents_capture_an_empty_note_and_checklist() {
-        assertEquals(Capture.EmptyNote, CaptureIntents.capture(CaptureIntents.newNote(context, checklist = false)))
-        assertEquals(Capture.EmptyChecklist, CaptureIntents.capture(CaptureIntents.newNote(context, checklist = true)))
+    fun The_new_note_checklist_and_audio_note_intents_capture_an_empty_note_checklist_and_recording() {
+        assertEquals(Capture.EmptyNote, CaptureIntents.capture(CaptureIntents.newNote(context, CaptureIntents.NEW_NOTE)))
+        assertEquals(Capture.EmptyChecklist, CaptureIntents.capture(CaptureIntents.newNote(context, CaptureIntents.NEW_CHECKLIST)))
+        assertEquals(Capture.EmptyRecording, CaptureIntents.capture(CaptureIntents.newNote(context, CaptureIntents.NEW_AUDIO_NOTE)))
     }
 
     @Test
@@ -50,18 +51,19 @@ class CaptureIntentsTest {
 
     @Test
     fun A_capture_reopened_from_recents_is_not_captured_again() {
-        val replayed = CaptureIntents.newNote(context, checklist = false).addFlags(Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY)
+        val replayed = CaptureIntents.newNote(context, CaptureIntents.NEW_NOTE).addFlags(Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY)
         assertNull(CaptureIntents.capture(replayed))
     }
 
     @Test
     fun Every_launcher_shortcut_opens_the_app_on_a_quick_capture() {
         val shortcuts = shortcuts()
-        assertEquals(listOf("new_note", "new_checklist"), shortcuts.map { it.first })
+        val captures = mapOf("new_note" to Capture.EmptyNote, "new_checklist" to Capture.EmptyChecklist, "new_audio_note" to Capture.EmptyRecording)
+        assertEquals(captures.keys.toList(), shortcuts.map { it.first })
         for ((id, intent) in shortcuts) {
             assertEquals(id, MainActivity::class.java.name, intent.component?.className)
             assertEquals(id, context.packageName, intent.component?.packageName)
-            assertEquals(id, if (id == "new_checklist") Capture.EmptyChecklist else Capture.EmptyNote, CaptureIntents.capture(intent))
+            assertEquals(id, captures[id], CaptureIntents.capture(intent))
         }
     }
 

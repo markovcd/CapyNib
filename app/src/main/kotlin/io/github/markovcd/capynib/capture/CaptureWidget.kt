@@ -7,18 +7,20 @@ import android.content.Context
 import android.widget.RemoteViews
 import io.github.markovcd.capynib.R
 
-/** A one-tile home screen widget whose single button opens a new note, or a new checklist. */
-abstract class CaptureWidget(private val checklist: Boolean) : AppWidgetProvider() {
+/**
+ * A one-tile home screen widget whose single button, drawn by [layout], opens a new note for [action].
+ * [requestCode] keeps each widget's tap apart from the others'.
+ */
+abstract class CaptureWidget(private val layout: Int, private val requestCode: Int, private val action: String) : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, widgetIds: IntArray) {
         manager.updateAppWidget(widgetIds, views(context))
     }
 
     fun views(context: Context): RemoteViews {
-        val layout = if (checklist) R.layout.widget_new_checklist else R.layout.widget_new_note
         val launch = PendingIntent.getActivity(
             context,
-            if (checklist) 1 else 0,
-            CaptureIntents.newNote(context, checklist),
+            requestCode,
+            CaptureIntents.newNote(context, action),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         return RemoteViews(context.packageName, layout).apply { setOnClickPendingIntent(R.id.widget_button, launch) }

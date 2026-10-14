@@ -61,6 +61,18 @@
                 android:resource="@xml/new_checklist_widget" />
         </receiver>
 
+        <receiver
+            android:name=".capture.NewAudioNoteWidget"
+            android:exported="false"
+            android:label="@string/capture_new_audio_note">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/new_audio_note_widget" />
+        </receiver>
+
         <service
             android:name=".capture.NewNoteTile"
             android:exported="true"

@@ -9,10 +9,11 @@ server (or another device) come back.
 
 1. Install the debug APK from the latest [gate run](../../actions/workflows/gate.yml) (artifact `capynib-debug-apk`).
 2. Write notes. Without a server they stay on the phone. To start one without opening the board,
-   add the Capynib pen or checkbox widget to the home screen, long-press the app icon for **New note** or **New
-   checklist**, add the **New note** tile to Quick Settings, or share text or a link to Capynib
+   add the Capynib pen, checkbox or microphone widget to the home screen, long-press the app icon for **New note**,
+   **New checklist** or **New audio note**, add the **New note** tile to Quick Settings, or share text or a link to Capynib
    from another app (a link's page title becomes the note's title). The microphone at the bottom
-   of a note records a voice clip into it, which plays from the note and from its card.
+   of a note records a voice clip into it, which plays from the note and from its card; the microphone
+   widget and **New audio note** open a new note already recording.
 3. To sync, open **Settings** (gear on the board), enter your memos address, and either tap
    **Sign in with browser** or paste a personal access token (memos web UI: Settings, then Access
    Tokens) and tap **Connect**.

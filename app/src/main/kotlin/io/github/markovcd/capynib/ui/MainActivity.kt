@@ -8,12 +8,13 @@ import androidx.activity.enableEdgeToEdge
 import io.github.markovcd.capynib.AppGraph
 import io.github.markovcd.capynib.CapynibApp
 import io.github.markovcd.capynib.capture.CaptureIntents
+import io.github.markovcd.capynib.capture.CapturedNote
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 
 class MainActivity : ComponentActivity() {
     /** Notes made by quick captures, waiting for the screen to open them. */
-    private val captured = Channel<String>(Channel.UNLIMITED)
+    private val captured = Channel<CapturedNote>(Channel.UNLIMITED)
 
     private val graph: AppGraph get() = (application as CapynibApp).graph
 
@@ -31,6 +32,6 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun capture(intent: Intent) {
-        CaptureIntents.capture(intent)?.let { captured.trySend(graph.capture(it)) }
+        CaptureIntents.capture(intent)?.let { captured.trySend(CapturedNote(graph.capture(it), it.record)) }
     }
 }

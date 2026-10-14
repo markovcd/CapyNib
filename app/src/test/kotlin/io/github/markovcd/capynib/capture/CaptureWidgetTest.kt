@@ -33,4 +33,9 @@ class CaptureWidgetTest {
     fun Tapping_the_checkbox_widget_opens_a_new_checklist() {
         assertEquals(Capture.EmptyChecklist, tapped(NewChecklistWidget()))
     }
+
+    @Test
+    fun Tapping_the_microphone_widget_opens_a_new_note_recording() {
+        assertEquals(Capture.EmptyRecording, tapped(NewAudioNoteWidget()))
+    }
 }

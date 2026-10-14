@@ -10,10 +10,11 @@ object CaptureIntents {
     // Also written in res/xml/shortcuts.xml.
     const val NEW_NOTE = "io.github.markovcd.capynib.action.NEW_NOTE"
     const val NEW_CHECKLIST = "io.github.markovcd.capynib.action.NEW_CHECKLIST"
+    const val NEW_AUDIO_NOTE = "io.github.markovcd.capynib.action.NEW_AUDIO_NOTE"
 
-    /** Opens the app on a new note, over whatever it was showing. */
-    fun newNote(context: Context, checklist: Boolean): Intent =
-        Intent(if (checklist) NEW_CHECKLIST else NEW_NOTE)
+    /** Opens the app on a new note for [action], one of the actions above, over whatever it was showing. */
+    fun newNote(context: Context, action: String): Intent =
+        Intent(action)
             .setClass(context, MainActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
 
@@ -23,6 +24,7 @@ object CaptureIntents {
         return when (intent.action) {
             NEW_NOTE -> Capture.EmptyNote
             NEW_CHECKLIST -> Capture.EmptyChecklist
+            NEW_AUDIO_NOTE -> Capture.EmptyRecording
             Intent.ACTION_SEND ->
                 if (intent.type?.startsWith("text/") == true) {
                     Capture.shared(

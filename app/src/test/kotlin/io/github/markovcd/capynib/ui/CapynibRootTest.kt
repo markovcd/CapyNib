@@ -17,6 +17,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import io.github.markovcd.capynib.AppGraph
 import io.github.markovcd.capynib.TestGraphs
+import io.github.markovcd.capynib.capture.CapturedNote
 import io.github.markovcd.capynib.core.memos.FakeMemosServer
 import io.github.markovcd.capynib.core.note.Capture
 import io.github.markovcd.capynib.core.note.NoteColor
@@ -53,7 +54,7 @@ class CapynibRootTest {
     @Volatile private var hasBrowser = true
 
     /** Notes made by quick captures, as the activity hands them to the screen. */
-    private val captured = Channel<String>(Channel.UNLIMITED)
+    private val captured = Channel<CapturedNote>(Channel.UNLIMITED)
 
     @Before
     fun start() {
@@ -120,7 +121,7 @@ class CapynibRootTest {
 
     @Test
     fun A_shared_link_opens_as_a_note_titled_with_the_page_ready_to_type() {
-        captured.trySend(graph.capture(Capture.shared("https://example.com/capybaras", "Capybaras")!!))
+        captured.trySend(CapturedNote(graph.capture(Capture.shared("https://example.com/capybaras", "Capybaras")!!)))
 
         awaitTag(Tags.BODY)
         compose.onNodeWithTag(Tags.TITLE).assertTextEquals("Capybaras")
@@ -132,7 +133,7 @@ class CapynibRootTest {
         compose.onNodeWithTag(Tags.SETTINGS).performClick()
         awaitTag(Tags.SERVER)
 
-        captured.trySend(graph.capture(Capture.EmptyChecklist))
+        captured.trySend(CapturedNote(graph.capture(Capture.EmptyChecklist)))
 
         awaitTag(Tags.item(0))
         compose.onNodeWithTag(Tags.item(0)).assertIsFocused()

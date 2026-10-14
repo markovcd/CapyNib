@@ -120,4 +120,6 @@
     <string name="capture_new_checklist">New checklist</string>
     <string name="capture_widget_description">Start a note from the home screen</string>
     <string name="capture_checklist_widget_description">Start a checklist from the home screen</string>
+    <string name="capture_new_audio_note">New audio note</string>
+    <string name="capture_audio_widget_description">Record a voice note from the home screen</string>
 </resources>

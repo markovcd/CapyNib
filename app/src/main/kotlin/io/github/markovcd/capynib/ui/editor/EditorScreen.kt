@@ -107,10 +107,20 @@ private const val ELAPSED_TICK_MILLIS = 250L
 /**
  * The open note. Leaving it (back, archive, delete) calls [onClose]. A note in the trash is read-only until restored.
  * With [startTyping] the body, or a checklist's first item, takes focus and the keyboard comes up.
- * The record button records a clip into the note through [recorder], asking for the microphone the first time.
+ * The record button records a clip into the note through [recorder], asking for the microphone the first time;
+ * with [startRecording] it is pressed as the note opens, and [onRecordingStarted] is told so it is pressed once.
  */
 @Composable
-fun EditorScreen(editor: NoteEditor, recorder: Recorder, playback: Playback, clock: () -> Long, startTyping: Boolean, onClose: () -> Unit) {
+fun EditorScreen(
+    editor: NoteEditor,
+    recorder: Recorder,
+    playback: Playback,
+    clock: () -> Long,
+    startTyping: Boolean,
+    startRecording: Boolean,
+    onRecordingStarted: () -> Unit,
+    onClose: () -> Unit,
+) {
     val note by editor.note.collectAsStateWithLifecycle()
     val recordingSince by recorder.since.collectAsStateWithLifecycle()
     val playing by playback.playing.collectAsStateWithLifecycle()
@@ -127,15 +137,19 @@ fun EditorScreen(editor: NoteEditor, recorder: Recorder, playback: Playback, clo
     BackHandler(enabled = showingColors) { showingColors = false }
     val focus = LocalFocusManager.current
     val context = LocalContext.current
-    val startRecording = {
+    val beginRecording = {
         if (!recorder.start()) Toast.makeText(context, R.string.editor_microphone_failed, Toast.LENGTH_SHORT).show()
     }
-    val askForMicrophone = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> if (granted) startRecording() }
+    val askForMicrophone = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> if (granted) beginRecording() }
     val record = {
         focus.clearFocus()
         showingColors = false
         val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
-        if (granted) startRecording() else askForMicrophone.launch(Manifest.permission.RECORD_AUDIO)
+        if (granted) beginRecording() else askForMicrophone.launch(Manifest.permission.RECORD_AUDIO)
+    }
+    LaunchedEffect(Unit) {
+        if (startRecording && editable) record()
+        if (startRecording) onRecordingStarted()
     }
     if (confirmingDelete) {
         ConfirmDeleteForever(

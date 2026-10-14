@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -14,6 +15,10 @@ import io.github.markovcd.capynib.AppGraph
 import io.github.markovcd.capynib.TestGraphs
 import io.github.markovcd.capynib.audio.FakeMicrophone
 import io.github.markovcd.capynib.audio.FakePlayback
+import io.github.markovcd.capynib.capture.CapturedNote
+import io.github.markovcd.capynib.core.note.Capture
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
@@ -33,11 +38,15 @@ class RecordingsTest {
     private val microphone = FakeMicrophone()
     private val playback = FakePlayback(durationMillis = 4_000, positionMillis = 1_000)
     private lateinit var graph: AppGraph
+    private val restoration by lazy { StateRestorationTester(compose) }
+
+    /** Notes made by quick captures, as the activity hands them to the screen. */
+    private val captured = Channel<CapturedNote>(Channel.UNLIMITED)
 
     @Before
     fun start() {
         graph = TestGraphs.create(microphone = microphone, playback = playback)
-        compose.setContent { CapynibRoot(graph) }
+        restoration.setContent { CapynibRoot(graph, captured.receiveAsFlow()) }
     }
 
     private fun allowMicrophone() = shadowOf(compose.activity.application).grantPermissions(Manifest.permission.RECORD_AUDIO)
@@ -133,6 +142,31 @@ class RecordingsTest {
         )
 
         awaitTag(Tags.STOP_RECORDING)
+    }
+
+    @Test
+    fun An_audio_note_capture_opens_a_new_note_already_recording_and_leaving_keeps_the_clip() {
+        allowMicrophone()
+
+        captured.trySend(CapturedNote(graph.capture(Capture.EmptyRecording), record = true))
+
+        awaitTag(Tags.STOP_RECORDING)
+        compose.onNodeWithTag(Tags.BACK).performClick()
+        waitForStore { graph.store.visible().singleOrNull()?.recordings?.size == 1 }
+    }
+
+    @Test
+    fun A_note_opened_recording_records_once() {
+        allowMicrophone()
+        captured.trySend(CapturedNote(graph.capture(Capture.EmptyRecording), record = true))
+        awaitTag(Tags.STOP_RECORDING)
+        compose.onNodeWithTag(Tags.STOP_RECORDING).performClick()
+        waitForStore { graph.store.visible().singleOrNull()?.recordings?.size == 1 }
+
+        restoration.emulateSavedInstanceStateRestore()
+
+        awaitTag(Tags.RECORD)
+        assertEquals(0, compose.onAllNodesWithTag(Tags.STOP_RECORDING).fetchSemanticsNodes().size)
     }
 
     @Test
