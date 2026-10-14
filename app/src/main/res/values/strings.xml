@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Capynib</string>
 
-    <string name="board_search_hint">Search your notes</string>
+    <string name="board_search_hint">Search</string>
     <string name="board_pinned">Pinned</string>
     <string name="board_others">Others</string>
     <string name="board_empty">Notes you add appear here</string>
