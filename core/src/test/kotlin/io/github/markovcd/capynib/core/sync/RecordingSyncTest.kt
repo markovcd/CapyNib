@@ -29,7 +29,7 @@ class RecordingSyncTest {
     }
 
     private fun clipsOf(id: String): Map<String, String?> =
-        store.get(id)!!.recordings.associate { it.id to store.readRecording(it.id)?.decodeToString() }
+        store.get(id)!!.recordings.associate { it.id to store.readAttachment(it.id)?.decodeToString() }
 
     @Test
     fun A_recording_made_offline_reaches_the_server_attached_to_its_memo() = runTest {
@@ -40,7 +40,7 @@ class RecordingSyncTest {
 
         assertEquals(mapOf(clip to "hum"), server.filesOf(note.id))
         assertEquals("recording-$clip.m4a" to "audio/mp4", server.memos.getValue(note.id).attachments.single().let { it.fileName to it.type })
-        assertEquals(emptyList<String>(), store.recordingsToUpload().map { it.id })
+        assertEquals(emptyList<String>(), store.attachmentsToUpload().map { it.id })
     }
 
     @Test
@@ -67,14 +67,15 @@ class RecordingSyncTest {
     }
 
     @Test
-    fun An_attachment_that_is_not_audio_is_left_alone() = runTest {
+    fun An_attachment_that_is_neither_audio_nor_an_image_is_left_alone() = runTest {
         server.put("web", "From the web")
-        server.attach("img1", "web", "photo.png", "image/png", byteArrayOf(1, 2))
+        server.attach("doc1", "web", "plan.pdf", "application/pdf", byteArrayOf(1, 2))
 
         assertNull(engine.sync().failure)
 
         assertEquals(emptyMap<String, String?>(), clipsOf("web"))
-        assertEquals(listOf("img1"), server.memos.getValue("web").attachments.map { it.id })
+        assertEquals(emptyList<String>(), store.get("web")!!.photos.map { it.id })
+        assertEquals(listOf("doc1"), server.memos.getValue("web").attachments.map { it.id })
     }
 
     @Test
@@ -83,11 +84,11 @@ class RecordingSyncTest {
         val clip = record(note, "hum")
         engine.sync()
 
-        store.deleteRecording(clip)
+        store.deleteAttachment(clip)
         assertNull(engine.sync().failure)
 
         assertEquals(emptyMap<String, String>(), server.filesOf(note.id))
-        assertEquals(emptyList<String>(), store.recordingsToDelete())
+        assertEquals(emptyList<String>(), store.attachmentsToDelete())
     }
 
     @Test
@@ -100,7 +101,7 @@ class RecordingSyncTest {
         assertNull(engine.sync().failure)
 
         assertEquals(emptyMap<String, String?>(), clipsOf(note.id))
-        assertFalse(store.recordingFile(clip).exists())
+        assertFalse(store.attachmentFile(clip).exists())
     }
 
     @Test
@@ -113,7 +114,7 @@ class RecordingSyncTest {
         assertNull(engine.sync().failure)
 
         assertEquals(mapOf(clip to "hum"), server.filesOf(note.id))
-        assertEquals(emptyList<String>(), store.recordingsToUpload().map { it.id })
+        assertEquals(emptyList<String>(), store.attachmentsToUpload().map { it.id })
     }
 
     @Test
@@ -140,7 +141,7 @@ class RecordingSyncTest {
         assertNull(engine.sync().failure)
 
         assertEquals(emptyMap<String, ByteArray>(), server.files)
-        assertFalse(store.recordingFile(clip).exists())
+        assertFalse(store.attachmentFile(clip).exists())
     }
 
     @Test
@@ -153,7 +154,7 @@ class RecordingSyncTest {
         assertNull(engine.sync().failure)
 
         assertNull(store.get(note.id))
-        assertFalse(store.recordingFile(clip).exists())
+        assertFalse(store.attachmentFile(clip).exists())
     }
 
     @Test

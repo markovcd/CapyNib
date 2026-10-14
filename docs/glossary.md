@@ -17,7 +17,8 @@ the docs, ADRs, comments, test names and commit messages.
 | **checklist item** | A body line with a checkbox, stored as `- [ ] ` or `- [x] `. | `ChecklistLine.Item` | bullet point, task, todo |
 | **checklist** | A note whose body has checklist items. | `Checklist` | list note |
 | **recording** | A voice clip in a note, played from the note and its card. Synced as an attachment of the note's memo. | `Recording` | audio note, voice memo (memo is the server's copy), attachment (that is the server's copy) |
-| **attachment** | A file linked to a memo on the memos server; a recording's copy there. | `ServerAttachment` | resource (memos' old word) |
+| **photo** | An image in a note, taken with the camera or chosen from the phone, shown at the top of the note and its card. Synced as an attachment of the note's memo. | `Photo` | picture, image note, attachment (that is the server's copy) |
+| **attachment** | A file linked to a memo on the memos server; a recording's or photo's copy there. The device keeps both in one table named for it. | `ServerAttachment`, `StoredAttachment` | resource (memos' old word) |
 | **tag** | A `#word` in a note's title or body, which memos makes a tag of too. `#a/b` is the tag `a/b`, inside the tag `a`. | `NoteTags` | label (Keep's word), hashtag, category |
 | **color** | The background a note is shown on, one of a fixed set. | `NoteColor` | theme, label |
 | **pinned** | Kept at the top of the board. | `pinned` | starred, favorite |

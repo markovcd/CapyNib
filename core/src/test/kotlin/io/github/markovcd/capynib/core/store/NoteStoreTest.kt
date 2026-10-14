@@ -2,6 +2,7 @@ package io.github.markovcd.capynib.core.store
 
 import io.github.markovcd.capynib.core.note.Note
 import io.github.markovcd.capynib.core.note.NoteColor
+import io.github.markovcd.capynib.core.note.Photo
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -11,6 +12,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.io.File
 import java.sql.DriverManager
 import kotlin.time.Duration.Companion.days
 
@@ -207,7 +209,58 @@ class NoteStoreTest {
 
         assertEquals("Kept", store.get("old")!!.title)
         assertEquals(listOf("clip" to 1_500L), store.get("old")!!.recordings.map { it.id to it.durationMillis })
-        assertEquals("hum", store.readRecording("clip")!!.decodeToString())
+        assertEquals("hum", store.readAttachment("clip")!!.decodeToString())
+    }
+
+    @Test
+    fun A_database_from_before_photos_keeps_its_recordings_and_takes_a_photo() {
+        val path = folder.newFile("v5.db").absolutePath
+        DriverManager.getConnection("jdbc:sqlite:$path").use { db ->
+            db.createStatement().use { sql ->
+                sql.executeUpdate(V1_SCHEMA)
+                sql.executeUpdate("ALTER TABLE note ADD COLUMN trashed_at INTEGER")
+                sql.executeUpdate("ALTER TABLE note ADD COLUMN position INTEGER NOT NULL DEFAULT 0")
+                sql.executeUpdate("ALTER TABLE note ADD COLUMN synced_position INTEGER")
+                sql.executeUpdate("CREATE TABLE account (id INTEGER NOT NULL PRIMARY KEY CHECK (id = 1), name TEXT NOT NULL)")
+                sql.executeUpdate(V5_RECORDING_SCHEMA)
+                sql.executeUpdate("CREATE INDEX recording_note ON recording(note_id)")
+                sql.executeUpdate("INSERT INTO note(id, title, body, color, pinned, archived, created_at, updated_at, position) VALUES ('old', 'Kept', '', 'sand', 0, 0, 5, 6, 7)")
+                sql.executeUpdate("INSERT INTO recording(id, note_id, file_name, type, duration_ms, created_at, downloaded) VALUES ('clip', 'old', 'recording-clip.m4a', 'audio/mp4', 1500, 8, 1)")
+                sql.executeUpdate("PRAGMA user_version = 5")
+            }
+        }
+        val store = TempStores.open(path, { "pic" })
+
+        store.addPhoto(store.newPhoto("old", Photo.JPEG, now = 9), folder.newFile().apply { writeText("jpeg") })
+
+        val note = store.get("old")!!
+        assertEquals(listOf("clip" to 1_500L), note.recordings.map { it.id to it.durationMillis })
+        assertEquals(listOf("pic"), note.photos.map { it.id })
+    }
+
+    @Test
+    fun Recordings_in_the_folder_that_held_them_alone_move_in_with_the_photos() {
+        val legacy = folder.newFolder("recordings").apply { File(this, "clip").writeText("hum") }
+        val files = AttachmentFiles(File(folder.root, "attachments"), legacy)
+
+        assertEquals("hum", files.read("clip")!!.decodeToString())
+        assertFalse(legacy.exists())
+    }
+
+    @Test
+    fun A_photo_is_kept_apart_from_the_recordings_of_its_note() {
+        val store = stores.open()
+        val note = store.create(now = 1, title = "Trip")
+        store.addRecording(store.newRecording(note.id, durationMillis = 1_000, now = 2), folder.newFile().apply { writeText("hum") })
+
+        val photo = store.newPhoto(note.id, "image/png", now = 3)
+        store.addPhoto(photo, folder.newFile().apply { writeText("png") })
+
+        val stored = store.get(note.id)!!
+        assertEquals(listOf(photo.id), stored.photos.map { it.id })
+        assertEquals("photo-${photo.id}.png", stored.photos.single().fileName)
+        assertEquals(1, stored.recordings.size)
+        assertEquals("png", store.readAttachment(photo.id)!!.decodeToString())
     }
 
     @Test
@@ -217,11 +270,11 @@ class NoteStoreTest {
         val recording = store.newRecording(note.id, durationMillis = 1_000, now = 2)
         store.addRecording(recording, folder.newFile().apply { writeText("hum") })
 
-        store.deleteRecording(recording.id)
+        store.deleteAttachment(recording.id)
 
         assertEquals(emptyList<String>(), store.get(note.id)!!.recordings.map { it.id })
-        assertEquals(false, store.recordingFile(recording.id).exists())
-        assertEquals(listOf(recording.id), store.recordingsToDelete())
+        assertEquals(false, store.attachmentFile(recording.id).exists())
+        assertEquals(listOf(recording.id), store.attachmentsToDelete())
     }
 
     @Test
@@ -295,6 +348,21 @@ class NoteStoreTest {
                 synced_content TEXT,
                 synced_pinned INTEGER,
                 synced_archived INTEGER
+            )
+        """
+
+        /** The recording table as schema 5 (`databases/5.db`) made it. */
+        const val V5_RECORDING_SCHEMA = """
+            CREATE TABLE recording (
+                id TEXT NOT NULL PRIMARY KEY,
+                note_id TEXT NOT NULL,
+                file_name TEXT NOT NULL,
+                type TEXT NOT NULL,
+                duration_ms INTEGER,
+                created_at INTEGER NOT NULL,
+                downloaded INTEGER NOT NULL,
+                on_server INTEGER NOT NULL DEFAULT 0,
+                deleted INTEGER NOT NULL DEFAULT 0
             )
         """
     }

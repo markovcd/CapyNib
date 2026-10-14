@@ -6,8 +6,8 @@ import io.github.markovcd.capynib.core.memos.ServerAddress
 import io.github.markovcd.capynib.core.memos.ServerMemo
 import io.github.markovcd.capynib.core.memos.SyncFailure
 import io.github.markovcd.capynib.core.note.MemoCodec
-import io.github.markovcd.capynib.core.note.Recording
 import io.github.markovcd.capynib.core.store.NoteStore
+import io.github.markovcd.capynib.core.store.StoredAttachment
 import io.github.markovcd.capynib.core.store.StoredNote
 import io.github.markovcd.capynib.core.store.Trash
 
@@ -22,8 +22,8 @@ import io.github.markovcd.capynib.core.store.Trash
  * a lost reply updates instead of duplicating. Notes last synced with another [server] or user are
  * sent to this one as new.
  *
- * A note's recordings are its memo's audio attachments. They follow the memo's list of them, and
- * are sent once the memo exists, deleted there, and downloaded, after the notes.
+ * A note's recordings and photos are its memo's audio and image attachments. They follow the memo's
+ * list of them, and are sent once the memo exists, deleted there, and downloaded, after the notes.
  */
 class SyncEngine(
     private val store: NoteStore,
@@ -47,7 +47,7 @@ class SyncEngine(
         val pulled = pull(serverMemos)
         val pushed = push(pulled)
         if (pushed.failure != null) return pushed
-        return pushed.copy(failure = pushRecordings() ?: downloadRecordings())
+        return pushed.copy(failure = pushAttachments() ?: downloadAttachments())
     }
 
     private fun pull(serverMemos: List<ServerMemo>): SyncReport {
@@ -98,7 +98,7 @@ class SyncEngine(
                 }
             }
             if (store.stored(memo.id)?.deleted == false) {
-                store.syncRecordings(memo.id, memo.attachments.filter { Recording.isRecording(it.type) })
+                store.syncAttachments(memo.id, memo.attachments.filter { StoredAttachment.isKept(it.type) })
             }
         }
 
@@ -140,23 +140,23 @@ class SyncEngine(
         return report
     }
 
-    private suspend fun pushRecordings(): SyncFailure? {
-        for (id in store.recordingsToDelete()) {
+    private suspend fun pushAttachments(): SyncFailure? {
+        for (id in store.attachmentsToDelete()) {
             when (val result = api.detach(id)) {
-                is ApiResult.Ok, ApiResult.NotFound -> store.purgeRecording(id)
+                is ApiResult.Ok, ApiResult.NotFound -> store.purgeAttachment(id)
                 is ApiResult.Failed -> return result.failure
                 ApiResult.AlreadyExists -> error("detach never answers AlreadyExists")
             }
         }
-        for (recording in store.recordingsToUpload()) {
-            val bytes = store.readRecording(recording.id)
+        for (attachment in store.attachmentsToUpload()) {
+            val bytes = store.readAttachment(attachment.id)
             if (bytes == null) {
-                // Its clip is gone from this device, so there is nothing to send.
-                store.purgeRecording(recording.id)
+                // Its file is gone from this device, so there is nothing to send.
+                store.purgeAttachment(attachment.id)
                 continue
             }
-            when (val result = api.attach(recording.id, recording.noteId, recording.fileName, recording.type, bytes)) {
-                is ApiResult.Ok, ApiResult.AlreadyExists -> store.markRecordingSent(recording.id)
+            when (val result = api.attach(attachment.id, attachment.noteId, attachment.fileName, attachment.type, bytes)) {
+                is ApiResult.Ok, ApiResult.AlreadyExists -> store.markAttachmentSent(attachment.id)
                 // The memo went meanwhile; the next pull forgets it and sends both again.
                 ApiResult.NotFound -> Unit
                 is ApiResult.Failed -> return result.failure
@@ -165,11 +165,11 @@ class SyncEngine(
         return null
     }
 
-    private suspend fun downloadRecordings(): SyncFailure? {
-        for (recording in store.recordingsToDownload()) {
-            when (val result = api.download(recording.id, recording.fileName)) {
-                is ApiResult.Ok -> store.saveDownload(recording.id, result.value)
-                ApiResult.NotFound -> store.purgeRecording(recording.id)
+    private suspend fun downloadAttachments(): SyncFailure? {
+        for (attachment in store.attachmentsToDownload()) {
+            when (val result = api.download(attachment.id, attachment.fileName)) {
+                is ApiResult.Ok -> store.saveDownload(attachment.id, result.value)
+                ApiResult.NotFound -> store.purgeAttachment(attachment.id)
                 is ApiResult.Failed -> return result.failure
                 ApiResult.AlreadyExists -> error("download never answers AlreadyExists")
             }

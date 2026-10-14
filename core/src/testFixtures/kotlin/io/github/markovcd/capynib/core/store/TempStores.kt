@@ -14,12 +14,12 @@ class TempStores(private val folder: TemporaryFolder) {
     fun open(idPrefix: String = "n", dispatcher: CoroutineDispatcher = Dispatchers.IO): NoteStore {
         opened++
         var next = 0
-        return open(folder.newFile("notes-$opened.db").absolutePath, { "$idPrefix${++next}" }, dispatcher, folder.newFolder("recordings-$opened"))
+        return open(folder.newFile("notes-$opened.db").absolutePath, { "$idPrefix${++next}" }, dispatcher, folder.newFolder("attachments-$opened"))
     }
 
     companion object {
-        /** A store at [path], its recordings in [recordings] or, by default, beside it. */
-        fun open(path: String, newId: () -> String, dispatcher: CoroutineDispatcher = Dispatchers.IO, recordings: File = File("$path-recordings")) =
-            NoteStore(JdbcSqliteDriver("jdbc:sqlite:$path", Properties(), NoteStore.schema), RecordingFiles(recordings), newId, dispatcher)
+        /** A store at [path], its recordings and photos in [attachments] or, by default, beside it. */
+        fun open(path: String, newId: () -> String, dispatcher: CoroutineDispatcher = Dispatchers.IO, attachments: File = File("$path-attachments")) =
+            NoteStore(JdbcSqliteDriver("jdbc:sqlite:$path", Properties(), NoteStore.schema), AttachmentFiles(attachments), newId, dispatcher)
     }
 }

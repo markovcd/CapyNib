@@ -18,7 +18,7 @@ data class Recording(
         /** What a clip recorded on the phone is: AAC in an MPEG-4 file. */
         const val TYPE = "audio/mp4"
 
-        /** Whether an attachment of [type] is a recording; other attachments are left to the memos web UI. */
+        /** Whether an attachment of [type] is a recording. */
         fun isRecording(type: String): Boolean = type.startsWith("audio/")
     }
 }

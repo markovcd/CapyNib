@@ -1,0 +1,6 @@
+-- Notes hold photos beside recordings: one table for both, named for the attachments they sync as.
+ALTER TABLE recording RENAME TO attachment;
+
+DROP INDEX recording_note;
+
+CREATE INDEX attachment_note ON attachment(note_id);

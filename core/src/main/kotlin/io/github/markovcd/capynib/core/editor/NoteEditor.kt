@@ -46,7 +46,7 @@ class NoteEditor(
         scope.launch {
             store.observe(initial.id).filterNotNull().collect { stored ->
                 val changed = !stored.sameContentAs(current.value) || stored.trashedAt != current.value.trashedAt ||
-                    stored.recordings != current.value.recordings
+                    stored.recordings != current.value.recordings || stored.photos != current.value.photos
                 if (unsaved.value == 0 && changed) current.value = stored
             }
         }
@@ -100,7 +100,21 @@ class NoteEditor(
     fun removeRecording(id: String) {
         if (current.value.inTrash) return
         current.update { note -> note.copy(recordings = note.recordings.filterNot { it.id == id }) }
-        write { store.deleteRecording(id) }
+        write { store.deleteAttachment(id) }
+    }
+
+    /** Adds the image at [source], of [type], as the note's newest photo. */
+    fun addPhoto(source: File, type: String) {
+        if (current.value.inTrash) return
+        val photo = store.newPhoto(current.value.id, type, clock())
+        current.update { it.copy(photos = it.photos + photo) }
+        write { store.addPhoto(photo, source) }
+    }
+
+    fun removePhoto(id: String) {
+        if (current.value.inTrash) return
+        current.update { note -> note.copy(photos = note.photos.filterNot { it.id == id }) }
+        write { store.deleteAttachment(id) }
     }
 
     /** Moves the note to the trash. */

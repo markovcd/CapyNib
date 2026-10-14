@@ -1,6 +1,8 @@
 package io.github.markovcd.capynib.core.editor
 
 import io.github.markovcd.capynib.core.note.NoteColor
+import io.github.markovcd.capynib.core.note.Photo
+import io.github.markovcd.capynib.core.note.Recording
 import io.github.markovcd.capynib.core.store.NoteStore
 import io.github.markovcd.capynib.core.store.TempStores
 import kotlinx.coroutines.test.TestScope
@@ -66,6 +68,36 @@ class NoteEditorTest {
 
         assertTrue(deleted)
         assertNull(store.get(editor.note.value.id))
+    }
+
+    @Test
+    fun A_note_that_holds_only_a_photo_is_kept_when_left_and_reads_back_as_a_photo() = runTest {
+        val editor = editor()
+
+        editor.addPhoto(folder.newFile().apply { writeText("jpeg") }, Photo.JPEG)
+        val deleted = editor.close()
+        editor.flush()
+
+        assertFalse(deleted)
+        val stored = store.get(editor.note.value.id)!!
+        assertEquals(listOf(Photo.JPEG), stored.photos.map { it.type })
+        assertEquals(emptyList<Recording>(), stored.recordings)
+        assertEquals("jpeg", store.readAttachment(stored.photos.single().id)!!.decodeToString())
+    }
+
+    @Test
+    fun A_removed_photo_leaves_the_note_and_the_device() = runTest {
+        val editor = editor()
+        editor.setTitle("Trip")
+        editor.addPhoto(folder.newFile().apply { writeText("jpeg") }, Photo.JPEG)
+        editor.flush()
+        val photo = editor.note.value.photos.single()
+
+        editor.removePhoto(photo.id)
+        editor.flush()
+
+        assertEquals(emptyList<Photo>(), store.get(editor.note.value.id)!!.photos)
+        assertFalse(store.attachmentFile(photo.id).exists())
     }
 
     @Test

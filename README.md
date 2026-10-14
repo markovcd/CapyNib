@@ -33,8 +33,8 @@ weekly run tries `memos:stable`, the newest release.
 
 Each note is one private memo. The title is the memo's first-line heading and the color is a
 `#color/<name>` tag at the end, so notes read naturally in the memos web UI too. See
-[docs/adr/0002-a-note-is-one-memo.md](docs/adr/0002-a-note-is-one-memo.md). A note's recordings are
-its memo's audio attachments ([docs/adr/0009-a-recording-is-an-audio-attachment-of-its-notes-memo.md](docs/adr/0009-a-recording-is-an-audio-attachment-of-its-notes-memo.md)).
+[docs/adr/0002-a-note-is-one-memo.md](docs/adr/0002-a-note-is-one-memo.md). A note's recordings and
+photos are its memo's audio and image attachments ([docs/adr/0009-recordings-and-photos-are-attachments-of-their-notes-memo.md](docs/adr/0009-recordings-and-photos-are-attachments-of-their-notes-memo.md)).
 
 ## Build and test
 

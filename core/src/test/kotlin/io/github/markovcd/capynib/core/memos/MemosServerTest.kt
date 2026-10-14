@@ -55,9 +55,9 @@ class MemosServerTest {
         assertEquals(null, SyncEngine(tablet, live.api(), live.server) { now }.sync().failure)
 
         assertEquals(listOf(recording.id), tablet.get(note.id)!!.recordings.map { it.id })
-        assertEquals(listOf<Byte>(0, 1, 2, -1), tablet.readRecording(recording.id)!!.toList())
+        assertEquals(listOf<Byte>(0, 1, 2, -1), tablet.readAttachment(recording.id)!!.toList())
 
-        tablet.deleteRecording(recording.id)
+        tablet.deleteAttachment(recording.id)
         assertEquals(null, SyncEngine(tablet, live.api(), live.server) { now }.sync().failure)
         assertEquals(null, SyncEngine(phone, live.api(), live.server) { now }.sync().failure)
         assertEquals(emptyList<String>(), phone.get(note.id)!!.recordings.map { it.id })

@@ -75,7 +75,7 @@ class RecordingsTest {
         val id = recordIntoNewNote()
 
         val recording = graph.store.get(id)!!.recordings.single()
-        assertEquals("hum", graph.store.readRecording(recording.id)!!.decodeToString())
+        assertEquals("hum", graph.store.readAttachment(recording.id)!!.decodeToString())
         awaitTag(Tags.recordingPlay(recording.id))
         compose.onNodeWithTag(Tags.RECORD).assertIsDisplayed()
     }

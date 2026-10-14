@@ -15,8 +15,8 @@ import io.github.markovcd.capynib.core.memos.HttpMemosApi
 import io.github.markovcd.capynib.core.memos.MemosApi
 import io.github.markovcd.capynib.core.memos.ServerAddress
 import io.github.markovcd.capynib.core.note.Capture
+import io.github.markovcd.capynib.core.store.AttachmentFiles
 import io.github.markovcd.capynib.core.store.NoteStore
-import io.github.markovcd.capynib.core.store.RecordingFiles
 import io.github.markovcd.capynib.core.sync.SyncEngine
 import io.github.markovcd.capynib.core.sync.SyncScheduler
 import io.github.markovcd.capynib.settings.KeystoreTokenCipher
@@ -47,9 +47,12 @@ class AppGraph(
     val microphone: Microphone = AndroidMicrophone(context),
     playback: ((String) -> File) -> Playback = { AndroidPlayback(MainScope(), it) },
 ) {
-    val store = NoteStore(AndroidSqliteDriver(NoteStore.schema, context, databaseName), RecordingFiles(File(context.filesDir, "recordings")))
+    val store = NoteStore(
+        AndroidSqliteDriver(NoteStore.schema, context, databaseName),
+        AttachmentFiles(File(context.filesDir, "attachments"), legacy = File(context.filesDir, "recordings")),
+    )
 
-    val playback: Playback = playback(store::recordingFile)
+    val playback: Playback = playback(store::attachmentFile)
 
     private val cache = context.cacheDir
 
