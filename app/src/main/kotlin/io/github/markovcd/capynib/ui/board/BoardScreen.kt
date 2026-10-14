@@ -95,12 +95,14 @@ import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.markovcd.capynib.R
+import io.github.markovcd.capynib.audio.PlayingClip
 import io.github.markovcd.capynib.core.board.BoardChange
 import io.github.markovcd.capynib.core.board.BoardContent
 import io.github.markovcd.capynib.core.board.Selection
 import io.github.markovcd.capynib.core.board.Shelf
 import io.github.markovcd.capynib.core.board.Swipe
 import io.github.markovcd.capynib.core.note.Note
+import io.github.markovcd.capynib.core.note.Recording
 import io.github.markovcd.capynib.core.note.NoteColor
 import io.github.markovcd.capynib.core.sync.SyncStatus
 import io.github.markovcd.capynib.ui.ColorPalette
@@ -124,6 +126,7 @@ fun BoardScreen(model: BoardViewModel, onOpen: (String) -> Unit, onNew: (String)
     val deleting by model.deleting.collectAsStateWithLifecycle()
     val status by model.status.collectAsStateWithLifecycle()
     val trashDays by model.trashDays.collectAsStateWithLifecycle()
+    val playing by model.playback.playing.collectAsStateWithLifecycle()
     BoardLayout(
         content = content,
         query = query,
@@ -150,6 +153,8 @@ fun BoardScreen(model: BoardViewModel, onOpen: (String) -> Unit, onNew: (String)
             deleteForever = model::deleteSelectedForever,
         ),
         onSwiped = model::swiped,
+        playing = playing,
+        onPlay = model.playback::toggle,
         onConfirmDelete = model::confirmDeleteForever,
         onCancelDelete = model::cancelDeleteForever,
         onMove = model::move,
@@ -176,6 +181,8 @@ fun BoardLayout(
     onSettings: () -> Unit,
     actions: SelectionActions,
     onSwiped: (String, Swipe) -> Unit,
+    playing: PlayingClip?,
+    onPlay: (Recording) -> Unit,
     onConfirmDelete: () -> Unit,
     onCancelDelete: () -> Unit,
     onMove: (String, Int) -> Unit,
@@ -249,7 +256,7 @@ fun BoardLayout(
             }
             return@Scaffold
         }
-        NoteGrid(content, query, shelf, selection, trashDays, onOpen, actions, onSwiped, onMove, Modifier.padding(padding))
+        NoteGrid(content, query, shelf, selection, trashDays, onOpen, actions, onSwiped, playing, onPlay, onMove, Modifier.padding(padding))
     }
 }
 
@@ -268,6 +275,8 @@ private fun NoteGrid(
     onOpen: (String) -> Unit,
     actions: SelectionActions,
     onSwiped: (String, Swipe) -> Unit,
+    playing: PlayingClip?,
+    onPlay: (Recording) -> Unit,
     onMove: (String, Int) -> Unit,
     modifier: Modifier,
 ) {
@@ -333,6 +342,8 @@ private fun NoteGrid(
             onOpen,
             actions.toggle,
             onSwiped,
+            playing,
+            onPlay,
         )
         section(R.string.board_pinned.takeIf { content.pinned.isNotEmpty() }, Tags.PINNED, drag.shown(content.pinned), card)
         section(R.string.board_others.takeIf { content.pinned.isNotEmpty() && content.others.isNotEmpty() }, Tags.OTHERS, drag.shown(content.others), card)
@@ -604,6 +615,8 @@ private fun LazyStaggeredGridScope.section(heading: Int?, tag: String, notes: Li
             NoteCard(
                 note,
                 selected = note.id in card.selection.ids,
+                playing = card.playing,
+                onPlay = card.onPlay,
                 onOpen = { if (card.selection.isActive) card.onToggle(note.id) else card.onOpen(note.id) },
             )
         }

@@ -3,6 +3,7 @@ package io.github.markovcd.capynib.ui.board
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.markovcd.capynib.AppGraph
+import io.github.markovcd.capynib.audio.Playback
 import io.github.markovcd.capynib.core.board.BoardChange
 import io.github.markovcd.capynib.core.board.BoardContent
 import io.github.markovcd.capynib.core.board.Selection
@@ -48,6 +49,8 @@ class BoardViewModel(private val graph: AppGraph) : ViewModel() {
     val status: StateFlow<SyncStatus> = graph.scheduler.status
 
     val trashDays: StateFlow<Int> = graph.trash.days
+
+    val playback: Playback = graph.playback
 
     /** Makes an empty note, or a list with one empty item, and returns its id to open it. */
     fun newNote(checklist: Boolean): String = graph.capture(if (checklist) Capture.EmptyChecklist else Capture.EmptyNote)

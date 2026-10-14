@@ -8,6 +8,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.time.Instant
 import java.time.format.DateTimeParseException
+import java.util.Base64
 
 /** [MemosApi] over the memos v1 REST API, authenticated with an access token. */
 class HttpMemosApi(
@@ -88,6 +89,29 @@ class HttpMemosApi(
             else -> result.mapError()
         }
 
+    override suspend fun attach(id: String, memoId: String, fileName: String, type: String, bytes: ByteArray): ApiResult<Unit> {
+        val url = api("attachments").newBuilder().addQueryParameter("attachmentId", id).build()
+        val body = buildJsonObject {
+            put("filename", fileName)
+            put("type", type)
+            put("content", Base64.getEncoder().encodeToString(bytes))
+            put("memo", "memos/$memoId")
+        }
+        return when (val result = call<AttachmentDto>(Request.Builder().url(url).post(body.toString().toRequestBody(jsonType)))) {
+            is ApiResult.Ok -> ApiResult.Ok(Unit)
+            else -> result.mapError()
+        }
+    }
+
+    override suspend fun download(id: String, fileName: String): ApiResult<ByteArray> =
+        http.bytes(Request.Builder().url(http.file(id, fileName)).get(), accessToken)
+
+    override suspend fun detach(id: String): ApiResult<Unit> =
+        when (val result = call<ErrorDto>(Request.Builder().url(api("attachments/$id")).delete())) {
+            is ApiResult.Ok -> ApiResult.Ok(Unit)
+            else -> result.mapError()
+        }
+
     override suspend fun serverVersion(): ApiResult<String?> = http.serverVersion()
 
     override suspend fun currentUser(): ApiResult<String> =
@@ -125,7 +149,15 @@ class HttpMemosApi(
         if (id == name || id.isEmpty()) return unexpected("memo name '$name'")
         val created = parseTime(createTime) ?: return unexpected("memo $name createTime '$createTime'")
         val updated = parseTime(updateTime) ?: return unexpected("memo $name updateTime '$updateTime'")
-        return ApiResult.Ok(ServerMemo(id, MemoState(content, pinned, state == STATE_ARCHIVED, created / 1000), created, updated))
+        val files = attachments.mapNotNull { it.toServerAttachment() }
+        return ApiResult.Ok(ServerMemo(id, MemoState(content, pinned, state == STATE_ARCHIVED, created / 1000), created, updated, files))
+    }
+
+    /** The attachment, or null for one whose name memos would not accept for a new attachment either. */
+    private fun AttachmentDto.toServerAttachment(): ServerAttachment? {
+        val id = name.removePrefix("attachments/")
+        if (id == name || !ServerAttachment.ID.matches(id)) return null
+        return ServerAttachment(id, filename, type, parseTime(createTime) ?: 0)
     }
 
     private fun parseTime(text: String): Long? =

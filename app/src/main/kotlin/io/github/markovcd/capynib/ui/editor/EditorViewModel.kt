@@ -3,10 +3,11 @@ package io.github.markovcd.capynib.ui.editor
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.markovcd.capynib.AppGraph
+import io.github.markovcd.capynib.audio.Playback
 import io.github.markovcd.capynib.core.editor.NoteEditor
 import kotlinx.coroutines.Dispatchers
 
-/** Holds the open note's [NoteEditor]; null when the note no longer exists. */
+/** Holds the open note's [NoteEditor], null when the note no longer exists, and records clips into it. */
 class EditorViewModel(graph: AppGraph, noteId: String) : ViewModel() {
     val editor: NoteEditor? = graph.store.get(noteId)?.let { note ->
         NoteEditor(
@@ -18,5 +19,16 @@ class EditorViewModel(graph: AppGraph, noteId: String) : ViewModel() {
             writeScope = graph.scope,
             onSaved = { graph.scheduler.requestSync() },
         )
+    }
+
+    val recorder = Recorder(graph.microphone, graph::newClipFile, graph.clock) { file, duration -> editor?.addRecording(file, duration) }
+
+    val playback: Playback = graph.playback
+
+    val clock: () -> Long = graph.clock
+
+    /** Leaving the note keeps a clip still recording. */
+    override fun onCleared() {
+        recorder.stop()
     }
 }

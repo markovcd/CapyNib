@@ -12,6 +12,14 @@ interface MemosApi {
 
     suspend fun delete(id: String): ApiResult<Unit>
 
+    /** Uploads [bytes] as attachment [id] of memo [memoId], with a chosen id as [create] has. */
+    suspend fun attach(id: String, memoId: String, fileName: String, type: String, bytes: ByteArray): ApiResult<Unit>
+
+    /** The bytes of attachment [id], named [fileName]. */
+    suspend fun download(id: String, fileName: String): ApiResult<ByteArray>
+
+    suspend fun detach(id: String): ApiResult<Unit>
+
     /** The memos version the server reports, or null when it reports none. Shown, never relied on. */
     suspend fun serverVersion(): ApiResult<String?>
 

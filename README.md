@@ -1,7 +1,7 @@
 # Capynib
 
-Quick notes for Android in the style of Google Keep: colored cards, checklists you can tick, pinned
-notes, tags and an archive. Notes live on the phone and work offline; when a [memos](https://usememos.com)
+Quick notes for Android in the style of Google Keep: colored cards, checklists you can tick, voice
+recordings, pinned notes, tags and an archive. Notes live on the phone and work offline; when a [memos](https://usememos.com)
 server is set up, every change syncs to it about a second after you type, and edits made on the
 server (or another device) come back.
 
@@ -11,7 +11,8 @@ server (or another device) come back.
 2. Write notes. Without a server they stay on the phone. To start one without opening the board,
    add the Capynib pen or checkbox widget to the home screen, long-press the app icon for **New note** or **New
    checklist**, add the **New note** tile to Quick Settings, or share text or a link to Capynib
-   from another app (a link's page title becomes the note's title).
+   from another app (a link's page title becomes the note's title). The microphone at the bottom
+   of a note records a voice clip into it, which plays from the note and from its card.
 3. To sync, open **Settings** (gear on the board), enter your memos address, and either tap
    **Sign in with browser** or paste a personal access token (memos web UI: Settings, then Access
    Tokens) and tap **Connect**.
@@ -25,13 +26,14 @@ own, which expires after 30 days; sign in again when Settings says the token was
 
 **Check server** in Settings (or `capynib server`) tries every call sync makes against your server
 and names any that fail, whatever memos version it runs. Reading touches nothing; the writes go to
-one private test memo of its own, deleted at the end. The gate runs the same check and the live sync
+one private test memo of its own and a recording attached to it, deleted at the end. The gate runs the same check and the live sync
 tests against each memos release in [memos-versions.txt](memos-versions.txt) (0.28 to 0.31), and a
 weekly run tries `memos:stable`, the newest release.
 
 Each note is one private memo. The title is the memo's first-line heading and the color is a
 `#color/<name>` tag at the end, so notes read naturally in the memos web UI too. See
-[docs/adr/0002-a-note-is-one-memo.md](docs/adr/0002-a-note-is-one-memo.md).
+[docs/adr/0002-a-note-is-one-memo.md](docs/adr/0002-a-note-is-one-memo.md). A note's recordings are
+its memo's audio attachments ([docs/adr/0009-a-recording-is-an-audio-attachment-of-its-notes-memo.md](docs/adr/0009-a-recording-is-an-audio-attachment-of-its-notes-memo.md)).
 
 ## Build and test
 

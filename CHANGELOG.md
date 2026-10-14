@@ -7,6 +7,7 @@
 - The home screen widgets are one tile each: a pen for a new note and a checkbox for a new checklist, on a see-through circle.
 - The note editor keeps its colors folded behind a palette button, as Keep does.
 - Drag a checklist item by its handle to reorder the list.
+- Voice recordings: record a clip into a note and play it from the note or its card.
 
 ## 0.1.1 - 2026-10-13
 

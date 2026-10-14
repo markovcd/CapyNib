@@ -1,6 +1,11 @@
 package io.github.markovcd.capynib.ui.editor
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -12,6 +17,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -19,17 +25,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Archive
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material.icons.outlined.DragIndicator
@@ -51,6 +60,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -64,6 +74,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
@@ -72,29 +83,39 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.markovcd.capynib.R
+import io.github.markovcd.capynib.audio.Playback
 import io.github.markovcd.capynib.core.editor.NoteEditor
 import io.github.markovcd.capynib.core.note.Checklist
 import io.github.markovcd.capynib.core.note.ChecklistLine
 import io.github.markovcd.capynib.core.note.NoteColor
 import io.github.markovcd.capynib.ui.ColorPalette
 import io.github.markovcd.capynib.ui.PlainTextField
+import io.github.markovcd.capynib.ui.RecordingPlayer
+import io.github.markovcd.capynib.ui.clipTime
 import io.github.markovcd.capynib.ui.ConfirmDeleteForever
 import io.github.markovcd.capynib.ui.Tags
 import io.github.markovcd.capynib.ui.theme.NoteColors
+import kotlinx.coroutines.delay
 
 private const val TICKED_ALPHA = 0.62f
 private const val RULE_ALPHA = 0.12f
+private const val ELAPSED_TICK_MILLIS = 250L
 
 /**
  * The open note. Leaving it (back, archive, delete) calls [onClose]. A note in the trash is read-only until restored.
  * With [startTyping] the body, or a checklist's first item, takes focus and the keyboard comes up.
+ * The record button records a clip into the note through [recorder], asking for the microphone the first time.
  */
 @Composable
-fun EditorScreen(editor: NoteEditor, startTyping: Boolean, onClose: () -> Unit) {
+fun EditorScreen(editor: NoteEditor, recorder: Recorder, playback: Playback, clock: () -> Long, startTyping: Boolean, onClose: () -> Unit) {
     val note by editor.note.collectAsStateWithLifecycle()
+    val recordingSince by recorder.since.collectAsStateWithLifecycle()
+    val playing by playback.playing.collectAsStateWithLifecycle()
     val leave = {
+        recorder.stop()
         editor.close()
         onClose()
     }
@@ -105,6 +126,17 @@ fun EditorScreen(editor: NoteEditor, startTyping: Boolean, onClose: () -> Unit) 
     var showingColors by remember { mutableStateOf(false) }
     BackHandler(enabled = showingColors) { showingColors = false }
     val focus = LocalFocusManager.current
+    val context = LocalContext.current
+    val startRecording = {
+        if (!recorder.start()) Toast.makeText(context, R.string.editor_microphone_failed, Toast.LENGTH_SHORT).show()
+    }
+    val askForMicrophone = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> if (granted) startRecording() }
+    val record = {
+        focus.clearFocus()
+        showingColors = false
+        val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        if (granted) startRecording() else askForMicrophone.launch(Manifest.permission.RECORD_AUDIO)
+    }
     if (confirmingDelete) {
         ConfirmDeleteForever(
             count = 1,
@@ -187,6 +219,10 @@ fun EditorScreen(editor: NoteEditor, startTyping: Boolean, onClose: () -> Unit) 
                         showingColors = !showingColors
                     },
                     onToggleCheckboxes = { if (checklist) editor.hideCheckboxes() else editor.showCheckboxes() },
+                    recordingSince = recordingSince,
+                    clock = clock,
+                    onRecord = record,
+                    onStopRecording = recorder::stop,
                 )
             }
         },
@@ -217,6 +253,27 @@ fun EditorScreen(editor: NoteEditor, startTyping: Boolean, onClose: () -> Unit) 
                     readOnly = !editable,
                 )
             }
+            // Clips sit under the text, oldest first, as in Keep.
+            note.recordings.forEach { recording ->
+                key(recording.id) {
+                    RecordingPlayer(
+                        recording,
+                        playing,
+                        onPlay = { playback.toggle(recording) },
+                        onRemove = if (editable) {
+                            {
+                                if (playing?.id == recording.id) playback.stop()
+                                editor.removeRecording(recording.id)
+                            }
+                        } else {
+                            null
+                        },
+                        compact = false,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
         }
     }
 }
@@ -411,7 +468,10 @@ private fun ItemCheckbox(checked: Boolean, enabled: Boolean, onToggle: () -> Uni
     }
 }
 
-/** The note's tools: the checkbox toggle and, as in Keep, the colors folded behind a palette button until it is tapped. */
+/**
+ * The note's tools: the checkbox toggle, the record button and, as in Keep, the colors folded behind a
+ * palette button until it is tapped. While a clip records, the tools give way to how long it has run and a stop button.
+ */
 @Composable
 private fun EditorBottomBar(
     selected: NoteColor,
@@ -420,10 +480,18 @@ private fun EditorBottomBar(
     showingColors: Boolean,
     onPalette: () -> Unit,
     onToggleCheckboxes: () -> Unit,
+    recordingSince: Long?,
+    clock: () -> Long,
+    onRecord: () -> Unit,
+    onStopRecording: () -> Unit,
 ) {
     val ink = MaterialTheme.colorScheme.onSurface
     Column(Modifier.fillMaxWidth().navigationBarsPadding().imePadding()) {
         HorizontalDivider(color = ink.copy(alpha = RULE_ALPHA))
+        if (recordingSince != null) {
+            RecordingBar(recordingSince, clock, onStopRecording)
+            return@Column
+        }
         AnimatedVisibility(showingColors) {
             ColorPalette(selected, onColor, Modifier.padding(start = 10.dp, end = 10.dp, top = 10.dp))
         }
@@ -437,9 +505,38 @@ private fun EditorBottomBar(
                 )
             }
             Spacer(Modifier.weight(1f))
+            IconButton(onClick = onRecord, modifier = Modifier.testTag(Tags.RECORD)) {
+                Icon(Icons.Outlined.Mic, contentDescription = stringResource(R.string.editor_record), tint = ink)
+            }
             IconButton(onClick = onPalette, modifier = Modifier.testTag(Tags.PALETTE)) {
                 Icon(Icons.Outlined.Palette, contentDescription = stringResource(R.string.editor_colors), tint = ink)
             }
+        }
+    }
+}
+
+/** A red dot, how long the clip has been recording, and the button that ends it. */
+@Composable
+private fun RecordingBar(since: Long, clock: () -> Long, onStop: () -> Unit) {
+    val elapsed by produceState(clock() - since, since) {
+        while (true) {
+            value = clock() - since
+            delay(ELAPSED_TICK_MILLIS)
+        }
+    }
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(start = 20.dp, end = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(Modifier.size(12.dp).background(MaterialTheme.colorScheme.error, CircleShape))
+        Text(
+            stringResource(R.string.editor_recording, clipTime(elapsed)),
+            Modifier.padding(start = 12.dp).weight(1f).testTag(Tags.RECORDING_ELAPSED),
+            style = MaterialTheme.typography.titleSmall,
+        )
+        TextButton(onClick = onStop, modifier = Modifier.testTag(Tags.STOP_RECORDING)) {
+            Icon(Icons.Filled.Stop, contentDescription = null, modifier = Modifier.size(20.dp))
+            Text(stringResource(R.string.editor_stop_recording), Modifier.padding(start = 8.dp))
         }
     }
 }

@@ -187,6 +187,44 @@ class NoteStoreTest {
     }
 
     @Test
+    fun A_database_from_before_recordings_opens_with_its_notes_and_takes_a_recording() {
+        val path = folder.newFile("v4.db").absolutePath
+        DriverManager.getConnection("jdbc:sqlite:$path").use { db ->
+            db.createStatement().use { sql ->
+                sql.executeUpdate(V1_SCHEMA)
+                sql.executeUpdate("ALTER TABLE note ADD COLUMN trashed_at INTEGER")
+                sql.executeUpdate("ALTER TABLE note ADD COLUMN position INTEGER NOT NULL DEFAULT 0")
+                sql.executeUpdate("ALTER TABLE note ADD COLUMN synced_position INTEGER")
+                sql.executeUpdate("CREATE TABLE account (id INTEGER NOT NULL PRIMARY KEY CHECK (id = 1), name TEXT NOT NULL)")
+                sql.executeUpdate("INSERT INTO note(id, title, body, color, pinned, archived, created_at, updated_at, position) VALUES ('old', 'Kept', '', 'sand', 0, 0, 5, 6, 7)")
+                sql.executeUpdate("PRAGMA user_version = 4")
+            }
+        }
+        val store = TempStores.open(path, { "clip" })
+
+        val recording = store.newRecording("old", durationMillis = 1_500, now = 8)
+        store.addRecording(recording, folder.newFile().apply { writeText("hum") })
+
+        assertEquals("Kept", store.get("old")!!.title)
+        assertEquals(listOf("clip" to 1_500L), store.get("old")!!.recordings.map { it.id to it.durationMillis })
+        assertEquals("hum", store.readRecording("clip")!!.decodeToString())
+    }
+
+    @Test
+    fun A_deleted_recording_leaves_the_note_and_its_clip_leaves_the_device() {
+        val store = stores.open()
+        val note = store.create(now = 1, title = "Idea")
+        val recording = store.newRecording(note.id, durationMillis = 1_000, now = 2)
+        store.addRecording(recording, folder.newFile().apply { writeText("hum") })
+
+        store.deleteRecording(recording.id)
+
+        assertEquals(emptyList<String>(), store.get(note.id)!!.recordings.map { it.id })
+        assertEquals(false, store.recordingFile(recording.id).exists())
+        assertEquals(listOf(recording.id), store.recordingsToDelete())
+    }
+
+    @Test
     fun A_new_note_goes_on_top_even_of_a_note_moved_above_the_present() {
         val store = stores.open()
         val moved = store.create(now = 1_000)

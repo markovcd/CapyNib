@@ -68,6 +68,14 @@
     <string name="editor_move_item">Move item</string>
     <string name="editor_colors">Colors</string>
     <string name="editor_color">Color %1$s</string>
+    <string name="editor_record">Record</string>
+    <string name="editor_recording">Recording %1$s</string>
+    <string name="editor_stop_recording">Stop</string>
+    <string name="editor_microphone_failed">The microphone would not start</string>
+    <string name="recording_play">Play recording</string>
+    <string name="recording_stop">Stop playing</string>
+    <string name="recording_remove">Remove recording</string>
+    <string name="recording_not_downloaded">Downloads at the next sync</string>
 
     <string name="sync_local">Notes are on this phone only</string>
     <string name="sync_waiting">Waiting to sync</string>

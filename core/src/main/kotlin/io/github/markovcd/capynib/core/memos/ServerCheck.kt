@@ -1,11 +1,12 @@
 package io.github.markovcd.capynib.core.memos
 
+import io.github.markovcd.capynib.core.note.Recording
 import java.util.UUID
 
 /**
  * Tries each call sync makes against a memos server and reports which work, whatever version it
  * runs. Reading touches nothing; every write goes to one private memo of the check's own, [probeId],
- * deleted at the end. The user's memos are never changed. The id has the shape note ids have, so the
+ * and a recording attached to it under the same id, deleted at the end. The user's memos are never changed. The id has the shape note ids have, so the
  * check tries the ids sync sends.
  */
 class ServerCheck(private val api: MemosApi, private val probeId: String = UUID.randomUUID().toString()) {
@@ -28,7 +29,7 @@ class ServerCheck(private val api: MemosApi, private val probeId: String = UUID.
         val created = MemoState(PROBE_TEXT, pinned = false, archived = false, position = PROBE_POSITION)
         val createdOk = record(Capability.CreateWithId, problem(api.create(probeId, created)) { it.id == probeId && it.state == created })
         if (!createdOk) {
-            for (rest in listOf(Capability.Update, Capability.ListArchived, Capability.Delete)) record(rest, NEEDS_CREATE)
+            for (rest in listOf(Capability.Update, Capability.ListArchived, Capability.Recordings, Capability.Delete)) record(rest, NEEDS_CREATE)
             // A create can write the memo and still fail, such as when the call that sets its place is refused.
             val cleared = when (api.delete(probeId)) {
                 is ApiResult.Ok, ApiResult.NotFound -> true
@@ -46,11 +47,23 @@ class ServerCheck(private val api: MemosApi, private val probeId: String = UUID.
             record(Capability.ListArchived, "not checked: needs a memo archived by an update")
         }
 
+        record(Capability.Recordings, recordingProblem())
+
         val deleted = api.delete(probeId)
         val gone = (api.listAll() as? ApiResult.Ok)?.value?.none { it.id == probeId }
         val deleteProblem = problem(deleted) ?: if (gone == false) "the memo was still listed after deleting it" else null
         record(Capability.Delete, deleteProblem)
         return ApiResult.Ok(ServerReport(version, results, leftover = probeId.takeIf { deleteProblem != null }))
+    }
+
+    /** Attaches a recording to the check's memo, finds it listed, fetches it back and deletes it. */
+    private suspend fun recordingProblem(): String? {
+        problem(api.attach(probeId, probeId, PROBE_FILE, Recording.TYPE, PROBE_CLIP))?.let { return it }
+        val listed = api.listAll()
+        val problem = problem(listed) { memos -> memos.any { memo -> memo.id == probeId && memo.attachments.any { it.id == probeId } } }
+            ?: problem(api.download(probeId, PROBE_FILE)) { it.contentEquals(PROBE_CLIP) }
+        // The memo's delete takes its recording with it, so a failed delete here leaves nothing behind.
+        return problem ?: problem(api.detach(probeId))
     }
 
     private fun <T> problem(result: ApiResult<T>, holds: (T) -> Boolean = { true }): String? = when (result) {
@@ -65,6 +78,8 @@ class ServerCheck(private val api: MemosApi, private val probeId: String = UUID.
 
         /** The test memo's create time, 2023-11-14, low in the server's list while it exists. */
         const val PROBE_POSITION = 1_700_000_000L
+        const val PROBE_FILE = "capynib-check.m4a"
+        val PROBE_CLIP = PROBE_TEXT.encodeToByteArray()
         const val NEEDS_CREATE = "not checked: needs a memo created under Capynib's own id"
     }
 }

@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.io.File
 
 /**
  * Everything the note screen does, without the screen. Each change shows at once in [note], is
@@ -44,7 +45,8 @@ class NoteEditor(
     init {
         scope.launch {
             store.observe(initial.id).filterNotNull().collect { stored ->
-                val changed = !stored.sameContentAs(current.value) || stored.trashedAt != current.value.trashedAt
+                val changed = !stored.sameContentAs(current.value) || stored.trashedAt != current.value.trashedAt ||
+                    stored.recordings != current.value.recordings
                 if (unsaved.value == 0 && changed) current.value = stored
             }
         }
@@ -86,6 +88,20 @@ class NoteEditor(
 
     /** Drags the line at [from] to [to], as [Checklist.move] does. */
     fun moveItem(from: Int, to: Int) = change { it.copy(body = Checklist.move(it.body, from, to)) }
+
+    /** Adds the clip recorded into [source], [durationMillis] long, as the note's newest recording. */
+    fun addRecording(source: File, durationMillis: Long) {
+        if (current.value.inTrash) return
+        val recording = store.newRecording(current.value.id, durationMillis, clock())
+        current.update { it.copy(recordings = it.recordings + recording) }
+        write { store.addRecording(recording, source) }
+    }
+
+    fun removeRecording(id: String) {
+        if (current.value.inTrash) return
+        current.update { note -> note.copy(recordings = note.recordings.filterNot { it.id == id }) }
+        write { store.deleteRecording(id) }
+    }
 
     /** Moves the note to the trash. */
     fun trash() {

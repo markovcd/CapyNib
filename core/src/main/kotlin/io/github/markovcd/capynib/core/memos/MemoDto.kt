@@ -13,4 +13,5 @@ internal data class MemoDto(
     val content: String = "",
     val visibility: String = "",
     val pinned: Boolean = false,
+    val attachments: List<AttachmentDto> = emptyList(),
 )

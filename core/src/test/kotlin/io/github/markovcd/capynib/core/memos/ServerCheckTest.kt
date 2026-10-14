@@ -51,7 +51,7 @@ class ServerCheckTest {
         val report = checked(Refusing(server, "create"))
 
         assertEquals("create is not supported", report.problems()[Capability.CreateWithId])
-        assertEquals(listOf(Capability.CreateWithId, Capability.Update, Capability.ListArchived, Capability.Delete), report.failed.map { it.capability })
+        assertEquals(listOf(Capability.CreateWithId, Capability.Update, Capability.ListArchived, Capability.Recordings, Capability.Delete), report.failed.map { it.capability })
         assertEquals(emptyMap<String, ServerMemo>(), server.memos)
     }
 

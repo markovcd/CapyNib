@@ -46,6 +46,17 @@ object Tags {
     const val CHECKBOXES = "checkboxes"
     const val ADD_ITEM = "add-item"
     const val PALETTE = "palette"
+    const val RECORD = "record"
+    const val STOP_RECORDING = "stop-recording"
+    const val RECORDING_ELAPSED = "recording-elapsed"
+
+    fun recording(id: String) = "recording-$id"
+
+    fun recordingPlay(id: String) = "recording-play-$id"
+
+    fun recordingTime(id: String) = "recording-time-$id"
+
+    fun recordingRemove(id: String) = "recording-remove-$id"
 
     fun item(index: Int) = "item-$index"
 

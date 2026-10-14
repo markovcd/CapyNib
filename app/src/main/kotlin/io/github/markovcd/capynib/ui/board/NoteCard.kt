@@ -31,10 +31,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import io.github.markovcd.capynib.audio.PlayingClip
 import io.github.markovcd.capynib.core.note.Checklist
 import io.github.markovcd.capynib.core.note.ChecklistLine
 import io.github.markovcd.capynib.core.note.Note
 import io.github.markovcd.capynib.core.note.NoteTags
+import io.github.markovcd.capynib.core.note.Recording
+import io.github.markovcd.capynib.ui.RecordingPlayer
 import io.github.markovcd.capynib.ui.Tags
 import io.github.markovcd.capynib.ui.theme.NoteColors
 
@@ -42,9 +45,12 @@ private const val PREVIEW_LINES = 10
 private const val TICKED_ALPHA = 0.62f
 private const val TAG_ALPHA = 0.08f
 
-/** A note on the board: its color, title, the start of its text or checklist, and its tags; a picked note wears a thick outline. */
+/**
+ * A note on the board: its color, title, the start of its text or checklist, its recordings as small
+ * players, and its tags; a picked note wears a thick outline.
+ */
 @Composable
-fun NoteCard(note: Note, selected: Boolean, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+fun NoteCard(note: Note, selected: Boolean, playing: PlayingClip?, onPlay: (Recording) -> Unit, onOpen: () -> Unit, modifier: Modifier = Modifier) {
     Card(
         onClick = onOpen,
         modifier = modifier.fillMaxWidth().semantics { this.selected = selected }.testTag(Tags.card(note.id)),
@@ -80,6 +86,9 @@ fun NoteCard(note: Note, selected: Boolean, onOpen: () -> Unit, modifier: Modifi
                         )
                     }
                 }
+            }
+            note.recordings.forEach { recording ->
+                RecordingPlayer(recording, playing, onPlay = { onPlay(recording) }, onRemove = null, compact = true)
             }
             val tags = remember(note.title, note.body) { NoteTags.of(note) }
             if (tags.isNotEmpty()) {

@@ -10,6 +10,7 @@ import okhttp3.HttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.ResponseBody
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
@@ -21,31 +22,46 @@ internal class MemosHttp(val server: ServerAddress, private val client: OkHttpCl
     suspend inline fun <reified T> call(request: Request.Builder, accessToken: String?): ApiResult<T> =
         call(request, accessToken, serializer<T>())
 
-    suspend fun <T> call(request: Request.Builder, accessToken: String?, reply: KSerializer<T>): ApiResult<T> = withContext(Dispatchers.IO) {
-        if (accessToken != null) request.header("Authorization", "Bearer $accessToken")
-        val built = request.header("Accept", "application/json").build()
-        val where = "${built.method} ${built.url.encodedPath}"
-        try {
-            client.newCall(built).execute().use { response ->
-                val text = response.body.string()
-                when {
-                    response.isSuccessful -> try {
-                        ApiResult.Ok(json.decodeFromString(reply, text.ifEmpty { "{}" }))
-                    } catch (e: SerializationException) {
-                        ApiResult.Failed(SyncFailure.Server(response.code, "$where: not a memos reply (${e.message})"))
-                    } catch (e: IllegalArgumentException) {
-                        ApiResult.Failed(SyncFailure.Server(response.code, "$where: not a memos reply (${e.message})"))
-                    }
-                    response.code == 401 -> ApiResult.Failed(SyncFailure.Unauthorized("$where: ${errorMessage(text)}"))
-                    response.code == 404 -> ApiResult.NotFound
-                    response.code == 409 -> ApiResult.AlreadyExists
-                    else -> ApiResult.Failed(SyncFailure.Server(response.code, "$where: ${errorMessage(text)}"))
-                }
+    suspend fun <T> call(request: Request.Builder, accessToken: String?, reply: KSerializer<T>): ApiResult<T> =
+        send(request, accessToken) { code, body, where ->
+            val text = body.string()
+            try {
+                ApiResult.Ok(json.decodeFromString(reply, text.ifEmpty { "{}" }))
+            } catch (e: SerializationException) {
+                ApiResult.Failed(SyncFailure.Server(code, "$where: not a memos reply (${e.message})"))
+            } catch (e: IllegalArgumentException) {
+                ApiResult.Failed(SyncFailure.Server(code, "$where: not a memos reply (${e.message})"))
             }
-        } catch (e: IOException) {
-            ApiResult.Failed(SyncFailure.Unreachable("$where: ${e.message ?: e.javaClass.simpleName}"))
         }
-    }
+
+    /** Sends [request] with [accessToken] and reads the reply as raw bytes, such as an attachment's file. */
+    suspend fun bytes(request: Request.Builder, accessToken: String?): ApiResult<ByteArray> =
+        send(request, accessToken) { _, body, _ -> ApiResult.Ok(body.bytes()) }
+
+    /** The file of attachment [id], named [fileName]; memos serves it outside the API. */
+    fun file(id: String, fileName: String): HttpUrl =
+        server.url.newBuilder().addPathSegment("file").addPathSegment("attachments").addPathSegment(id).addPathSegment(fileName).build()
+
+    private suspend fun <T> send(request: Request.Builder, accessToken: String?, read: (Int, ResponseBody, String) -> ApiResult<T>): ApiResult<T> =
+        withContext(Dispatchers.IO) {
+            if (accessToken != null) request.header("Authorization", "Bearer $accessToken")
+            val built = request.header("Accept", "application/json").build()
+            val where = "${built.method} ${built.url.encodedPath}"
+            try {
+                client.newCall(built).execute().use { response ->
+                    if (response.isSuccessful) return@use read(response.code, response.body, where)
+                    val text = response.body.string()
+                    when (response.code) {
+                        401 -> ApiResult.Failed(SyncFailure.Unauthorized("$where: ${errorMessage(text)}"))
+                        404 -> ApiResult.NotFound
+                        409 -> ApiResult.AlreadyExists
+                        else -> ApiResult.Failed(SyncFailure.Server(response.code, "$where: ${errorMessage(text)}"))
+                    }
+                }
+            } catch (e: IOException) {
+                ApiResult.Failed(SyncFailure.Unreachable("$where: ${e.message ?: e.javaClass.simpleName}"))
+            }
+        }
 
     /**
      * The memos version the server reports, asked without a token, or null when it reports none:

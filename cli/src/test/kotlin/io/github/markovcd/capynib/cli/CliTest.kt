@@ -326,7 +326,7 @@ class CliTest {
         assertTrue(text.out, text.out.contains("FAIL  change a memo's text, pin, archive and create time: "))
         assertEquals("false", report["works"]!!.jsonPrimitive.content)
         assertEquals(
-            listOf("signed-in-user", "list-memos", "create-with-id", "update", "list-archived", "delete"),
+            listOf("signed-in-user", "list-memos", "create-with-id", "update", "list-archived", "recordings", "delete"),
             report["checks"]!!.jsonArray.map { it.jsonObject["call"]!!.jsonPrimitive.content },
         )
         assertEquals(emptyMap<String, Any>(), server.memos)

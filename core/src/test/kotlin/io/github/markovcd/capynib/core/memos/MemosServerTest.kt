@@ -43,6 +43,27 @@ class MemosServerTest {
     }
 
     @Test
+    fun A_recording_made_on_one_device_plays_on_another_through_memos_and_its_delete_follows() = runTest {
+        val live = LiveMemos.connect()
+        val phone = stores.open("phone-")
+        val tablet = stores.open("tablet-")
+        val note = phone.create(++now, "Voice")
+        val recording = phone.newRecording(note.id, durationMillis = 1_000, now = ++now)
+        phone.addRecording(recording, folder.newFile().apply { writeBytes(byteArrayOf(0, 1, 2, -1)) })
+
+        assertEquals(null, SyncEngine(phone, live.api(), live.server) { now }.sync().failure)
+        assertEquals(null, SyncEngine(tablet, live.api(), live.server) { now }.sync().failure)
+
+        assertEquals(listOf(recording.id), tablet.get(note.id)!!.recordings.map { it.id })
+        assertEquals(listOf<Byte>(0, 1, 2, -1), tablet.readRecording(recording.id)!!.toList())
+
+        tablet.deleteRecording(recording.id)
+        assertEquals(null, SyncEngine(tablet, live.api(), live.server) { now }.sync().failure)
+        assertEquals(null, SyncEngine(phone, live.api(), live.server) { now }.sync().failure)
+        assertEquals(emptyList<String>(), phone.get(note.id)!!.recordings.map { it.id })
+    }
+
+    @Test
     fun Edits_archives_trash_and_deletes_reach_the_server() = runTest {
         val live = LiveMemos.connect()
         val api = live.api()

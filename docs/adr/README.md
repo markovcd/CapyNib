@@ -10,3 +10,4 @@
 | [0006](0006-a-note-in-the-trash-is-an-archived-memo.md) | A note in the trash is an archived memo until its days there are up |
 | [0007](0007-tags-are-read-from-the-text-the-way-memos-reads-them.md) | Tags are read from the note's text the way memos reads them |
 | [0008](0008-a-notes-place-on-the-board-is-its-memos-create-time.md) | A note's place on the board is its memo's create time |
+| [0009](0009-a-recording-is-an-audio-attachment-of-its-notes-memo.md) | A recording is an audio attachment of its note's memo |

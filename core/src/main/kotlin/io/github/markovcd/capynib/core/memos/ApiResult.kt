@@ -4,7 +4,7 @@ package io.github.markovcd.capynib.core.memos
 sealed interface ApiResult<out T> {
     data class Ok<T>(val value: T) : ApiResult<T>
 
-    /** The memo named in the call does not exist. */
+    /** The memo or attachment named in the call does not exist. */
     data object NotFound : ApiResult<Nothing>
 
     /** A memo with the id given to create already exists. */

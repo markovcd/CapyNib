@@ -6,12 +6,17 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import app.cash.sqldelight.driver.android.AndroidSqliteDriver
+import io.github.markovcd.capynib.audio.AndroidMicrophone
+import io.github.markovcd.capynib.audio.AndroidPlayback
+import io.github.markovcd.capynib.audio.Microphone
+import io.github.markovcd.capynib.audio.Playback
 import io.github.markovcd.capynib.core.memos.BrowserSignIn
 import io.github.markovcd.capynib.core.memos.HttpMemosApi
 import io.github.markovcd.capynib.core.memos.MemosApi
 import io.github.markovcd.capynib.core.memos.ServerAddress
 import io.github.markovcd.capynib.core.note.Capture
 import io.github.markovcd.capynib.core.store.NoteStore
+import io.github.markovcd.capynib.core.store.RecordingFiles
 import io.github.markovcd.capynib.core.sync.SyncEngine
 import io.github.markovcd.capynib.core.sync.SyncScheduler
 import io.github.markovcd.capynib.settings.KeystoreTokenCipher
@@ -21,12 +26,14 @@ import io.github.markovcd.capynib.settings.TokenCipher
 import io.github.markovcd.capynib.settings.TrashSettingsStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.SupervisorJob
+import java.io.File
 
 /**
  * The app's long-lived objects, made once per process. Tests make their own with an in-memory
- * database (null [databaseName]), a fake cipher, a fake server, canned sign-in replies and a browser
- * that only records the pages it is asked to open.
+ * database (null [databaseName]), a fake cipher, a fake server, canned sign-in replies, a browser
+ * that only records the pages it is asked to open, and a fake microphone and speaker.
  */
 class AppGraph(
     context: Context,
@@ -37,8 +44,14 @@ class AppGraph(
     private val apiFactory: (ServerAddress, String) -> MemosApi = ::HttpMemosApi,
     private val signInFactory: (ServerAddress) -> BrowserSignIn = { BrowserSignIn(it, "Capynib on ${Build.MODEL}") },
     private val browser: (String) -> Boolean = { openInBrowser(context, it) },
+    val microphone: Microphone = AndroidMicrophone(context),
+    playback: ((String) -> File) -> Playback = { AndroidPlayback(MainScope(), it) },
 ) {
-    val store = NoteStore(AndroidSqliteDriver(NoteStore.schema, context, databaseName))
+    val store = NoteStore(AndroidSqliteDriver(NoteStore.schema, context, databaseName), RecordingFiles(File(context.filesDir, "recordings")))
+
+    val playback: Playback = playback(store::recordingFile)
+
+    private val cache = context.cacheDir
 
     val settings = SyncSettingsStore(context.getSharedPreferences("sync", Context.MODE_PRIVATE), cipher)
 
@@ -53,6 +66,9 @@ class AppGraph(
     }
 
     fun browserSignIn(server: ServerAddress): BrowserSignIn = signInFactory(server)
+
+    /** A file in the cache for a clip being recorded; the store moves it in once the clip is kept. */
+    fun newClipFile(): File = File.createTempFile("clip", ".m4a", cache)
 
     /** Opens [page] in the browser; false when the phone has none. */
     fun openPage(page: String): Boolean = browser(page)

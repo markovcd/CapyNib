@@ -43,6 +43,32 @@ class NoteEditorTest {
     }
 
     @Test
+    fun A_note_that_holds_only_a_recording_is_kept_when_left() = runTest {
+        val editor = editor()
+
+        editor.addRecording(folder.newFile().apply { writeText("hum") }, durationMillis = 2_000)
+        val deleted = editor.close()
+        editor.flush()
+
+        assertFalse(deleted)
+        assertEquals(listOf(2_000L), store.get(editor.note.value.id)!!.recordings.map { it.durationMillis })
+    }
+
+    @Test
+    fun A_removed_recording_leaves_the_note_and_an_emptied_note_is_deleted_when_left() = runTest {
+        val editor = editor()
+        editor.addRecording(folder.newFile().apply { writeText("hum") }, durationMillis = 2_000)
+        editor.flush()
+
+        editor.removeRecording(editor.note.value.recordings.single().id)
+        val deleted = editor.close()
+        editor.flush()
+
+        assertTrue(deleted)
+        assertNull(store.get(editor.note.value.id))
+    }
+
+    @Test
     fun A_title_stays_on_one_line() = runTest {
         val editor = editor()
 

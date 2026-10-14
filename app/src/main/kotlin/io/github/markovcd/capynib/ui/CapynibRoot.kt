@@ -50,7 +50,7 @@ fun CapynibRoot(graph: AppGraph, captured: Flow<String> = emptyFlow()) {
                 if (editor == null) {
                     LaunchedEffect(noteId) { openNote = null }
                 } else {
-                    EditorScreen(editor, startTyping = typing, onClose = { openNote = null })
+                    EditorScreen(editor, model.recorder, model.playback, model.clock, startTyping = typing, onClose = { openNote = null })
                 }
             }
             settings -> {

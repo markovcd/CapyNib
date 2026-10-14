@@ -4,7 +4,7 @@ package io.github.markovcd.capynib.core.note
  * A note as the user sees it. [body] is plain text in which `- [ ] ` and `- [x] ` lines
  * are checklist items (see [Checklist]). Times are epoch milliseconds; [trashedAt] is set while
  * the note is in the trash. [position] orders the board, highest first; it is the memo's create
- * time in epoch seconds (ADR 0008).
+ * time in epoch seconds (ADR 0008). [recordings] are the voice clips in it, oldest first.
  */
 data class Note(
     val id: String,
@@ -17,13 +17,14 @@ data class Note(
     val updatedAt: Long,
     val position: Long,
     val trashedAt: Long? = null,
+    val recordings: List<Recording> = emptyList(),
 ) {
-    /** Nothing written: no title, and no line (checklist items included) with any text. */
-    val isBlank: Boolean get() = title.isBlank() && Checklist.parse(body).all { it.text.isBlank() }
+    /** Nothing in it: no title, no line (checklist items included) with any text, and no recording. */
+    val isBlank: Boolean get() = title.isBlank() && Checklist.parse(body).all { it.text.isBlank() } && recordings.isEmpty()
 
     val inTrash: Boolean get() = trashedAt != null
 
-    /** Same user-visible content, ignoring id and times. */
+    /** Same user-visible content, ignoring id, times and recordings. */
     fun sameContentAs(other: Note): Boolean =
         title == other.title && body == other.body && color == other.color && pinned == other.pinned && archived == other.archived
 }
