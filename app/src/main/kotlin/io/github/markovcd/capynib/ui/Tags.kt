@@ -1,5 +1,7 @@
 package io.github.markovcd.capynib.ui
 
+import java.time.LocalDate
+
 /** Stable names tests find controls by; never the caption or icon they show. */
 object Tags {
     const val SEARCH = "search"
@@ -8,6 +10,12 @@ object Tags {
     const val SETTINGS = "settings"
     const val ARCHIVE_TOGGLE = "archive-toggle"
     const val TRASH_TOGGLE = "trash-toggle"
+    const val CALENDAR_TOGGLE = "calendar-toggle"
+    const val CALENDAR = "calendar"
+    const val MONTH = "month"
+    const val PREVIOUS_MONTH = "previous-month"
+    const val NEXT_MONTH = "next-month"
+    const val DAY_EMPTY = "day-empty"
     const val TRASH_NOTICE = "trash-notice"
     const val SYNC_STATUS = "sync-status"
     const val EMPTY_BOARD = "empty-board"
@@ -28,6 +36,10 @@ object Tags {
     fun card(id: String) = "card-$id"
 
     fun cardTags(id: String) = "card-tags-$id"
+
+    fun day(date: LocalDate) = "day-$date"
+
+    fun dayMarks(date: LocalDate) = "day-marks-$date"
 
     const val TAG_BAR = "tag-bar"
 

@@ -40,7 +40,8 @@ quiet.
 ## Screens and controls
 
 **Board** (`ui/board/BoardScreen.kt`, `NoteCard.kt`)
-- Top bar: a rounded search field ("Search your notes"), a sync status icon, an archive toggle
+- Top bar: a rounded search field ("Search your notes"), a sync status icon, a calendar toggle
+  (calendar; a grid when showing the calendar), an archive toggle
   (archive box; a light bulb when showing the archive), a trash toggle (trash can; a light bulb
   when showing the trash), and a settings gear. The trash opens with one line saying how many days
   notes stay there.
@@ -49,6 +50,12 @@ quiet.
 - Body: a staggered grid of note cards, about 160 dp wide columns. Sections "Pinned" and
   "Others" get small labels when there are pinned notes. An empty board shows one centered line
   ("Notes you add appear here").
+- Calendar (`NoteCalendar.kt`), in place of the grid while toggled on: the month's name between
+  previous and next arrows (a sideways swipe over the days turns the month too), a row of short
+  weekday names, then the days as 44 dp circles, today's number bold in `primary`, the picked day
+  filled with `primaryContainer`. Under a day's number, one small `primary` dot per note made on it,
+  up to three. Below the month, the picked day spelled out as a small label and its notes as cards,
+  or "No notes made on this day". It opens on today.
 - A card: its photos across the top, edge to edge (up to 260 dp tall), the note color as fill (default notes have a thin outline instead), the title in a
   title style, then up to 10 lines of the body; checklist items show a small checkbox glyph,
   ticked ones struck through. The note's tags follow as small tinted pills ("#travel"). A picked card wears a 2 dp `onSurface` outline.

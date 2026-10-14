@@ -32,11 +32,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.outlined.Archive
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.PushPin
@@ -98,6 +100,8 @@ import io.github.markovcd.capynib.R
 import io.github.markovcd.capynib.audio.PlayingClip
 import io.github.markovcd.capynib.core.board.BoardChange
 import io.github.markovcd.capynib.core.board.BoardContent
+import io.github.markovcd.capynib.core.board.BoardMode
+import io.github.markovcd.capynib.core.board.CalendarMonth
 import io.github.markovcd.capynib.core.board.Selection
 import io.github.markovcd.capynib.core.board.Shelf
 import io.github.markovcd.capynib.core.board.Swipe
@@ -112,6 +116,7 @@ import io.github.markovcd.capynib.ui.SyncStatusLabel
 import io.github.markovcd.capynib.ui.Tags
 import io.github.markovcd.capynib.ui.theme.color
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 /** How close to the board's top or bottom edge a dragged note scrolls it. */
 private val SCROLL_EDGE = 48.dp
@@ -121,6 +126,9 @@ fun BoardScreen(model: BoardViewModel, onOpen: (String) -> Unit, onNew: (String)
     val content by model.content.collectAsStateWithLifecycle()
     val query by model.query.collectAsStateWithLifecycle()
     val shelf by model.shelf.collectAsStateWithLifecycle()
+    val mode by model.mode.collectAsStateWithLifecycle()
+    val calendar by model.calendar.collectAsStateWithLifecycle()
+    val day by model.day.collectAsStateWithLifecycle()
     val selection by model.selection.collectAsStateWithLifecycle()
     val lastChange by model.lastChange.collectAsStateWithLifecycle()
     val deleting by model.deleting.collectAsStateWithLifecycle()
@@ -131,6 +139,10 @@ fun BoardScreen(model: BoardViewModel, onOpen: (String) -> Unit, onNew: (String)
         content = content,
         query = query,
         shelf = shelf,
+        mode = mode,
+        calendar = calendar,
+        day = day,
+        today = model.today,
         selection = selection,
         lastChange = lastChange,
         deleting = deleting,
@@ -138,6 +150,9 @@ fun BoardScreen(model: BoardViewModel, onOpen: (String) -> Unit, onNew: (String)
         trashDays = trashDays,
         onQuery = { model.query.value = it },
         onShelf = model::showShelf,
+        onMode = model::showMode,
+        onMonth = model::showMonth,
+        onDay = model::pickDay,
         onTag = { model.tag.value = it },
         onOpen = onOpen,
         onNew = { checklist -> onNew(model.newNote(checklist)) },
@@ -168,6 +183,10 @@ fun BoardLayout(
     content: BoardContent?,
     query: String,
     shelf: Shelf,
+    mode: BoardMode,
+    calendar: CalendarMonth?,
+    day: LocalDate,
+    today: LocalDate,
     selection: Selection,
     lastChange: BoardChange?,
     deleting: Set<String>,
@@ -175,6 +194,9 @@ fun BoardLayout(
     trashDays: Int,
     onQuery: (String) -> Unit,
     onShelf: (Shelf) -> Unit,
+    onMode: (BoardMode) -> Unit,
+    onMonth: (Long) -> Unit,
+    onDay: (LocalDate) -> Unit,
     onTag: (String?) -> Unit,
     onOpen: (String) -> Unit,
     onNew: (checklist: Boolean) -> Unit,
@@ -202,7 +224,7 @@ fun BoardLayout(
                     val notes = content?.let { it.pinned + it.others }.orEmpty()
                     SelectionBar(selection, pins = selection.pins(notes), shelf, actions)
                 } else {
-                    SearchBar(query, shelf, status, onQuery, onShelf, onSettings)
+                    SearchBar(query, shelf, mode, status, onQuery, onShelf, onMode, onSettings)
                 }
                 val tags = content?.tags.orEmpty()
                 if (tags.isNotEmpty()) TagBar(tags, content?.tag, onTag)
@@ -240,6 +262,10 @@ fun BoardLayout(
         },
     ) { padding ->
         if (content == null) return@Scaffold
+        if (mode == BoardMode.Calendar) {
+            if (calendar != null) NoteCalendar(calendar, day, today, selection, onMonth, onDay, onOpen, actions.toggle, playing, onPlay, Modifier.padding(padding))
+            return@Scaffold
+        }
         if (content.isEmpty) {
             Box(Modifier.fillMaxSize().padding(padding).testTag(Tags.EMPTY_BOARD), contentAlignment = Alignment.Center) {
                 Text(
@@ -402,14 +428,16 @@ private suspend fun PointerInputScope.detectPressOnCard(
     }
 }
 
-/** The pill at the top: search, then the sync status, the archive and trash toggles, and settings. */
+/** The pill at the top: search, then the sync status, the calendar, archive and trash toggles, and settings. */
 @Composable
 private fun SearchBar(
     query: String,
     shelf: Shelf,
+    mode: BoardMode,
     status: SyncStatus,
     onQuery: (String) -> Unit,
     onShelf: (Shelf) -> Unit,
+    onMode: (BoardMode) -> Unit,
     onSettings: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -434,6 +462,7 @@ private fun SearchBar(
             singleLine = true,
         )
         SyncStatusIcon(status, onClick = onSettings)
+        ModeToggle(mode, onMode)
         ShelfToggle(Shelf.Archive, shelf, Tags.ARCHIVE_TOGGLE, Icons.Outlined.Archive, R.string.board_show_archive, onShelf)
         ShelfToggle(Shelf.Trash, shelf, Tags.TRASH_TOGGLE, Icons.Outlined.Delete, R.string.board_show_trash, onShelf)
         IconButton(onClick = onSettings, modifier = Modifier.testTag(Tags.SETTINGS)) {
@@ -554,6 +583,20 @@ private fun ShelfToggle(target: Shelf, shelf: Shelf, tag: String, icon: ImageVec
             Icon(Icons.Outlined.Lightbulb, contentDescription = stringResource(R.string.board_show_notes), tint = tint)
         } else {
             Icon(icon, contentDescription = stringResource(label), tint = tint)
+        }
+    }
+}
+
+/** Shows the calendar, or the cards again while the calendar is shown. */
+@Composable
+private fun ModeToggle(mode: BoardMode, onMode: (BoardMode) -> Unit) {
+    val tint = MaterialTheme.colorScheme.onSurfaceVariant
+    val calendar = mode == BoardMode.Calendar
+    IconButton(onClick = { onMode(if (calendar) BoardMode.Cards else BoardMode.Calendar) }, modifier = Modifier.testTag(Tags.CALENDAR_TOGGLE)) {
+        if (calendar) {
+            Icon(Icons.Outlined.GridView, contentDescription = stringResource(R.string.board_show_cards), tint = tint)
+        } else {
+            Icon(Icons.Outlined.CalendarMonth, contentDescription = stringResource(R.string.board_show_calendar), tint = tint)
         }
     }
 }

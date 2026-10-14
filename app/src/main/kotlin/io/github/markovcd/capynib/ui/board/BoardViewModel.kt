@@ -6,6 +6,8 @@ import io.github.markovcd.capynib.AppGraph
 import io.github.markovcd.capynib.audio.Playback
 import io.github.markovcd.capynib.core.board.BoardChange
 import io.github.markovcd.capynib.core.board.BoardContent
+import io.github.markovcd.capynib.core.board.BoardMode
+import io.github.markovcd.capynib.core.board.CalendarMonth
 import io.github.markovcd.capynib.core.board.Selection
 import io.github.markovcd.capynib.core.board.Shelf
 import io.github.markovcd.capynib.core.board.Swipe
@@ -19,15 +21,38 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.LocalDate
+import java.time.YearMonth
+import java.time.ZoneId
+import java.time.temporal.WeekFields
+import java.util.Locale
 
 class BoardViewModel(private val graph: AppGraph) : ViewModel() {
     val query = MutableStateFlow("")
     val shelf = MutableStateFlow(Shelf.Notes)
     val tag = MutableStateFlow<String?>(null)
     private val picked = MutableStateFlow(Selection())
+    private val zone = ZoneId.systemDefault()
+    private val firstDay = WeekFields.of(Locale.getDefault()).firstDayOfWeek
+
+    val mode = MutableStateFlow(BoardMode.Cards)
+
+    val today: LocalDate get() = Instant.ofEpochMilli(graph.clock()).atZone(zone).toLocalDate()
+
+    /** The day whose notes the calendar lists; today until another is picked. */
+    val day = MutableStateFlow(today)
+
+    /** The month the calendar shows. */
+    val month = MutableStateFlow(YearMonth.from(day.value))
 
     val content: StateFlow<BoardContent?> =
         combine(graph.store.observeVisible(), query, shelf, tag) { notes, query, shelf, tag -> BoardContent.of(notes, query, shelf, tag) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** The board's notes on [month]'s calendar. */
+    val calendar: StateFlow<CalendarMonth?> =
+        combine(content, month) { content, month -> content?.let { CalendarMonth.of(it.pinned + it.others, month, zone, firstDay) } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** The picked notes still on the board; a shelf change or a note leaving it drops them. */
@@ -58,6 +83,20 @@ class BoardViewModel(private val graph: AppGraph) : ViewModel() {
     fun showShelf(shelf: Shelf) {
         picked.value = Selection()
         this.shelf.value = shelf
+    }
+
+    fun showMode(mode: BoardMode) {
+        picked.value = Selection()
+        this.mode.value = mode
+    }
+
+    /** Shows the month [by] months after the one shown, or before it when negative. */
+    fun showMonth(by: Long) {
+        month.value = month.value.plusMonths(by)
+    }
+
+    fun pickDay(date: LocalDate) {
+        day.value = date
     }
 
     fun toggle(id: String) {
