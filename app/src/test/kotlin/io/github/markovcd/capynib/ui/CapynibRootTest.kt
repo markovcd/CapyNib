@@ -500,6 +500,6 @@ class CapynibRootTest {
 
         compose.onNodeWithTag(Tags.SETTINGS).performClick()
         awaitText("Notes are on this phone only")
-        compose.onNodeWithTag(Tags.SYNC_STATUS).assertIsDisplayed()
+        compose.onNodeWithTag(Tags.SYNC_STATUS).performScrollTo().assertIsDisplayed()
     }
 }
