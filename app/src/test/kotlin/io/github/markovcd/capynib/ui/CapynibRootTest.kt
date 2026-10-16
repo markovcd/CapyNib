@@ -494,8 +494,12 @@ class CapynibRootTest {
     }
 
     @Test
-    fun Without_a_server_the_status_says_notes_are_on_this_phone() {
+    fun The_sync_status_is_shown_in_settings_and_not_on_the_board() {
         assertEquals(SyncStatus.Local, graph.scheduler.status.value)
+        compose.onNodeWithTag(Tags.SYNC_STATUS).assertDoesNotExist()
+
+        compose.onNodeWithTag(Tags.SETTINGS).performClick()
+        awaitText("Notes are on this phone only")
         compose.onNodeWithTag(Tags.SYNC_STATUS).assertIsDisplayed()
     }
 }

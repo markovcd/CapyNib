@@ -12,6 +12,7 @@
 - The new note button is a pencil with no label, a size up from the new checklist button.
 - A calendar on the board: each day marks the notes made on it, and tapping a day lists them.
 - Share photos to Capynib from another app to make a photo note.
+- The sync status is shown in Settings, not as a second Settings button on the board.
 
 ## 0.1.1 - 2026-10-13
 

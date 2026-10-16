@@ -108,13 +108,10 @@ import io.github.markovcd.capynib.core.board.Swipe
 import io.github.markovcd.capynib.core.note.Note
 import io.github.markovcd.capynib.core.note.Recording
 import io.github.markovcd.capynib.core.note.NoteColor
-import io.github.markovcd.capynib.core.sync.SyncStatus
 import io.github.markovcd.capynib.ui.ColorPalette
 import io.github.markovcd.capynib.ui.ConfirmDeleteForever
 import io.github.markovcd.capynib.ui.PlainTextField
-import io.github.markovcd.capynib.ui.SyncStatusLabel
 import io.github.markovcd.capynib.ui.Tags
-import io.github.markovcd.capynib.ui.theme.color
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 
@@ -132,7 +129,6 @@ fun BoardScreen(model: BoardViewModel, onOpen: (String) -> Unit, onNew: (String)
     val selection by model.selection.collectAsStateWithLifecycle()
     val lastChange by model.lastChange.collectAsStateWithLifecycle()
     val deleting by model.deleting.collectAsStateWithLifecycle()
-    val status by model.status.collectAsStateWithLifecycle()
     val trashDays by model.trashDays.collectAsStateWithLifecycle()
     val playing by model.playback.playing.collectAsStateWithLifecycle()
     BoardLayout(
@@ -146,7 +142,6 @@ fun BoardScreen(model: BoardViewModel, onOpen: (String) -> Unit, onNew: (String)
         selection = selection,
         lastChange = lastChange,
         deleting = deleting,
-        status = status,
         trashDays = trashDays,
         onQuery = { model.query.value = it },
         onShelf = model::showShelf,
@@ -190,7 +185,6 @@ fun BoardLayout(
     selection: Selection,
     lastChange: BoardChange?,
     deleting: Set<String>,
-    status: SyncStatus,
     trashDays: Int,
     onQuery: (String) -> Unit,
     onShelf: (Shelf) -> Unit,
@@ -224,7 +218,7 @@ fun BoardLayout(
                     val notes = content?.let { it.pinned + it.others }.orEmpty()
                     SelectionBar(selection, pins = selection.pins(notes), shelf, actions)
                 } else {
-                    SearchBar(query, shelf, mode, status, onQuery, onShelf, onMode, onSettings)
+                    SearchBar(query, shelf, mode, onQuery, onShelf, onMode, onSettings)
                 }
                 val tags = content?.tags.orEmpty()
                 if (tags.isNotEmpty()) TagBar(tags, content?.tag, onTag)
@@ -428,13 +422,12 @@ private suspend fun PointerInputScope.detectPressOnCard(
     }
 }
 
-/** The pill at the top: search, then the sync status, the calendar, archive and trash toggles, and settings. */
+/** The pill at the top: search, then the calendar, archive and trash toggles, and settings. */
 @Composable
 private fun SearchBar(
     query: String,
     shelf: Shelf,
     mode: BoardMode,
-    status: SyncStatus,
     onQuery: (String) -> Unit,
     onShelf: (Shelf) -> Unit,
     onMode: (BoardMode) -> Unit,
@@ -461,7 +454,6 @@ private fun SearchBar(
             modifier = Modifier.weight(1f).padding(start = 10.dp).testTag(Tags.SEARCH),
             singleLine = true,
         )
-        SyncStatusIcon(status, onClick = onSettings)
         ModeToggle(mode, onMode)
         ShelfToggle(Shelf.Archive, shelf, Tags.ARCHIVE_TOGGLE, Icons.Outlined.Archive, R.string.board_show_archive, onShelf)
         ShelfToggle(Shelf.Trash, shelf, Tags.TRASH_TOGGLE, Icons.Outlined.Delete, R.string.board_show_trash, onShelf)
@@ -663,19 +655,5 @@ private fun LazyStaggeredGridScope.section(heading: Int?, tag: String, notes: Li
                 onOpen = { if (card.selection.isActive) card.onToggle(note.id) else card.onOpen(note.id) },
             )
         }
-    }
-}
-
-/** The sync state at a glance; tapping it opens settings, where it is spelled out. */
-@Composable
-private fun SyncStatusIcon(status: SyncStatus, onClick: () -> Unit) {
-    val label = SyncStatusLabel.of(status)
-    IconButton(onClick = onClick, modifier = Modifier.testTag(Tags.SYNC_STATUS)) {
-        Icon(
-            label.icon,
-            contentDescription = stringResource(label.text, label.detail.orEmpty()),
-            modifier = Modifier.size(22.dp),
-            tint = label.tone.color(),
-        )
     }
 }

@@ -40,7 +40,7 @@ quiet.
 ## Screens and controls
 
 **Board** (`ui/board/BoardScreen.kt`, `NoteCard.kt`)
-- Top bar: a rounded search field ("Search"), a sync status icon, a calendar toggle
+- Top bar: a rounded search field ("Search"), a calendar toggle
   (calendar; a grid when showing the calendar), an archive toggle
   (archive box; a light bulb when showing the archive), a trash toggle (trash can; a light bulb
   when showing the trash), and a settings gear. The trash opens with one line saying how many days

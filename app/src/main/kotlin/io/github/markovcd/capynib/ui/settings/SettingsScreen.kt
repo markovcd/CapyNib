@@ -138,7 +138,11 @@ fun SettingsScreen(model: SettingsViewModel, onClose: () -> Unit) {
             ) {
                 Text(messageText(message), Modifier.testTag(Tags.SETTINGS_MESSAGE), style = MaterialTheme.typography.titleSmall)
                 val label = SyncStatusLabel.of(status)
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    Modifier.testTag(Tags.SYNC_STATUS),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     Icon(label.icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = label.tone.color())
                     Text(stringResource(label.text, label.detail.orEmpty()), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
                 }

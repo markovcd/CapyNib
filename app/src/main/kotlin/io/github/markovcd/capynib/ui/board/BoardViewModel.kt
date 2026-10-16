@@ -13,7 +13,6 @@ import io.github.markovcd.capynib.core.board.Shelf
 import io.github.markovcd.capynib.core.board.Swipe
 import io.github.markovcd.capynib.core.note.Capture
 import io.github.markovcd.capynib.core.note.NoteColor
-import io.github.markovcd.capynib.core.sync.SyncStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -70,8 +69,6 @@ class BoardViewModel(private val graph: AppGraph) : ViewModel() {
         // Without a server nothing else empties the trash.
         viewModelScope.launch(Dispatchers.IO) { graph.emptyTrash() }
     }
-
-    val status: StateFlow<SyncStatus> = graph.scheduler.status
 
     val trashDays: StateFlow<Int> = graph.trash.days
 
