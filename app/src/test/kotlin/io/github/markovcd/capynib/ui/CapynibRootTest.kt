@@ -1,6 +1,8 @@
 package io.github.markovcd.capynib.ui
 
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotFocused
@@ -28,6 +30,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -100,6 +103,16 @@ class CapynibRootTest {
 
         awaitTag(Tags.BODY)
         compose.onNodeWithTag(Tags.BODY).assertIsFocused()
+    }
+
+    @Test
+    fun The_new_note_button_is_an_unlabeled_icon_a_size_up_from_the_new_list_button() {
+        val note = compose.onNodeWithTag(Tags.NEW_NOTE).fetchSemanticsNode()
+        val list = compose.onNodeWithTag(Tags.NEW_LIST).fetchSemanticsNode()
+
+        assertEquals(null, note.config.getOrNull(SemanticsProperties.Text))
+        assertEquals(listOf("New note"), note.config.getOrNull(SemanticsProperties.ContentDescription))
+        assertTrue(note.size.width > list.size.width && note.size.height > list.size.height)
     }
 
     @Test

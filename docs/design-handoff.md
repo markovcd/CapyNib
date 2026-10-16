@@ -67,7 +67,7 @@ quiet.
   the trash a swipe right restores and left deletes forever, after asking. The trash's selection bar
   offers restore and delete forever. Archive, unarchive, delete and restore
   from the board show a snackbar with Undo.
-- Floating buttons: an extended "New note" button with a pencil, and a small "New list" button
+- Floating buttons: a "New note" button showing only a pencil, and a smaller "New list" button
   with a checkbox above it.
 
 **Note** (`ui/editor/EditorScreen.kt`)

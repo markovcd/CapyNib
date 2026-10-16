@@ -47,8 +47,8 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.Unarchive
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -251,12 +251,12 @@ fun BoardLayout(
                     ) {
                         Icon(Icons.Outlined.CheckBox, contentDescription = stringResource(R.string.board_new_list))
                     }
-                    ExtendedFloatingActionButton(
+                    FloatingActionButton(
                         onClick = { onNew(false) },
                         modifier = Modifier.testTag(Tags.NEW_NOTE),
-                        icon = { Icon(Icons.Outlined.Edit, contentDescription = null) },
-                        text = { Text(stringResource(R.string.board_new_note)) },
-                    )
+                    ) {
+                        Icon(Icons.Outlined.Edit, contentDescription = stringResource(R.string.board_new_note))
+                    }
                 }
             }
         },
