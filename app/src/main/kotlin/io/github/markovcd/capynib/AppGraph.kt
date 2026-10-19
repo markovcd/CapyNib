@@ -57,9 +57,9 @@ class AppGraph(
         AttachmentFiles(File(context.filesDir, "attachments"), legacy = File(context.filesDir, "recordings")),
     )
 
-    val playback: Playback = playback(store::attachmentFile)
+    val playback: Playback = playback(store.attachments::file)
 
-    val photos = PhotoLoader(store::attachmentFile)
+    val photos = PhotoLoader(store.attachments::file)
 
     private val cache = context.cacheDir
 
@@ -108,7 +108,7 @@ class AppGraph(
         val copied = photos.mapNotNull { copier.copy(it) }
         if (copied.isEmpty() && capture == Capture.EmptyNote) return null
         val note = store.create(clock(), title = capture.title, body = capture.body)
-        for (photo in copied) store.addPhoto(store.newPhoto(note.id, photo.type, clock()), photo.file)
+        for (photo in copied) store.attachments.addPhoto(store.attachments.newPhoto(note.id, photo.type, clock()), photo.file)
         scheduler.requestSync()
         return note.id
     }

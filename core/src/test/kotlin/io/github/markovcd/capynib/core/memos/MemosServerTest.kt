@@ -48,16 +48,16 @@ class MemosServerTest {
         val phone = stores.open("phone-")
         val tablet = stores.open("tablet-")
         val note = phone.create(++now, "Voice")
-        val recording = phone.newRecording(note.id, durationMillis = 1_000, now = ++now)
-        phone.addRecording(recording, folder.newFile().apply { writeBytes(byteArrayOf(0, 1, 2, -1)) })
+        val recording = phone.attachments.newRecording(note.id, durationMillis = 1_000, now = ++now)
+        phone.attachments.addRecording(recording, folder.newFile().apply { writeBytes(byteArrayOf(0, 1, 2, -1)) })
 
         assertEquals(null, SyncEngine(phone, live.api(), live.server) { now }.sync().failure)
         assertEquals(null, SyncEngine(tablet, live.api(), live.server) { now }.sync().failure)
 
         assertEquals(listOf(recording.id), tablet.get(note.id)!!.recordings.map { it.id })
-        assertEquals(listOf<Byte>(0, 1, 2, -1), tablet.readAttachment(recording.id)!!.toList())
+        assertEquals(listOf<Byte>(0, 1, 2, -1), tablet.attachments.read(recording.id)!!.toList())
 
-        tablet.deleteAttachment(recording.id)
+        tablet.attachments.delete(recording.id)
         assertEquals(null, SyncEngine(tablet, live.api(), live.server) { now }.sync().failure)
         assertEquals(null, SyncEngine(phone, live.api(), live.server) { now }.sync().failure)
         assertEquals(emptyList<String>(), phone.get(note.id)!!.recordings.map { it.id })

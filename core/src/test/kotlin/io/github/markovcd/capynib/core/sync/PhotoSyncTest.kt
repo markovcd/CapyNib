@@ -24,8 +24,8 @@ class PhotoSyncTest {
 
     /** Adds [image] to note [note] as a photo of [type], as the editor does. */
     private fun addPhoto(note: Note, image: String, type: String = Photo.JPEG): String {
-        val photo = store.newPhoto(note.id, type, ++now)
-        store.addPhoto(photo, folder.newFile().apply { writeText(image) })
+        val photo = store.attachments.newPhoto(note.id, type, ++now)
+        store.attachments.addPhoto(photo, folder.newFile().apply { writeText(image) })
         return photo.id
     }
 
@@ -61,7 +61,7 @@ class PhotoSyncTest {
 
         val photo = store.get("web")!!.photos.single()
         assertEquals(listOf("img1" to true), listOf(photo.id to photo.downloaded))
-        assertEquals("png", store.readAttachment("img1")!!.decodeToString())
+        assertEquals("png", store.attachments.read("img1")!!.decodeToString())
         assertEquals(emptyList<String>(), store.get("web")!!.recordings.map { it.id })
     }
 
@@ -71,7 +71,7 @@ class PhotoSyncTest {
         val photo = addPhoto(note, "jpeg")
         engine.sync()
 
-        store.deleteAttachment(photo)
+        store.attachments.delete(photo)
         assertNull(engine.sync().failure)
 
         assertEquals(emptyMap<String, String>(), server.filesOf(note.id))
@@ -87,6 +87,6 @@ class PhotoSyncTest {
         assertNull(engine.sync().failure)
 
         assertEquals(emptyList<Photo>(), store.get(note.id)!!.photos)
-        assertFalse(store.attachmentFile(photo).exists())
+        assertFalse(store.attachments.file(photo).exists())
     }
 }

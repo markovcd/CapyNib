@@ -82,7 +82,7 @@ class NoteEditorTest {
         val stored = store.get(editor.note.value.id)!!
         assertEquals(listOf(Photo.JPEG), stored.photos.map { it.type })
         assertEquals(emptyList<Recording>(), stored.recordings)
-        assertEquals("jpeg", store.readAttachment(stored.photos.single().id)!!.decodeToString())
+        assertEquals("jpeg", store.attachments.read(stored.photos.single().id)!!.decodeToString())
     }
 
     @Test
@@ -97,7 +97,7 @@ class NoteEditorTest {
         editor.flush()
 
         assertEquals(emptyList<Photo>(), store.get(editor.note.value.id)!!.photos)
-        assertFalse(store.attachmentFile(photo.id).exists())
+        assertFalse(store.attachments.file(photo.id).exists())
     }
 
     @Test

@@ -92,29 +92,29 @@ class NoteEditor(
     /** Adds the clip recorded into [source], [durationMillis] long, as the note's newest recording. */
     fun addRecording(source: File, durationMillis: Long) {
         if (current.value.inTrash) return
-        val recording = store.newRecording(current.value.id, durationMillis, clock())
+        val recording = store.attachments.newRecording(current.value.id, durationMillis, clock())
         current.update { it.copy(recordings = it.recordings + recording) }
-        write { store.addRecording(recording, source) }
+        write { store.attachments.addRecording(recording, source) }
     }
 
     fun removeRecording(id: String) {
         if (current.value.inTrash) return
         current.update { note -> note.copy(recordings = note.recordings.filterNot { it.id == id }) }
-        write { store.deleteAttachment(id) }
+        write { store.attachments.delete(id) }
     }
 
     /** Adds the image at [source], of [type], as the note's newest photo. */
     fun addPhoto(source: File, type: String) {
         if (current.value.inTrash) return
-        val photo = store.newPhoto(current.value.id, type, clock())
+        val photo = store.attachments.newPhoto(current.value.id, type, clock())
         current.update { it.copy(photos = it.photos + photo) }
-        write { store.addPhoto(photo, source) }
+        write { store.attachments.addPhoto(photo, source) }
     }
 
     fun removePhoto(id: String) {
         if (current.value.inTrash) return
         current.update { note -> note.copy(photos = note.photos.filterNot { it.id == id }) }
-        write { store.deleteAttachment(id) }
+        write { store.attachments.delete(id) }
     }
 
     /** Moves the note to the trash. */

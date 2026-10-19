@@ -95,7 +95,7 @@ class PhotosTest {
         waitForStore { graph.store.visible().singleOrNull()?.photos?.size == 1 }
         val photo = onlyPhoto()
         assertEquals(Photo.JPEG, photo.type)
-        assertEquals("jpeg", graph.store.readAttachment(photo.id)!!.decodeToString())
+        assertEquals("jpeg", graph.store.attachments.read(photo.id)!!.decodeToString())
         awaitTag(Tags.photo(photo.id))
         compose.onNodeWithTag(Tags.BACK).performClick()
         awaitTag(Tags.card(photo.noteId))
@@ -127,7 +127,7 @@ class PhotosTest {
         shadowOf(compose.activity).receiveResult(started.intent, Activity.RESULT_OK, Intent().setData(Uri.fromFile(image)))
 
         waitForStore { graph.store.visible().singleOrNull()?.photos?.size == 1 }
-        assertEquals("picked", graph.store.readAttachment(onlyPhoto().id)!!.decodeToString())
+        assertEquals("picked", graph.store.attachments.read(onlyPhoto().id)!!.decodeToString())
         assertEquals("picked", image.readText())
     }
 
@@ -201,7 +201,7 @@ class PhotosTest {
 
         val note = graph.store.visible().single()
         assertEquals("Zoo", note.body)
-        assertEquals(listOf("first", "second"), note.photos.map { graph.store.readAttachment(it.id)!!.decodeToString() })
+        assertEquals(listOf("first", "second"), note.photos.map { graph.store.attachments.read(it.id)!!.decodeToString() })
         awaitTag(Tags.photo(note.photos.first().id))
     }
 

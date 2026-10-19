@@ -75,7 +75,7 @@ class RecordingsTest {
         val id = recordIntoNewNote()
 
         val recording = graph.store.get(id)!!.recordings.single()
-        assertEquals("hum", graph.store.readAttachment(recording.id)!!.decodeToString())
+        assertEquals("hum", graph.store.attachments.read(recording.id)!!.decodeToString())
         awaitTag(Tags.recordingPlay(recording.id))
         compose.onNodeWithTag(Tags.RECORD).assertIsDisplayed()
     }
@@ -96,8 +96,8 @@ class RecordingsTest {
     @Test
     fun A_cards_recording_plays_from_the_board_and_shows_how_far_along_it_is() {
         val note = graph.store.create(graph.clock(), title = "Voice")
-        val recording = graph.store.newRecording(note.id, durationMillis = 7_000, now = graph.clock())
-        graph.store.addRecording(recording, kotlin.io.path.createTempFile().toFile().apply { writeText("hum") })
+        val recording = graph.store.attachments.newRecording(note.id, durationMillis = 7_000, now = graph.clock())
+        graph.store.attachments.addRecording(recording, kotlin.io.path.createTempFile().toFile().apply { writeText("hum") })
         awaitTag(Tags.recordingPlay(recording.id))
         // The card merges its text into one node; the time is found inside it.
         val time = compose.onNodeWithTag(Tags.recordingTime(recording.id), useUnmergedTree = true)

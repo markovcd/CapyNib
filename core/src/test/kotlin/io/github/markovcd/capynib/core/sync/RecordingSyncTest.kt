@@ -23,13 +23,13 @@ class RecordingSyncTest {
 
     /** Records [clip] into note [note], as the editor does. */
     private fun record(note: Note, clip: String, durationMillis: Long = 1_000): String {
-        val recording = store.newRecording(note.id, durationMillis, ++now)
-        store.addRecording(recording, folder.newFile().apply { writeText(clip) })
+        val recording = store.attachments.newRecording(note.id, durationMillis, ++now)
+        store.attachments.addRecording(recording, folder.newFile().apply { writeText(clip) })
         return recording.id
     }
 
     private fun clipsOf(id: String): Map<String, String?> =
-        store.get(id)!!.recordings.associate { it.id to store.readAttachment(it.id)?.decodeToString() }
+        store.get(id)!!.recordings.associate { it.id to store.attachments.read(it.id)?.decodeToString() }
 
     @Test
     fun A_recording_made_offline_reaches_the_server_attached_to_its_memo() = runTest {
@@ -40,7 +40,7 @@ class RecordingSyncTest {
 
         assertEquals(mapOf(clip to "hum"), server.filesOf(note.id))
         assertEquals("recording-$clip.m4a" to "audio/mp4", server.memos.getValue(note.id).attachments.single().let { it.fileName to it.type })
-        assertEquals(emptyList<String>(), store.attachmentsToUpload().map { it.id })
+        assertEquals(emptyList<String>(), store.attachments.toUpload().map { it.id })
     }
 
     @Test
@@ -84,11 +84,11 @@ class RecordingSyncTest {
         val clip = record(note, "hum")
         engine.sync()
 
-        store.deleteAttachment(clip)
+        store.attachments.delete(clip)
         assertNull(engine.sync().failure)
 
         assertEquals(emptyMap<String, String>(), server.filesOf(note.id))
-        assertEquals(emptyList<String>(), store.attachmentsToDelete())
+        assertEquals(emptyList<String>(), store.attachments.toDelete())
     }
 
     @Test
@@ -101,7 +101,7 @@ class RecordingSyncTest {
         assertNull(engine.sync().failure)
 
         assertEquals(emptyMap<String, String?>(), clipsOf(note.id))
-        assertFalse(store.attachmentFile(clip).exists())
+        assertFalse(store.attachments.file(clip).exists())
     }
 
     @Test
@@ -114,7 +114,7 @@ class RecordingSyncTest {
         assertNull(engine.sync().failure)
 
         assertEquals(mapOf(clip to "hum"), server.filesOf(note.id))
-        assertEquals(emptyList<String>(), store.attachmentsToUpload().map { it.id })
+        assertEquals(emptyList<String>(), store.attachments.toUpload().map { it.id })
     }
 
     @Test
@@ -141,7 +141,7 @@ class RecordingSyncTest {
         assertNull(engine.sync().failure)
 
         assertEquals(emptyMap<String, ByteArray>(), server.files)
-        assertFalse(store.attachmentFile(clip).exists())
+        assertFalse(store.attachments.file(clip).exists())
     }
 
     @Test
@@ -154,7 +154,7 @@ class RecordingSyncTest {
         assertNull(engine.sync().failure)
 
         assertNull(store.get(note.id))
-        assertFalse(store.attachmentFile(clip).exists())
+        assertFalse(store.attachments.file(clip).exists())
     }
 
     @Test

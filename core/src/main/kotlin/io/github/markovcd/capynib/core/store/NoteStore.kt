@@ -8,7 +8,6 @@ import io.github.markovcd.capynib.core.db.CapynibDatabase
 import io.github.markovcd.capynib.core.db.Note as NoteRow
 import io.github.markovcd.capynib.core.db.Attachment as AttachmentRow
 import io.github.markovcd.capynib.core.memos.MemoState
-import io.github.markovcd.capynib.core.memos.ServerAttachment
 import io.github.markovcd.capynib.core.note.MemoContent
 import io.github.markovcd.capynib.core.note.Note
 import io.github.markovcd.capynib.core.note.NoteColor
@@ -18,29 +17,30 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import java.io.File
 import java.util.UUID
 import kotlin.time.Duration.Companion.days
 
 /**
  * The notes on this device: the source of truth the UI reads and writes, whether or not a server
  * is set up. Every local change bumps the note's version, which is how sync finds what to push.
- * A note's recordings and photos are kept beside it as its attachments, their bytes in [files].
+ * A note's recordings and photos are kept beside it as its [attachments], their bytes in [files].
  */
 class NoteStore(
     driver: SqlDriver,
-    private val files: AttachmentFiles,
+    files: AttachmentFiles,
     private val newId: () -> String = { UUID.randomUUID().toString() },
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) {
     private val database = CapynibDatabase(driver)
     private val queries = database.noteQueries
-    private val attachments = database.attachmentQueries
+
+    /** The notes' recordings and photos. */
+    val attachments = AttachmentStore(database.attachmentQueries, files, newId)
 
     fun observeVisible(): Flow<List<Note>> =
         combine(
             queries.visible().asFlow().mapToList(dispatcher),
-            attachments.visible().asFlow().mapToList(dispatcher),
+            attachments.observeVisible(dispatcher),
         ) { rows, files ->
             val byNote = files.groupBy { it.note_id }
             rows.map { it.toNote(byNote[it.id].orEmpty()) }
@@ -49,51 +49,15 @@ class NoteStore(
     fun observe(id: String): Flow<Note?> =
         combine(
             queries.byId(id).asFlow().mapToOneOrNull(dispatcher),
-            attachments.ofNote(id).asFlow().mapToList(dispatcher),
+            attachments.observe(id, dispatcher),
         ) { row, files -> row?.takeUnless { it.deleted }?.toNote(files) }
 
     fun visible(): List<Note> {
-        val byNote = attachments.visible().executeAsList().groupBy { it.note_id }
+        val byNote = attachments.visible().groupBy { it.note_id }
         return queries.visible().executeAsList().map { it.toNote(byNote[it.id].orEmpty()) }
     }
 
     fun get(id: String): Note? = queries.byId(id).executeAsOneOrNull()?.takeUnless { it.deleted }?.let { it.toNote(attachmentsOf(it.id)) }
-
-    /** A new recording for note [noteId], not yet stored: [addRecording] stores it with its clip. */
-    fun newRecording(noteId: String, durationMillis: Long, now: Long): Recording {
-        val id = newId()
-        return Recording(id, noteId, "recording-$id.m4a", Recording.TYPE, durationMillis, now, downloaded = true)
-    }
-
-    /** Stores [recording] with the clip at [source], which moves into the store. */
-    fun addRecording(recording: Recording, source: File) {
-        files.adopt(source, recording.id)
-        attachments.insertLocal(recording.id, recording.noteId, recording.fileName, recording.type, recording.durationMillis, recording.createdAt)
-    }
-
-    /** A new photo of [type] for note [noteId], not yet stored: [addPhoto] stores it with its image. */
-    fun newPhoto(noteId: String, type: String, now: Long): Photo {
-        val id = newId()
-        return Photo(id, noteId, Photo.fileName(id, type), type, now, downloaded = true)
-    }
-
-    /** Stores [photo] with the image at [source], which moves into the store. */
-    fun addPhoto(photo: Photo, source: File) {
-        files.adopt(source, photo.id)
-        attachments.insertLocal(photo.id, photo.noteId, photo.fileName, photo.type, null, photo.createdAt)
-    }
-
-    /**
-     * Deletes a recording's or photo's bytes; its row stays as a tombstone until sync has deleted it
-     * on the server, where one whose reply was lost may be without this device knowing.
-     */
-    fun deleteAttachment(id: String) {
-        attachments.markDeleted(id)
-        files.delete(id)
-    }
-
-    /** The file holding a recording's or photo's bytes, once it is downloaded. */
-    fun attachmentFile(id: String): File = files.file(id)
 
     /** Makes a note at the top of the board. */
     fun create(now: Long, title: String = "", body: String = "", color: NoteColor = NoteColor.Default): Note = queries.transactionWithResult {
@@ -206,49 +170,6 @@ class NoteStore(
     }
 
     /**
-     * Makes note [noteId]'s recordings and photos agree with the [kept] attachments of its memo: one
-     * made elsewhere is added, to be downloaded; one sent here whose reply was lost is known to be
-     * there; one deleted elsewhere is deleted here.
-     */
-    fun syncAttachments(noteId: String, kept: List<ServerAttachment>) {
-        val gone = attachments.transactionWithResult {
-            kept.forEach {
-                attachments.insertFromServer(it.id, noteId, it.fileName, it.type, it.createdAt)
-                attachments.markOnServer(it.id)
-            }
-            attachments.onServerOf(noteId).executeAsList() - kept.map { it.id }.toSet()
-        }
-        gone.forEach(::purgeAttachment)
-    }
-
-    /** Attachments to send: each one's note is on the server to link it to. */
-    fun attachmentsToUpload(): List<StoredAttachment> = attachments.toUpload().executeAsList().map { it.toStored() }
-
-    fun attachmentsToDownload(): List<StoredAttachment> = attachments.toDownload().executeAsList().map { it.toStored() }
-
-    /** Recordings and photos deleted here, to delete on the server too. */
-    fun attachmentsToDelete(): List<String> = attachments.toDelete().executeAsList()
-
-    /** The bytes of recording or photo [id], or null when they are not on this device. */
-    fun readAttachment(id: String): ByteArray? = files.read(id)
-
-    fun markAttachmentSent(id: String) {
-        attachments.markOnServer(id)
-    }
-
-    /** Stores the [bytes] sync fetched for attachment [id]. */
-    fun saveDownload(id: String, bytes: ByteArray) {
-        files.write(id, bytes)
-        attachments.markDownloaded(id)
-    }
-
-    /** Drops recording or photo [id] and its bytes from this device. */
-    fun purgeAttachment(id: String) {
-        attachments.purge(id)
-        files.delete(id)
-    }
-
-    /**
      * Records [account] as the one the notes sync with. When they were synced with another, every
      * note starts over as never sent, so the next push puts each one on [account]'s server.
      */
@@ -267,12 +188,12 @@ class NoteStore(
     fun purge(id: String) {
         val files = queries.transactionWithResult {
             queries.purge(id)
-            attachments.idsOfNote(id).executeAsList()
+            attachments.idsOf(id)
         }
-        files.forEach(::purgeAttachment)
+        files.forEach(attachments::purge)
     }
 
-    private fun attachmentsOf(noteId: String): List<AttachmentRow> = attachments.ofNote(noteId).executeAsList()
+    private fun attachmentsOf(noteId: String): List<AttachmentRow> = attachments.of(noteId)
 
     companion object {
         /** The schema a driver for this store is created with; drivers create or upgrade the file from it. */
@@ -304,8 +225,6 @@ private fun NoteRow.toNote(recordings: List<Recording>, photos: List<Photo>) = N
 private fun AttachmentRow.toRecording() = Recording(id, note_id, file_name, type, duration_ms, created_at, downloaded)
 
 private fun AttachmentRow.toPhoto() = Photo(id, note_id, file_name, type, created_at, downloaded)
-
-private fun AttachmentRow.toStored() = StoredAttachment(id, note_id, file_name, type)
 
 private fun NoteRow.toStored(files: List<AttachmentRow>): StoredNote {
     val content = synced_content

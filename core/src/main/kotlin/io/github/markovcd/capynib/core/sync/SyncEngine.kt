@@ -84,7 +84,7 @@ class SyncEngine(
                 }
             }
             if (store.stored(memo.id)?.deleted == false) {
-                store.syncAttachments(memo.id, memo.attachments.filter { StoredAttachment.isKept(it.type) })
+                store.attachments.sync(memo.id, memo.attachments.filter { StoredAttachment.isKept(it.type) })
             }
         }
 
@@ -127,22 +127,22 @@ class SyncEngine(
     }
 
     private suspend fun pushAttachments(): SyncFailure? {
-        for (id in store.attachmentsToDelete()) {
+        for (id in store.attachments.toDelete()) {
             when (val result = api.detach(id)) {
-                is ApiResult.Ok, ApiResult.NotFound -> store.purgeAttachment(id)
+                is ApiResult.Ok, ApiResult.NotFound -> store.attachments.purge(id)
                 is ApiResult.Failed -> return result.failure
                 ApiResult.AlreadyExists -> error("detach never answers AlreadyExists")
             }
         }
-        for (attachment in store.attachmentsToUpload()) {
-            val bytes = store.readAttachment(attachment.id)
+        for (attachment in store.attachments.toUpload()) {
+            val bytes = store.attachments.read(attachment.id)
             if (bytes == null) {
                 // Its file is gone from this device, so there is nothing to send.
-                store.purgeAttachment(attachment.id)
+                store.attachments.purge(attachment.id)
                 continue
             }
             when (val result = api.attach(attachment.id, attachment.noteId, attachment.fileName, attachment.type, bytes)) {
-                is ApiResult.Ok, ApiResult.AlreadyExists -> store.markAttachmentSent(attachment.id)
+                is ApiResult.Ok, ApiResult.AlreadyExists -> store.attachments.markSent(attachment.id)
                 // The memo went meanwhile; the next pull forgets it and sends both again.
                 ApiResult.NotFound -> Unit
                 is ApiResult.Failed -> return result.failure
@@ -152,10 +152,10 @@ class SyncEngine(
     }
 
     private suspend fun downloadAttachments(): SyncFailure? {
-        for (attachment in store.attachmentsToDownload()) {
+        for (attachment in store.attachments.toDownload()) {
             when (val result = api.download(attachment.id, attachment.fileName)) {
-                is ApiResult.Ok -> store.saveDownload(attachment.id, result.value)
-                ApiResult.NotFound -> store.purgeAttachment(attachment.id)
+                is ApiResult.Ok -> store.attachments.saveDownload(attachment.id, result.value)
+                ApiResult.NotFound -> store.attachments.purge(attachment.id)
                 is ApiResult.Failed -> return result.failure
                 ApiResult.AlreadyExists -> error("download never answers AlreadyExists")
             }

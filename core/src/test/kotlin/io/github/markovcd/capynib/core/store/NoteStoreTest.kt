@@ -204,12 +204,12 @@ class NoteStoreTest {
         }
         val store = TempStores.open(path, { "clip" })
 
-        val recording = store.newRecording("old", durationMillis = 1_500, now = 8)
-        store.addRecording(recording, folder.newFile().apply { writeText("hum") })
+        val recording = store.attachments.newRecording("old", durationMillis = 1_500, now = 8)
+        store.attachments.addRecording(recording, folder.newFile().apply { writeText("hum") })
 
         assertEquals("Kept", store.get("old")!!.title)
         assertEquals(listOf("clip" to 1_500L), store.get("old")!!.recordings.map { it.id to it.durationMillis })
-        assertEquals("hum", store.readAttachment("clip")!!.decodeToString())
+        assertEquals("hum", store.attachments.read("clip")!!.decodeToString())
     }
 
     @Test
@@ -231,7 +231,7 @@ class NoteStoreTest {
         }
         val store = TempStores.open(path, { "pic" })
 
-        store.addPhoto(store.newPhoto("old", Photo.JPEG, now = 9), folder.newFile().apply { writeText("jpeg") })
+        store.attachments.addPhoto(store.attachments.newPhoto("old", Photo.JPEG, now = 9), folder.newFile().apply { writeText("jpeg") })
 
         val note = store.get("old")!!
         assertEquals(listOf("clip" to 1_500L), note.recordings.map { it.id to it.durationMillis })
@@ -251,16 +251,16 @@ class NoteStoreTest {
     fun A_photo_is_kept_apart_from_the_recordings_of_its_note() {
         val store = stores.open()
         val note = store.create(now = 1, title = "Trip")
-        store.addRecording(store.newRecording(note.id, durationMillis = 1_000, now = 2), folder.newFile().apply { writeText("hum") })
+        store.attachments.addRecording(store.attachments.newRecording(note.id, durationMillis = 1_000, now = 2), folder.newFile().apply { writeText("hum") })
 
-        val photo = store.newPhoto(note.id, "image/png", now = 3)
-        store.addPhoto(photo, folder.newFile().apply { writeText("png") })
+        val photo = store.attachments.newPhoto(note.id, "image/png", now = 3)
+        store.attachments.addPhoto(photo, folder.newFile().apply { writeText("png") })
 
         val stored = store.get(note.id)!!
         assertEquals(listOf(photo.id), stored.photos.map { it.id })
         assertEquals("photo-${photo.id}.png", stored.photos.single().fileName)
         assertEquals(1, stored.recordings.size)
-        assertEquals("png", store.readAttachment(photo.id)!!.decodeToString())
+        assertEquals("png", store.attachments.read(photo.id)!!.decodeToString())
     }
 
     @Test
@@ -269,8 +269,8 @@ class NoteStoreTest {
         val store = TempStores.open(folder.newFile("same-time.db").absolutePath, ids::removeFirst)
         val note = store.create(now = 1)
 
-        store.addPhoto(store.newPhoto(note.id, Photo.JPEG, now = 2), folder.newFile().apply { writeText("first") })
-        store.addPhoto(store.newPhoto(note.id, Photo.JPEG, now = 2), folder.newFile().apply { writeText("second") })
+        store.attachments.addPhoto(store.attachments.newPhoto(note.id, Photo.JPEG, now = 2), folder.newFile().apply { writeText("first") })
+        store.attachments.addPhoto(store.attachments.newPhoto(note.id, Photo.JPEG, now = 2), folder.newFile().apply { writeText("second") })
 
         assertEquals(listOf("z", "a"), store.get(note.id)!!.photos.map { it.id })
         assertEquals(listOf("z", "a"), store.visible().single().photos.map { it.id })
@@ -280,14 +280,14 @@ class NoteStoreTest {
     fun A_deleted_recording_leaves_the_note_and_its_clip_leaves_the_device() {
         val store = stores.open()
         val note = store.create(now = 1, title = "Idea")
-        val recording = store.newRecording(note.id, durationMillis = 1_000, now = 2)
-        store.addRecording(recording, folder.newFile().apply { writeText("hum") })
+        val recording = store.attachments.newRecording(note.id, durationMillis = 1_000, now = 2)
+        store.attachments.addRecording(recording, folder.newFile().apply { writeText("hum") })
 
-        store.deleteAttachment(recording.id)
+        store.attachments.delete(recording.id)
 
         assertEquals(emptyList<String>(), store.get(note.id)!!.recordings.map { it.id })
-        assertEquals(false, store.attachmentFile(recording.id).exists())
-        assertEquals(listOf(recording.id), store.attachmentsToDelete())
+        assertEquals(false, store.attachments.file(recording.id).exists())
+        assertEquals(listOf(recording.id), store.attachments.toDelete())
     }
 
     @Test
