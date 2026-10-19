@@ -70,7 +70,7 @@ quiet.
 - Floating buttons: a "New note" button showing only a pencil, and a smaller "New list" button
   with a checkbox above it.
 
-**Note** (`ui/editor/EditorScreen.kt`)
+**Note** (`ui/editor/EditorScreen.kt`, its top bar in `EditorTopBar.kt`, the checklist in `ChecklistEditor.kt`)
 - The whole screen takes the note's color.
 - Top bar, transparent: back, pin (outlined or filled pin), archive or unarchive, delete. A note
   in the trash is read-only, with no bottom bar, and its top bar has restore and delete forever, which asks

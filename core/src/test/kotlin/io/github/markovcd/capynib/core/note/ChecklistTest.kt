@@ -71,6 +71,11 @@ class ChecklistTest {
     }
 
     @Test
+    fun Open_lines_and_ticked_items_are_separate_sections_in_body_order() {
+        assertEquals(listOf(0, 2, 4) to listOf(1, 3), Checklist.sections("text\n- [x] a\n- [ ] b\n- [X] c\n"))
+    }
+
+    @Test
     fun Editing_an_item_keeps_its_check() {
         assertEquals("- [x] oat milk", Checklist.setText("- [x] milk", 0, "oat milk"))
     }

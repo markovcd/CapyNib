@@ -32,6 +32,12 @@ object Checklist {
 
     fun isChecklist(body: String): Boolean = parse(body).any { it is ChecklistLine.Item }
 
+    /** The open lines (unticked items and text) and the ticked items, each a list of line indexes in body order. */
+    fun sections(body: String): Pair<List<Int>, List<Int>> {
+        val (checked, open) = parse(body).withIndex().partition { (it.value as? ChecklistLine.Item)?.checked == true }
+        return open.map { it.index } to checked.map { it.index }
+    }
+
     /** Every non-blank line becomes an unchecked item; blank lines are dropped. */
     fun toChecklist(body: String): String {
         val items = parse(body)
