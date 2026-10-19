@@ -264,6 +264,19 @@ class NoteStoreTest {
     }
 
     @Test
+    fun Photos_added_in_the_same_millisecond_keep_the_order_they_were_added_in() {
+        val ids = ArrayDeque(listOf("note", "z", "a"))
+        val store = TempStores.open(folder.newFile("same-time.db").absolutePath, ids::removeFirst)
+        val note = store.create(now = 1)
+
+        store.addPhoto(store.newPhoto(note.id, Photo.JPEG, now = 2), folder.newFile().apply { writeText("first") })
+        store.addPhoto(store.newPhoto(note.id, Photo.JPEG, now = 2), folder.newFile().apply { writeText("second") })
+
+        assertEquals(listOf("z", "a"), store.get(note.id)!!.photos.map { it.id })
+        assertEquals(listOf("z", "a"), store.visible().single().photos.map { it.id })
+    }
+
+    @Test
     fun A_deleted_recording_leaves_the_note_and_its_clip_leaves_the_device() {
         val store = stores.open()
         val note = store.create(now = 1, title = "Idea")

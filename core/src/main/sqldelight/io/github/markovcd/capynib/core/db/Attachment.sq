@@ -16,10 +16,10 @@ CREATE TABLE attachment (
 CREATE INDEX attachment_note ON attachment(note_id);
 
 visible:
-SELECT * FROM attachment WHERE deleted = 0 ORDER BY created_at, id;
+SELECT * FROM attachment WHERE deleted = 0 ORDER BY created_at, rowid;
 
 ofNote:
-SELECT * FROM attachment WHERE note_id = ? AND deleted = 0 ORDER BY created_at, id;
+SELECT * FROM attachment WHERE note_id = ? AND deleted = 0 ORDER BY created_at, rowid;
 
 byId:
 SELECT * FROM attachment WHERE id = ?;
@@ -44,10 +44,10 @@ SELECT id FROM attachment WHERE note_id = ? AND on_server = 1 AND deleted = 0;
 toUpload:
 SELECT attachment.* FROM attachment JOIN note ON note.id = attachment.note_id
 WHERE attachment.deleted = 0 AND attachment.on_server = 0 AND attachment.downloaded = 1 AND note.on_server = 1 AND note.deleted = 0
-ORDER BY attachment.created_at, attachment.id;
+ORDER BY attachment.created_at, attachment.rowid;
 
 toDownload:
-SELECT * FROM attachment WHERE deleted = 0 AND downloaded = 0 ORDER BY created_at, id;
+SELECT * FROM attachment WHERE deleted = 0 AND downloaded = 0 ORDER BY created_at, rowid;
 
 toDelete:
 SELECT id FROM attachment WHERE deleted = 1;
