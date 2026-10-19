@@ -11,7 +11,7 @@ import java.util.UUID
  */
 class ServerCheck(private val api: MemosApi, private val probeId: String = UUID.randomUUID().toString()) {
     /** The report, or the failure when the server cannot be reached or refuses the access token. */
-    suspend fun run(): ApiResult<ServerReport> {
+    suspend fun run(): ApiResult.Answer<ServerReport> {
         val version = (api.serverVersion() as? ApiResult.Ok)?.value
         val results = mutableListOf<CapabilityResult>()
         fun record(capability: Capability, problem: String?) = (problem == null).also { results += CapabilityResult(capability, problem) }
@@ -22,7 +22,6 @@ class ServerCheck(private val api: MemosApi, private val probeId: String = UUID.
                 is SyncFailure.Unreachable, is SyncFailure.Unauthorized -> return user
                 is SyncFailure.Server -> record(Capability.SignedInUser, user.failure.message)
             }
-            else -> record(Capability.SignedInUser, "unexpected reply: $user")
         }
         record(Capability.ListMemos, problem(api.listAll()))
 
@@ -33,7 +32,7 @@ class ServerCheck(private val api: MemosApi, private val probeId: String = UUID.
             // A create can write the memo and still fail, such as when the call that sets its place is refused.
             val cleared = when (api.delete(probeId)) {
                 is ApiResult.Ok, ApiResult.NotFound -> true
-                is ApiResult.Failed, ApiResult.AlreadyExists -> false
+                is ApiResult.Failed -> false
             }
             return ApiResult.Ok(ServerReport(version, results, leftover = probeId.takeUnless { cleared }))
         }

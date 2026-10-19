@@ -38,7 +38,7 @@ class FakeMemosServer : MemosApi {
         memos[id] = memo.copy(state = memo.state.copy(position = position), updatedAt = ++clock)
     }
 
-    override suspend fun listAll(): ApiResult<List<ServerMemo>> {
+    override suspend fun listAll(): ApiResult.Answer<List<ServerMemo>> {
         calls++
         if (offline) return unreachable
         return ApiResult.Ok(memos.values.toList())
@@ -56,7 +56,7 @@ class FakeMemosServer : MemosApi {
         return ApiResult.Ok(memos.getValue(id))
     }
 
-    override suspend fun update(id: String, state: MemoState): ApiResult<ServerMemo> {
+    override suspend fun update(id: String, state: MemoState): ApiResult.Lookup<ServerMemo> {
         calls++
         if (offline) return unreachable
         val memo = memos[id] ?: return ApiResult.NotFound
@@ -64,7 +64,7 @@ class FakeMemosServer : MemosApi {
         return ApiResult.Ok(memos.getValue(id))
     }
 
-    override suspend fun delete(id: String): ApiResult<Unit> {
+    override suspend fun delete(id: String): ApiResult.Lookup<Unit> {
         calls++
         if (offline) return unreachable
         val memo = memos.remove(id) ?: return ApiResult.NotFound
@@ -87,13 +87,13 @@ class FakeMemosServer : MemosApi {
         return ApiResult.Ok(Unit)
     }
 
-    override suspend fun download(id: String, fileName: String): ApiResult<ByteArray> {
+    override suspend fun download(id: String, fileName: String): ApiResult.Lookup<ByteArray> {
         calls++
         if (offline) return unreachable
         return files[id]?.let { ApiResult.Ok(it) } ?: ApiResult.NotFound
     }
 
-    override suspend fun detach(id: String): ApiResult<Unit> {
+    override suspend fun detach(id: String): ApiResult.Lookup<Unit> {
         calls++
         if (offline) return unreachable
         if (files.remove(id) == null) return ApiResult.NotFound
@@ -105,9 +105,9 @@ class FakeMemosServer : MemosApi {
     fun filesOf(id: String): Map<String, String> =
         memos.getValue(id).attachments.associate { it.id to files.getValue(it.id).decodeToString() }
 
-    override suspend fun serverVersion(): ApiResult<String?> = if (offline) unreachable else ApiResult.Ok(version)
+    override suspend fun serverVersion(): ApiResult.Answer<String?> = if (offline) unreachable else ApiResult.Ok(version)
 
-    override suspend fun currentUser(): ApiResult<String> {
+    override suspend fun currentUser(): ApiResult.Answer<String> {
         calls++
         return if (offline) unreachable else ApiResult.Ok(user)
     }

@@ -26,7 +26,7 @@ class BrowserSignIn(
     private val http = MemosHttp(server, client)
 
     /** The providers the server offers that a browser can sign in through. */
-    suspend fun providers(): ApiResult<List<SignInProvider>> =
+    suspend fun providers(): ApiResult.Answer<List<SignInProvider>> =
         when (val result = http.call<IdentityProvidersDto>(Request.Builder().url(http.api("identity-providers")).get(), null)) {
             is ApiResult.Ok -> ApiResult.Ok(
                 result.value.identityProviders.mapNotNull { dto ->
@@ -44,7 +44,6 @@ class BrowserSignIn(
         val receiver = when (val opened = LoopbackReceiver.open(port)) {
             is ApiResult.Ok -> opened.value
             is ApiResult.Failed -> return SignInResult.Failed(opened.failure)
-            ApiResult.NotFound, ApiResult.AlreadyExists -> error("opening a socket finds no memo")
         }
         val state = randomToken()
         val verifier = randomToken()

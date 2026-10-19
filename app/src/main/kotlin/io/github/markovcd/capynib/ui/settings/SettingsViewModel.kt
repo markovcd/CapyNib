@@ -70,8 +70,6 @@ class SettingsViewModel(private val graph: AppGraph) : ViewModel() {
                 is ApiResult.Ok -> providers.value.firstOrNull()
                     ?: return@launch run { mutableMessage.value = SettingsMessage.NoSignInProvider }
                 is ApiResult.Failed -> return@launch run { mutableMessage.value = SettingsMessage.Failed(providers.failure) }
-                ApiResult.NotFound, ApiResult.AlreadyExists ->
-                    return@launch run { mutableMessage.value = SettingsMessage.Failed(SyncFailure.Server(404, "not a memos server")) }
             }
             mutableMessage.value = SettingsMessage.WaitingForBrowser(provider.title)
             val result = signIn.signIn(provider) { page ->
@@ -111,7 +109,6 @@ class SettingsViewModel(private val graph: AppGraph) : ViewModel() {
             mutableMessage.value = when (val result = ServerCheck(api).run()) {
                 is ApiResult.Ok -> SettingsMessage.Checked(result.value)
                 is ApiResult.Failed -> SettingsMessage.Failed(result.failure)
-                ApiResult.NotFound, ApiResult.AlreadyExists -> SettingsMessage.Failed(SyncFailure.Server(404, "not a memos server"))
             }
         }
     }
@@ -131,7 +128,6 @@ class SettingsViewModel(private val graph: AppGraph) : ViewModel() {
             mutableMessage.value = when (result) {
                 is ApiResult.Ok -> SettingsMessage.Connected(settings.server?.host.orEmpty(), result.value)
                 is ApiResult.Failed -> SettingsMessage.Failed(result.failure)
-                ApiResult.NotFound, ApiResult.AlreadyExists -> SettingsMessage.Failed(SyncFailure.Server(404, "not a memos server"))
             }
             val keep = result is ApiResult.Ok || (result is ApiResult.Failed && result.failure is SyncFailure.Unreachable)
             if (save && keep) {

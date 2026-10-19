@@ -19,11 +19,10 @@ class HttpMemosApi(
     private val http = MemosHttp(server, client)
     private var user: UserDto? = null
 
-    override suspend fun listAll(): ApiResult<List<ServerMemo>> {
+    override suspend fun listAll(): ApiResult.Answer<List<ServerMemo>> {
         val me = when (val user = me()) {
             is ApiResult.Ok -> user.value
             is ApiResult.Failed -> return user
-            ApiResult.NotFound, ApiResult.AlreadyExists -> return unexpected("auth/me")
         }
         val memos = mutableListOf<ServerMemo>()
         for (state in listOf(STATE_NORMAL, STATE_ARCHIVED)) {
@@ -45,7 +44,6 @@ class HttpMemosApi(
                     when (val memo = dto.toServerMemo()) {
                         is ApiResult.Ok -> memos += memo.value
                         is ApiResult.Failed -> return memo
-                        ApiResult.NotFound, ApiResult.AlreadyExists -> return unexpected("memos")
                     }
                 }
                 pageToken = page.nextPageToken
@@ -68,7 +66,7 @@ class HttpMemosApi(
         return if (memo is ApiResult.Ok && memo.value.state != state) update(id, state) else memo
     }
 
-    override suspend fun update(id: String, state: MemoState): ApiResult<ServerMemo> {
+    override suspend fun update(id: String, state: MemoState): ApiResult.Lookup<ServerMemo> {
         val url = api("memos/$id").newBuilder().addQueryParameter("updateMask", "content,pinned,state,create_time").build()
         val body = buildJsonObject {
             put("name", "memos/$id")
@@ -78,15 +76,18 @@ class HttpMemosApi(
             put("createTime", Instant.ofEpochSecond(state.position).toString())
         }
         return when (val result = call<MemoDto>(Request.Builder().url(url).patch(body.toString().toRequestBody(jsonType)))) {
-            is ApiResult.Ok -> result.value.toServerMemo()
-            else -> result.mapError()
+            is ApiResult.Ok -> when (val memo = result.value.toServerMemo()) {
+                is ApiResult.Ok -> memo
+                is ApiResult.Failed -> memo
+            }
+            else -> result.lookupFailure("memos/$id")
         }
     }
 
-    override suspend fun delete(id: String): ApiResult<Unit> =
+    override suspend fun delete(id: String): ApiResult.Lookup<Unit> =
         when (val result = call<ErrorDto>(Request.Builder().url(api("memos/$id")).delete())) {
             is ApiResult.Ok -> ApiResult.Ok(Unit)
-            else -> result.mapError()
+            else -> result.lookupFailure("memos/$id")
         }
 
     override suspend fun attach(id: String, memoId: String, fileName: String, type: String, bytes: ByteArray): ApiResult<Unit> {
@@ -103,40 +104,46 @@ class HttpMemosApi(
         }
     }
 
-    override suspend fun download(id: String, fileName: String): ApiResult<ByteArray> =
-        http.bytes(Request.Builder().url(http.file(id, fileName)).get(), accessToken)
-
-    override suspend fun detach(id: String): ApiResult<Unit> =
-        when (val result = call<ErrorDto>(Request.Builder().url(api("attachments/$id")).delete())) {
-            is ApiResult.Ok -> ApiResult.Ok(Unit)
-            else -> result.mapError()
+    override suspend fun download(id: String, fileName: String): ApiResult.Lookup<ByteArray> =
+        when (val result = http.bytes(Request.Builder().url(http.file(id, fileName)).get(), accessToken)) {
+            is ApiResult.Ok -> result
+            else -> result.lookupFailure("file/attachments/$id")
         }
 
-    override suspend fun serverVersion(): ApiResult<String?> = http.serverVersion()
+    override suspend fun detach(id: String): ApiResult.Lookup<Unit> =
+        when (val result = call<ErrorDto>(Request.Builder().url(api("attachments/$id")).delete())) {
+            is ApiResult.Ok -> ApiResult.Ok(Unit)
+            else -> result.lookupFailure("attachments/$id")
+        }
 
-    override suspend fun currentUser(): ApiResult<String> =
+    override suspend fun serverVersion(): ApiResult.Answer<String?> = http.serverVersion()
+
+    override suspend fun currentUser(): ApiResult.Answer<String> =
         when (val user = signedIn()) {
             is ApiResult.Ok -> ApiResult.Ok(user.value.username)
-            else -> user.mapError()
+            is ApiResult.Failed -> user
         }
 
     /** The user's resource name, such as `users/1`, which memos names as each memo's creator. */
-    private suspend fun me(): ApiResult<String> =
+    private suspend fun me(): ApiResult.Answer<String> =
         when (val user = signedIn()) {
             is ApiResult.Ok -> ApiResult.Ok(user.value.name)
-            else -> user.mapError()
+            is ApiResult.Failed -> user
         }
 
-    /** The signed-in user, asked once per client. */
-    private suspend fun signedIn(): ApiResult<UserDto> {
+    /** The signed-in user, asked once per client. Every memos server answers this call, so a missing one means it is not memos. */
+    private suspend fun signedIn(): ApiResult.Answer<UserDto> {
         user?.let { return ApiResult.Ok(it) }
-        return when (val result = call<CurrentUserDto>(Request.Builder().url(api("auth/me")).get())) {
+        val request = Request.Builder().url(api("auth/me")).get()
+        return when (val result = call<CurrentUserDto>(request)) {
             is ApiResult.Ok -> {
                 val signedIn = result.value.user ?: return unexpected("auth/me")
                 user = signedIn
                 ApiResult.Ok(signedIn)
             }
-            else -> result.mapError()
+            is ApiResult.Failed -> result
+            ApiResult.NotFound -> ApiResult.Failed(SyncFailure.Server(404, "${http.server} is not a memos server: GET ${api("auth/me").encodedPath} was not found"))
+            ApiResult.AlreadyExists -> unexpected("auth/me")
         }
     }
 
@@ -144,7 +151,7 @@ class HttpMemosApi(
 
     private suspend inline fun <reified T> call(request: Request.Builder): ApiResult<T> = http.call(request, accessToken)
 
-    private fun MemoDto.toServerMemo(): ApiResult<ServerMemo> {
+    private fun MemoDto.toServerMemo(): ApiResult.Answer<ServerMemo> {
         val id = name.removePrefix("memos/")
         if (id == name || id.isEmpty()) return unexpected("memo name '$name'")
         val created = parseTime(createTime) ?: return unexpected("memo $name createTime '$createTime'")
@@ -166,6 +173,14 @@ class HttpMemosApi(
         } catch (e: DateTimeParseException) {
             null
         }
+
+    /** The failure of a call on [what], which can find it gone but never taken. */
+    private fun <T> ApiResult<*>.lookupFailure(what: String): ApiResult.Lookup<T> = when (this) {
+        is ApiResult.Ok -> error("lookupFailure called on a success")
+        ApiResult.NotFound -> ApiResult.NotFound
+        is ApiResult.Failed -> this
+        ApiResult.AlreadyExists -> unexpected(what)
+    }
 
     private fun <T> ApiResult<*>.mapError(): ApiResult<T> = when (this) {
         is ApiResult.Ok -> error("mapError called on a success")

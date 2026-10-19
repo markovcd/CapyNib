@@ -137,6 +137,21 @@ class HttpMemosApiTest {
     }
 
     @Test
+    fun A_server_with_no_signed_in_user_to_ask_for_is_not_a_memos_server() = runTest {
+        reply(404, """{"code":5,"message":"not found"}""")
+
+        val server = ServerAddress.parse(web.url("/").toString())!!
+        assertEquals(ApiResult.Failed(SyncFailure.Server(404, "$server is not a memos server: GET /api/v1/auth/me was not found")), api.currentUser())
+    }
+
+    @Test
+    fun A_delete_answered_as_a_duplicate_is_an_unexpected_reply() = runTest {
+        reply(409, """{"code":6,"message":"already exists"}""")
+
+        assertTrue(api.delete("x") is ApiResult.Failed)
+    }
+
+    @Test
     fun A_server_that_is_not_memos_is_reported_with_the_call_that_failed() = runTest {
         reply(200, "<html>login page</html>")
 

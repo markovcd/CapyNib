@@ -191,7 +191,6 @@ class Cli(
                 err.appendLine("server check failed: ${result.failure.message}")
                 return ExitCode.SERVER_CHECK_FAILED
             }
-            ApiResult.NotFound, ApiResult.AlreadyExists -> error("a server check finds no memo")
         }
         if (args.flag("json")) {
             out.appendLine(json.encodeToString(ServerJson.of(report)))
@@ -215,7 +214,6 @@ class Cli(
                 err.appendLine("login failed: ${providers.failure.message}")
                 return ExitCode.LOGIN_FAILED
             }
-            ApiResult.NotFound, ApiResult.AlreadyExists -> error("listing providers finds no memo")
         }
         val result = runBlocking {
             browserSignIn.signIn(provider) { page ->

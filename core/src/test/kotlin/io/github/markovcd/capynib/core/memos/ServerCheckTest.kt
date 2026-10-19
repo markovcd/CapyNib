@@ -79,7 +79,7 @@ class ServerCheckTest {
                 return ApiResult.Failed(SyncFailure.Server(400, "create_time is not supported"))
             }
 
-            override suspend fun delete(id: String): ApiResult<Unit> = ApiResult.Failed(SyncFailure.Server(400, "delete is not supported"))
+            override suspend fun delete(id: String): ApiResult.Lookup<Unit> = ApiResult.Failed(SyncFailure.Server(400, "delete is not supported"))
         }
 
         assertEquals("probe", checked(stuck).leftover)

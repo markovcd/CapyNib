@@ -121,7 +121,7 @@ class LoopbackReceiver private constructor(private val socket: ServerSocket) : C
         private const val READ_TIMEOUT_MS = 10_000
 
         /** Starts listening on [port], 0 for any free port; fails when the port is taken. */
-        fun open(port: Int = PORT): ApiResult<LoopbackReceiver> =
+        fun open(port: Int = PORT): ApiResult.Answer<LoopbackReceiver> =
             try {
                 ApiResult.Ok(LoopbackReceiver(ServerSocket(port, 4, InetAddress.getByName(HOST))))
             } catch (e: IOException) {

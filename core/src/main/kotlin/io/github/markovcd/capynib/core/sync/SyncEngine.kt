@@ -36,12 +36,10 @@ class SyncEngine(
         when (val user = api.currentUser()) {
             is ApiResult.Ok -> store.syncWith("${user.value}@$server")
             is ApiResult.Failed -> return SyncReport(failure = user.failure)
-            ApiResult.NotFound, ApiResult.AlreadyExists -> return SyncReport(failure = SyncFailure.Server(404, "$server names no signed-in user"))
         }
         val serverMemos = when (val listed = api.listAll()) {
             is ApiResult.Ok -> listed.value
             is ApiResult.Failed -> return SyncReport(failure = listed.failure)
-            ApiResult.NotFound, ApiResult.AlreadyExists -> error("listAll answers Ok or Failed")
         }
         val pulled = pull(serverMemos)
         val pushed = push(pulled)
@@ -131,7 +129,6 @@ class SyncEngine(
             when (val result = api.detach(id)) {
                 is ApiResult.Ok, ApiResult.NotFound -> store.attachments.purge(id)
                 is ApiResult.Failed -> return result.failure
-                ApiResult.AlreadyExists -> error("detach never answers AlreadyExists")
             }
         }
         for (attachment in store.attachments.toUpload()) {
@@ -157,7 +154,6 @@ class SyncEngine(
                 is ApiResult.Ok -> store.attachments.saveDownload(attachment.id, result.value)
                 ApiResult.NotFound -> store.attachments.purge(attachment.id)
                 is ApiResult.Failed -> return result.failure
-                ApiResult.AlreadyExists -> error("download never answers AlreadyExists")
             }
         }
         return null
@@ -174,7 +170,6 @@ class SyncEngine(
                     null
                 }
                 is ApiResult.Failed -> result.failure
-                ApiResult.AlreadyExists -> error("delete never answers AlreadyExists")
             }
         }
 
