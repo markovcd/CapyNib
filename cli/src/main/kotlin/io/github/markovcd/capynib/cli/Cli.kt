@@ -42,44 +42,34 @@ class Cli(
             out.append(USAGE)
             return ExitCode.OK
         }
-        val command = parsed.positionals.firstOrNull() ?: return usage(err, null)
-        val operands = parsed.positionals.drop(1)
-        val store by lazy { StoreFile.open(parsed.option("db") ?: env["CAPYNIB_DB"] ?: "capynib.db") }
+        val name = parsed.positionals.firstOrNull() ?: return usage(err, null)
+        val command = COMMANDS[name] ?: return usage(err, "unknown command '$name'")
+        val unknown = parsed.unknown(command.options + "db", command.flags)
+        if (unknown.isNotEmpty()) return usage(err, "$name does not take ${unknown.joinToString()}")
 
-        val known = COMMANDS[command] ?: return usage(err, "unknown command '$command'")
-        val unknown = parsed.unknown(known.options + "db", known.flags)
-        if (unknown.isNotEmpty()) return usage(err, "$command does not take ${unknown.joinToString()}")
+        val call = Call(parsed, parsed.positionals.drop(1), out, err) { StoreFile.open(parsed.option("db") ?: env["CAPYNIB_DB"] ?: "capynib.db") }
+        return command.run(this, call)
+    }
 
-        return when (command) {
-            "list" -> list(store, parsed, out)
-            "tags" -> tags(store, parsed, out)
-            "show" -> withNote(store, operands, err) { note -> print(note, parsed, out) }
-            "add" -> add(store, parsed, out, err)
-            "edit" -> withNote(store, operands, err) { note -> edit(store, note, parsed, out, err) }
-            "check" -> withNote(store, operands, err) { note -> check(store, note, operands, parsed, out, err) }
-            "delete" -> withNote(store, operands, err) { note ->
-                if (parsed.flag("forever")) store.deleteForever(note.id, clock()) else store.trash(note.id, clock())
-                ExitCode.OK
-            }
-            "move" -> withNote(store, operands, err) { note -> move(store, note, operands, err) }
-            "restore" -> withNote(store, operands, err) { note ->
-                store.restore(note.id, clock())
-                print(store.get(note.id)!!, parsed, out)
-            }
-            "empty-trash" -> {
-                val days = trashDays(parsed) { return usage(err, it) }
-                out.appendLine(store.emptyTrash(clock(), days).toString())
-                ExitCode.OK
-            }
-            "sync" -> sync(store, parsed, out, err)
-            "login" -> login(parsed, out, err)
-            "server" -> checkServer(parsed, out, err)
-            "colors" -> {
-                NoteColor.entries.forEach { out.appendLine(it.key) }
-                ExitCode.OK
-            }
-            else -> usage(err, "unknown command '$command'")
-        }
+    private fun delete(store: NoteStore, note: Note, args: Arguments): Int {
+        if (args.flag("forever")) store.deleteForever(note.id, clock()) else store.trash(note.id, clock())
+        return ExitCode.OK
+    }
+
+    private fun restore(store: NoteStore, note: Note, args: Arguments, out: Appendable): Int {
+        store.restore(note.id, clock())
+        return print(store.get(note.id)!!, args, out)
+    }
+
+    private fun emptyTrash(store: () -> NoteStore, args: Arguments, out: Appendable, err: Appendable): Int {
+        val days = trashDays(args) { return usage(err, it) }
+        out.appendLine(store().emptyTrash(clock(), days).toString())
+        return ExitCode.OK
+    }
+
+    private fun colors(out: Appendable): Int {
+        NoteColor.entries.forEach { out.appendLine(it.key) }
+        return ExitCode.OK
     }
 
     private fun list(store: NoteStore, args: Arguments, out: Appendable): Int {
@@ -295,25 +285,33 @@ class Cli(
         return ExitCode.USAGE
     }
 
-    private data class Command(val options: Set<String> = emptySet(), val flags: Set<String> = emptySet())
+    /** One run of a command: its arguments, the operands after its name, the two writers, and the notes, opened on first use. */
+    private class Call(val args: Arguments, val operands: List<String>, val out: Appendable, val err: Appendable, openStore: () -> NoteStore) {
+        val store by lazy(openStore)
+    }
+
+    /** A command's options and flags, and what it does. */
+    private class Command(val options: Set<String> = emptySet(), val flags: Set<String> = emptySet(), val run: Cli.(Call) -> Int)
 
     private companion object {
         val VALUED = setOf("db", "title", "body", "color", "search", "tag", "server", "trash-days")
         val COMMANDS = mapOf(
-            "list" to Command(setOf("search", "tag"), setOf("archived", "trashed", "json")),
-            "tags" to Command(flags = setOf("archived", "trashed", "json")),
-            "show" to Command(flags = setOf("json")),
-            "add" to Command(setOf("title", "body", "color"), setOf("checklist", "pinned", "json")),
-            "edit" to Command(setOf("title", "body", "color"), setOf("pin", "unpin", "archive", "unarchive", "json")),
-            "check" to Command(flags = setOf("json")),
-            "delete" to Command(flags = setOf("forever")),
-            "move" to Command(),
-            "restore" to Command(flags = setOf("json")),
-            "empty-trash" to Command(setOf("trash-days")),
-            "sync" to Command(setOf("server", "trash-days"), setOf("json")),
-            "login" to Command(setOf("server"), setOf("json")),
-            "server" to Command(setOf("server"), setOf("json")),
-            "colors" to Command(),
+            "list" to Command(setOf("search", "tag"), setOf("archived", "trashed", "json")) { list(it.store, it.args, it.out) },
+            "tags" to Command(flags = setOf("archived", "trashed", "json")) { tags(it.store, it.args, it.out) },
+            "show" to Command(flags = setOf("json")) { c -> withNote(c.store, c.operands, c.err) { print(it, c.args, c.out) } },
+            "add" to Command(setOf("title", "body", "color"), setOf("checklist", "pinned", "json")) { add(it.store, it.args, it.out, it.err) },
+            "edit" to Command(setOf("title", "body", "color"), setOf("pin", "unpin", "archive", "unarchive", "json")) { c ->
+                withNote(c.store, c.operands, c.err) { edit(c.store, it, c.args, c.out, c.err) }
+            },
+            "check" to Command(flags = setOf("json")) { c -> withNote(c.store, c.operands, c.err) { check(c.store, it, c.operands, c.args, c.out, c.err) } },
+            "delete" to Command(flags = setOf("forever")) { c -> withNote(c.store, c.operands, c.err) { delete(c.store, it, c.args) } },
+            "move" to Command { c -> withNote(c.store, c.operands, c.err) { move(c.store, it, c.operands, c.err) } },
+            "restore" to Command(flags = setOf("json")) { c -> withNote(c.store, c.operands, c.err) { restore(c.store, it, c.args, c.out) } },
+            "empty-trash" to Command(setOf("trash-days")) { c -> emptyTrash({ c.store }, c.args, c.out, c.err) },
+            "sync" to Command(setOf("server", "trash-days"), setOf("json")) { sync(it.store, it.args, it.out, it.err) },
+            "login" to Command(setOf("server"), setOf("json")) { login(it.args, it.out, it.err) },
+            "server" to Command(setOf("server"), setOf("json")) { checkServer(it.args, it.out, it.err) },
+            "colors" to Command { colors(it.out) },
         )
         val USAGE = """
             |usage: capynib [--db FILE] COMMAND
