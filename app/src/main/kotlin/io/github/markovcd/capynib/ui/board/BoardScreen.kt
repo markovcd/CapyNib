@@ -101,7 +101,6 @@ import io.github.markovcd.capynib.audio.PlayingClip
 import io.github.markovcd.capynib.core.board.BoardChange
 import io.github.markovcd.capynib.core.board.BoardContent
 import io.github.markovcd.capynib.core.board.BoardMode
-import io.github.markovcd.capynib.core.board.CalendarMonth
 import io.github.markovcd.capynib.core.board.Selection
 import io.github.markovcd.capynib.core.board.Shelf
 import io.github.markovcd.capynib.core.board.Swipe
@@ -113,36 +112,27 @@ import io.github.markovcd.capynib.ui.ConfirmDeleteForever
 import io.github.markovcd.capynib.ui.PlainTextField
 import io.github.markovcd.capynib.ui.Tags
 import kotlinx.coroutines.launch
-import java.time.LocalDate
 
 /** How close to the board's top or bottom edge a dragged note scrolls it. */
 private val SCROLL_EDGE = 48.dp
 
 @Composable
 fun BoardScreen(model: BoardViewModel, onOpen: (String) -> Unit, onNew: (String) -> Unit, onSettings: () -> Unit) {
-    val content by model.content.collectAsStateWithLifecycle()
-    val query by model.query.collectAsStateWithLifecycle()
-    val shelf by model.shelf.collectAsStateWithLifecycle()
-    val mode by model.mode.collectAsStateWithLifecycle()
-    val calendar by model.calendar.collectAsStateWithLifecycle()
-    val day by model.day.collectAsStateWithLifecycle()
-    val selection by model.selection.collectAsStateWithLifecycle()
-    val lastChange by model.lastChange.collectAsStateWithLifecycle()
-    val deleting by model.deleting.collectAsStateWithLifecycle()
-    val trashDays by model.trashDays.collectAsStateWithLifecycle()
-    val playing by model.playback.playing.collectAsStateWithLifecycle()
-    BoardLayout(
-        content = content,
-        query = query,
-        shelf = shelf,
-        mode = mode,
-        calendar = calendar,
-        day = day,
+    val state = BoardState(
+        content = model.content.collectAsStateWithLifecycle().value,
+        query = model.query.collectAsStateWithLifecycle().value,
+        shelf = model.shelf.collectAsStateWithLifecycle().value,
+        mode = model.mode.collectAsStateWithLifecycle().value,
+        calendar = model.calendar.collectAsStateWithLifecycle().value,
+        day = model.day.collectAsStateWithLifecycle().value,
         today = model.today,
-        selection = selection,
-        lastChange = lastChange,
-        deleting = deleting,
-        trashDays = trashDays,
+        selection = model.selection.collectAsStateWithLifecycle().value,
+        lastChange = model.lastChange.collectAsStateWithLifecycle().value,
+        deleting = model.deleting.collectAsStateWithLifecycle().value,
+        trashDays = model.trashDays.collectAsStateWithLifecycle().value,
+        playing = model.playback.playing.collectAsStateWithLifecycle().value,
+    )
+    val actions = BoardActions(
         onQuery = { model.query.value = it },
         onShelf = model::showShelf,
         onMode = model::showMode,
@@ -152,7 +142,7 @@ fun BoardScreen(model: BoardViewModel, onOpen: (String) -> Unit, onNew: (String)
         onOpen = onOpen,
         onNew = { checklist -> onNew(model.newNote(checklist)) },
         onSettings = onSettings,
-        actions = SelectionActions(
+        selection = SelectionActions(
             toggle = model::toggle,
             clear = model::clearSelection,
             pin = model::pinSelected,
@@ -163,7 +153,6 @@ fun BoardScreen(model: BoardViewModel, onOpen: (String) -> Unit, onNew: (String)
             deleteForever = model::deleteSelectedForever,
         ),
         onSwiped = model::swiped,
-        playing = playing,
         onPlay = model.playback::toggle,
         onConfirmDelete = model::confirmDeleteForever,
         onCancelDelete = model::cancelDeleteForever,
@@ -171,57 +160,28 @@ fun BoardScreen(model: BoardViewModel, onOpen: (String) -> Unit, onNew: (String)
         onUndo = model::undo,
         onChangeShown = model::changeShown,
     )
+    BoardLayout(state, actions)
 }
 
 @Composable
-fun BoardLayout(
-    content: BoardContent?,
-    query: String,
-    shelf: Shelf,
-    mode: BoardMode,
-    calendar: CalendarMonth?,
-    day: LocalDate,
-    today: LocalDate,
-    selection: Selection,
-    lastChange: BoardChange?,
-    deleting: Set<String>,
-    trashDays: Int,
-    onQuery: (String) -> Unit,
-    onShelf: (Shelf) -> Unit,
-    onMode: (BoardMode) -> Unit,
-    onMonth: (Long) -> Unit,
-    onDay: (LocalDate) -> Unit,
-    onTag: (String?) -> Unit,
-    onOpen: (String) -> Unit,
-    onNew: (checklist: Boolean) -> Unit,
-    onSettings: () -> Unit,
-    actions: SelectionActions,
-    onSwiped: (String, Swipe) -> Unit,
-    playing: PlayingClip?,
-    onPlay: (Recording) -> Unit,
-    onConfirmDelete: () -> Unit,
-    onCancelDelete: () -> Unit,
-    onMove: (String, Int) -> Unit,
-    onUndo: (BoardChange) -> Unit,
-    onChangeShown: (BoardChange) -> Unit,
-) {
+private fun BoardLayout(state: BoardState, actions: BoardActions) {
     val snackbar = remember { SnackbarHostState() }
-    ChangeSnackbar(snackbar, lastChange, onUndo, onChangeShown)
-    if (deleting.isNotEmpty()) ConfirmDeleteForever(deleting.size, onConfirmDelete, onCancelDelete)
-    BackHandler(enabled = selection.isActive) { actions.clear() }
+    ChangeSnackbar(snackbar, state.lastChange, actions.onUndo, actions.onChangeShown)
+    if (state.deleting.isNotEmpty()) ConfirmDeleteForever(state.deleting.size, actions.onConfirmDelete, actions.onCancelDelete)
+    BackHandler(enabled = state.selection.isActive) { actions.selection.clear() }
     Scaffold(
         // The selection bar takes the search bar's place at its height, and the tags stay, so the board
         // does not move under the finger that picked a note.
         topBar = {
             Column {
-                if (selection.isActive) {
-                    val notes = content?.let { it.pinned + it.others }.orEmpty()
-                    SelectionBar(selection, pins = selection.pins(notes), shelf, actions)
+                if (state.selection.isActive) {
+                    val notes = state.content?.let { it.pinned + it.others }.orEmpty()
+                    SelectionBar(state.selection, pins = state.selection.pins(notes), state.shelf, actions.selection)
                 } else {
-                    SearchBar(query, shelf, mode, onQuery, onShelf, onMode, onSettings)
+                    SearchBar(state.query, state.shelf, state.mode, actions.onQuery, actions.onShelf, actions.onMode, actions.onSettings)
                 }
-                val tags = content?.tags.orEmpty()
-                if (tags.isNotEmpty()) TagBar(tags, content?.tag, onTag)
+                val tags = state.content?.tags.orEmpty()
+                if (tags.isNotEmpty()) TagBar(tags, state.content?.tag, actions.onTag)
             }
         },
         snackbarHost = {
@@ -236,17 +196,17 @@ fun BoardLayout(
             }
         },
         floatingActionButton = {
-            if (shelf == Shelf.Notes && !selection.isActive) {
+            if (state.shelf == Shelf.Notes && !state.selection.isActive) {
                 Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     SmallFloatingActionButton(
-                        onClick = { onNew(true) },
+                        onClick = { actions.onNew(true) },
                         modifier = Modifier.testTag(Tags.NEW_LIST),
                         containerColor = MaterialTheme.colorScheme.secondaryContainer,
                     ) {
                         Icon(Icons.Outlined.CheckBox, contentDescription = stringResource(R.string.board_new_list))
                     }
                     FloatingActionButton(
-                        onClick = { onNew(false) },
+                        onClick = { actions.onNew(false) },
                         modifier = Modifier.testTag(Tags.NEW_NOTE),
                     ) {
                         Icon(Icons.Outlined.Edit, contentDescription = stringResource(R.string.board_new_note))
@@ -255,16 +215,16 @@ fun BoardLayout(
             }
         },
     ) { padding ->
-        if (content == null) return@Scaffold
-        if (mode == BoardMode.Calendar) {
-            if (calendar != null) NoteCalendar(calendar, day, today, selection, onMonth, onDay, onOpen, actions.toggle, playing, onPlay, Modifier.padding(padding))
+        if (state.content == null) return@Scaffold
+        if (state.mode == BoardMode.Calendar) {
+            if (state.calendar != null) NoteCalendar(state.calendar, state.day, state.today, state.selection, actions.onMonth, actions.onDay, actions.onOpen, actions.selection.toggle, state.playing, actions.onPlay, Modifier.padding(padding))
             return@Scaffold
         }
-        if (content.isEmpty) {
+        if (state.content.isEmpty) {
             Box(Modifier.fillMaxSize().padding(padding).testTag(Tags.EMPTY_BOARD), contentAlignment = Alignment.Center) {
                 Text(
                     stringResource(
-                        when (shelf) {
+                        when (state.shelf) {
                             Shelf.Notes -> R.string.board_empty
                             Shelf.Archive -> R.string.board_archive_empty
                             Shelf.Trash -> R.string.board_trash_empty
@@ -276,7 +236,7 @@ fun BoardLayout(
             }
             return@Scaffold
         }
-        NoteGrid(content, query, shelf, selection, trashDays, onOpen, actions, onSwiped, playing, onPlay, onMove, Modifier.padding(padding))
+        NoteGrid(state.content, state.query, state.shelf, state.selection, state.trashDays, actions.onOpen, actions.selection, actions.onSwiped, state.playing, actions.onPlay, actions.onMove, Modifier.padding(padding))
     }
 }
 
