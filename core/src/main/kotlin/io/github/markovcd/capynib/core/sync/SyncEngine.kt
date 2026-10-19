@@ -16,8 +16,7 @@ import io.github.markovcd.capynib.core.store.Trash
  *
  * Notes that have been in the trash for [trashDays] are deleted first. Then pull: a memo that
  * changed on the server replaces a note with no local edits; when both sides changed, the local edit
- * wins and the server's version is kept as a new note, so nothing is lost. A move is not an edit
- * that conflicts: a note moved on one side and edited on the other keeps both. Then push every note with
+ * wins and the server's version is kept as a new note, so nothing is lost ([PullStep]). Then push every note with
  * local edits. Notes are created on the server under their own id, so a create that is retried after
  * a lost reply updates instead of duplicating. Notes last synced with another [server] or user are
  * sent to this one as new.
@@ -55,43 +54,30 @@ class SyncEngine(
         val byId = serverMemos.associateBy { it.id }
 
         for (memo in serverMemos) {
-            val local = store.stored(memo.id)
-            report = when {
-                local == null -> {
+            report = when (val step = PullStep.of(store.stored(memo.id), memo.state)) {
+                PullStep.Insert -> {
                     store.insertFromServer(memo.id, MemoCodec.decode(memo.state.content), memo.state, memo.createdAt, memo.updatedAt)
                     report.copy(received = report.received + 1)
                 }
-                local.onServer && local.synced == memo.state -> report
-                // Deleted here, or created here and the reply to the create was lost: either way the
-                // memo is this note, and the push sends the local state over it.
-                local.deleted || !local.onServer -> {
+                PullStep.InStep -> report
+                PullStep.Claim -> {
                     store.acceptServer(memo.id, memo.state)
                     report
                 }
-                !local.hasLocalEdits || local.note.toMemoState() == memo.state -> {
-                    if (store.applyServer(memo.id, local.version, MemoCodec.decode(memo.state.content), memo.state, memo.updatedAt)) {
+                is PullStep.Take ->
+                    if (store.applyServer(memo.id, step.version, MemoCodec.decode(memo.state.content), memo.state, memo.updatedAt)) {
+                        step.position?.let { store.move(mapOf(memo.id to it)) }
                         report.copy(received = report.received + 1)
                     } else {
                         // Edited while this sync ran: treat as both sides changed on the next sync.
                         report
                     }
-                }
-                local.synced != null && memo.state.sameContentAs(local.synced) -> {
-                    // Only moved there: the local edit goes out at the server's place, unless it was moved here too.
-                    if (local.note.position == local.synced.position) store.move(mapOf(memo.id to memo.state.position))
+                is PullStep.Keep -> {
+                    step.position?.let { store.move(mapOf(memo.id to it)) }
                     store.acceptServer(memo.id, memo.state)
                     report
                 }
-                local.synced != null && local.note.toMemoState().sameContentAs(local.synced) -> {
-                    // Only moved here: the server's edit is taken, and the move goes out after it.
-                    if (store.applyServer(memo.id, local.version, MemoCodec.decode(memo.state.content), memo.state, memo.updatedAt)) {
-                        store.move(mapOf(memo.id to local.note.position))
-                        report.copy(received = report.received + 1)
-                    } else {
-                        report
-                    }
-                }
-                else -> {
+                PullStep.Conflict -> {
                     keepServerCopy(memo)
                     store.acceptServer(memo.id, memo.state)
                     report.copy(conflicts = report.conflicts + 1)
