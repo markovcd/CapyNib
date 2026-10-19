@@ -128,9 +128,12 @@ class BoardGesturesTest {
         longPress(a)
         awaitTag(Tags.SELECTION_BAR)
         compose.onNodeWithTag(Tags.card(b)).performClick()
+        awaitTag(Tags.OTHERS)
 
         compose.onNodeWithTag(Tags.PIN_SELECTED).performClick()
         waitForStore { graph.store.get(a)!!.pinned && graph.store.get(b)!!.pinned }
+        // The bar acts on the board it shows, so the next tap waits for both notes to show as pinned.
+        awaitNoTag(Tags.OTHERS)
 
         compose.onNodeWithTag(Tags.PIN_SELECTED).performClick()
         waitForStore { !graph.store.get(a)!!.pinned && !graph.store.get(b)!!.pinned }
