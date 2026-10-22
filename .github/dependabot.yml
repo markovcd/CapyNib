@@ -1,0 +1,22 @@
+# Dependabot opens weekly PRs for the Gradle version catalog and the SHA-pinned workflow actions.
+# Minor and patch bumps are grouped into one PR per ecosystem so the queue stays short.
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      gradle-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]
