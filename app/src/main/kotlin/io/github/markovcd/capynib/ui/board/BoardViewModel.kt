@@ -51,7 +51,7 @@ class BoardViewModel(private val graph: AppGraph) : ViewModel() {
 
     /** The board's notes on [month]'s calendar. */
     val calendar: StateFlow<CalendarMonth?> =
-        combine(content, month) { content, month -> content?.let { CalendarMonth.of(it.pinned + it.others, month, zone, firstDay) } }
+        combine(content, month) { content, month -> content?.let { CalendarMonth.of(it.notes, month, zone, firstDay) } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** The picked notes still on the board; a shelf change or a note leaving it drops them. */
@@ -107,7 +107,7 @@ class BoardViewModel(private val graph: AppGraph) : ViewModel() {
     /** Pins the picked notes, or unpins them when all are pinned. */
     fun pinSelected() {
         val ids = selection.value.ids
-        val pins = selection.value.pins(content.value?.let { it.pinned + it.others }.orEmpty())
+        val pins = selection.value.pins(content.value?.notes.orEmpty())
         write { graph.store.saveAll(ids, graph.clock()) { it.copy(pinned = pins) } }
     }
 

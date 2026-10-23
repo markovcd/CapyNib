@@ -175,8 +175,7 @@ private fun BoardLayout(state: BoardState, actions: BoardActions) {
         topBar = {
             Column {
                 if (state.selection.isActive) {
-                    val notes = state.content?.let { it.pinned + it.others }.orEmpty()
-                    SelectionBar(state.selection, pins = state.selection.pins(notes), state.shelf, actions.selection)
+                    SelectionBar(state.selection, pins = state.selection.pins(state.content?.notes.orEmpty()), state.shelf, actions.selection)
                 } else {
                     SearchBar(state.query, state.shelf, state.mode, actions.onQuery, actions.onShelf, actions.onMode, actions.onSettings)
                 }

@@ -66,10 +66,10 @@ class SettingsViewModel(private val graph: AppGraph) : ViewModel() {
         signingIn = viewModelScope.launch {
             mutableMessage.value = SettingsMessage.Checking
             val signIn = graph.browserSignIn(address)
-            val provider = when (val providers = signIn.providers()) {
-                is ApiResult.Ok -> providers.value.firstOrNull()
+            val provider = when (val chosen = signIn.provider()) {
+                is ApiResult.Ok -> chosen.value
                     ?: return@launch run { mutableMessage.value = SettingsMessage.NoSignInProvider }
-                is ApiResult.Failed -> return@launch run { mutableMessage.value = SettingsMessage.Failed(providers.failure) }
+                is ApiResult.Failed -> return@launch run { mutableMessage.value = SettingsMessage.Failed(chosen.failure) }
             }
             mutableMessage.value = SettingsMessage.WaitingForBrowser(provider.title)
             val result = signIn.signIn(provider) { page ->

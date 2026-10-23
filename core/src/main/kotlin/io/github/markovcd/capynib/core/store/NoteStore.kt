@@ -62,18 +62,19 @@ class NoteStore(
     /** Makes a note at the top of the board. */
     fun create(now: Long, title: String = "", body: String = "", color: NoteColor = NoteColor.Default): Note = queries.transactionWithResult {
         val position = maxOf(now / 1000, queries.nextPosition().executeAsOne())
-        val note = Note(newId(), title, body, color, pinned = false, archived = false, createdAt = now, updatedAt = now, position = position)
+        val note = Note(newId(), Note.title(title), body, color, pinned = false, archived = false, createdAt = now, updatedAt = now, position = position)
         queries.insertLocal(note.id, note.title, note.body, note.color.key, note.pinned, note.archived, now, now, position)
         note
     }
 
     /** Writes the user-editable fields of [note]; returns false when nothing differed or the note is gone. */
     fun save(note: Note, now: Long): Boolean = queries.transactionWithResult {
+        val written = note.copy(title = Note.title(note.title))
         val current = queries.byId(note.id).executeAsOneOrNull()?.takeUnless { it.deleted }?.toNote(emptyList<AttachmentRow>())
-        if (current == null || current.sameContentAs(note)) {
+        if (current == null || current.sameContentAs(written)) {
             false
         } else {
-            queries.updateLocal(note.title, note.body, note.color.key, note.pinned, note.archived, now, note.id)
+            queries.updateLocal(written.title, written.body, written.color.key, written.pinned, written.archived, now, written.id)
             true
         }
     }

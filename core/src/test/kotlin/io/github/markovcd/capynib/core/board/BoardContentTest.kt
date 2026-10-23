@@ -36,6 +36,20 @@ class BoardContentTest {
     )
 
     @Test
+    fun The_board_lists_its_notes_pinned_first_then_the_others() {
+        val board = BoardContent.of(notes + note("second plain"))
+
+        assertEquals(listOf("pinned", "plain", "second plain"), board.notes.map { it.id })
+    }
+
+    @Test
+    fun A_note_is_on_the_trash_shelf_while_trashed_then_the_archive_while_archived() {
+        val shelves = listOf("pinned", "archived", "trashed early", "trashed archived").map { id -> Shelf.of(notes.single { it.id == id }) }
+
+        assertEquals(listOf(Shelf.Notes, Shelf.Archive, Shelf.Trash, Shelf.Trash), shelves)
+    }
+
+    @Test
     fun Pinned_notes_get_their_own_section_and_archived_trashed_and_empty_notes_are_left_out() {
         assertEquals(listOf("pinned") to listOf("plain"), BoardContent.of(notes).ids())
     }

@@ -39,6 +39,13 @@ class BrowserSignIn(
             ApiResult.NotFound, ApiResult.AlreadyExists -> http.unexpected("identity-providers")
         }
 
+    /** The provider to sign in through: the first the server offers, or null when it offers none (ADR 0005). */
+    suspend fun provider(): ApiResult.Answer<SignInProvider?> =
+        when (val offered = providers()) {
+            is ApiResult.Ok -> ApiResult.Ok(offered.value.firstOrNull())
+            is ApiResult.Failed -> offered
+        }
+
     /** Hands [openBrowser] the provider's sign-in page, then waits for the browser to come back. */
     suspend fun signIn(provider: SignInProvider, openBrowser: (String) -> Unit): SignInResult {
         val receiver = when (val opened = LoopbackReceiver.open(port)) {

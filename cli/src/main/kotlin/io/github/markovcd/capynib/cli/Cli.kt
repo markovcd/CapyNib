@@ -74,11 +74,10 @@ class Cli(
 
     private fun list(store: NoteStore, args: Arguments, out: Appendable): Int {
         val content = BoardContent.of(store.visible(), args.option("search").orEmpty(), shelf(args), args.option("tag"))
-        val notes = content.pinned + content.others
         if (args.flag("json")) {
-            out.appendLine(json.encodeToString(notes.map(NoteJson::of)))
+            out.appendLine(json.encodeToString(content.notes.map(NoteJson::of)))
         } else {
-            notes.forEach { note ->
+            content.notes.forEach { note ->
                 val pin = if (note.pinned) "*" else " "
                 out.appendLine("${note.id}  $pin ${note.color.key.padEnd(8)} ${note.title.ifEmpty { note.body.lineSequence().first() }}")
             }
@@ -102,7 +101,7 @@ class Cli(
         val color = color(args, err) ?: return ExitCode.USAGE
         var body = args.option("body").orEmpty()
         if (args.flag("checklist")) body = Checklist.toChecklist(body)
-        val note = store.create(clock(), args.option("title").orEmpty().replace('\n', ' '), body, color)
+        val note = store.create(clock(), args.option("title").orEmpty(), body, color)
         if (args.flag("pinned")) store.save(note.copy(pinned = true), clock())
         val saved = store.get(note.id)!!
         if (args.flag("json")) out.appendLine(json.encodeToString(NoteJson.of(saved))) else out.appendLine(saved.id)
@@ -112,7 +111,7 @@ class Cli(
     private fun edit(store: NoteStore, note: Note, args: Arguments, out: Appendable, err: Appendable): Int {
         val color = if (args.option("color") == null) note.color else color(args, err) ?: return ExitCode.USAGE
         val edited = note.copy(
-            title = args.option("title")?.replace('\n', ' ') ?: note.title,
+            title = args.option("title") ?: note.title,
             body = args.option("body") ?: note.body,
             color = color,
             pinned = when {
@@ -131,11 +130,7 @@ class Cli(
     }
 
     private fun move(store: NoteStore, note: Note, operands: List<String>, err: Appendable): Int {
-        val shelf = when {
-            note.inTrash -> Shelf.Trash
-            note.archived -> Shelf.Archive
-            else -> Shelf.Notes
-        }
+        val shelf = Shelf.of(note)
         val content = BoardContent.of(store.visible(), shelf = shelf)
         val section = if (note.pinned) content.pinned else content.others
         val index = operands.getOrNull(1)?.toIntOrNull()
@@ -195,13 +190,13 @@ class Cli(
     private fun login(args: Arguments, out: Appendable, err: Appendable): Int {
         val server = server("login", args) { return usage(err, it) }
         val browserSignIn = signIn(server)
-        val provider = when (val providers = runBlocking { browserSignIn.providers() }) {
-            is ApiResult.Ok -> providers.value.firstOrNull() ?: run {
+        val provider = when (val chosen = runBlocking { browserSignIn.provider() }) {
+            is ApiResult.Ok -> chosen.value ?: run {
                 err.appendLine("login: $server offers no sign-in provider; make an access token in memos instead")
                 return ExitCode.LOGIN_FAILED
             }
             is ApiResult.Failed -> {
-                err.appendLine("login failed: ${providers.failure.message}")
+                err.appendLine("login failed: ${chosen.failure.message}")
                 return ExitCode.LOGIN_FAILED
             }
         }

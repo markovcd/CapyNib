@@ -15,6 +15,9 @@ data class BoardContent(
 ) {
     val isEmpty: Boolean get() = pinned.isEmpty() && others.isEmpty()
 
+    /** Every note shown, top to bottom. */
+    val notes: List<Note> get() = pinned + others
+
     /**
      * The positions that put note [id] at index [to] of its section, pinned or others, for
      * [NoteStore.move][io.github.markovcd.capynib.core.store.NoteStore.move]. Only notes whose
@@ -48,7 +51,7 @@ data class BoardContent(
          */
         fun of(notes: List<Note>, query: String = "", shelf: Shelf = Shelf.Notes, tag: String? = null): BoardContent {
             val needle = query.trim()
-            val onShelf = notes.filter { it.shelf == shelf && !it.isBlank }
+            val onShelf = notes.filter { Shelf.of(it) == shelf && !it.isBlank }
             val tags = onShelf.flatMap { note -> NoteTags.of(note).flatMap(NoteTags::withParents) }
                 .distinct()
                 .sortedWith(String.CASE_INSENSITIVE_ORDER.then(naturalOrder()))
@@ -63,12 +66,5 @@ data class BoardContent(
                 Shelf.Trash -> BoardContent(emptyList(), shown.sortedByDescending { it.trashedAt }, tags, picked)
             }
         }
-
-        private val Note.shelf: Shelf
-            get() = when {
-                inTrash -> Shelf.Trash
-                archived -> Shelf.Archive
-                else -> Shelf.Notes
-            }
     }
 }

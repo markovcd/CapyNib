@@ -49,6 +49,16 @@ class NoteStoreTest {
     }
 
     @Test
+    fun A_title_written_with_line_breaks_is_kept_on_one_line() {
+        val store = stores.open()
+        val note = store.create(now = 1, title = "Milk\nand eggs")
+        store.save(note.copy(title = "Bread\r\nand jam"), now = 2)
+
+        assertEquals("Milk and eggs", note.title)
+        assertEquals("Bread  and jam", store.get(note.id)!!.title)
+    }
+
+    @Test
     fun Saving_an_unchanged_note_is_not_an_edit() {
         val store = stores.open()
         val note = store.create(now = 1)

@@ -29,4 +29,9 @@ data class Note(
     /** Same user-visible content, ignoring id, times, recordings and photos. */
     fun sameContentAs(other: Note): Boolean =
         title == other.title && body == other.body && color == other.color && pinned == other.pinned && archived == other.archived
+
+    companion object {
+        /** [text] as a title. The title is the memo's first line, so each line break becomes a space, keeping the length. */
+        fun title(text: String): String = text.replace('\n', ' ').replace('\r', ' ')
+    }
 }

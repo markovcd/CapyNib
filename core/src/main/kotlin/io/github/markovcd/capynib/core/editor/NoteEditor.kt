@@ -52,7 +52,7 @@ class NoteEditor(
         }
     }
 
-    fun setTitle(title: String) = change { it.copy(title = title.replace('\n', ' ')) }
+    fun setTitle(title: String) = change { it.copy(title = Note.title(title)) }
 
     fun setBody(body: String) = change { it.copy(body = body) }
 

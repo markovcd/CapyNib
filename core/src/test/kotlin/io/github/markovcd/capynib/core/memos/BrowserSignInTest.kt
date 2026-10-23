@@ -209,4 +209,27 @@ class BrowserSignInTest {
         )
         assertNull(heard().headers["Authorization"])
     }
+
+    @Test
+    fun Sign_in_goes_through_the_first_provider_the_server_offers() = runTest {
+        reply(
+            200,
+            """{"identityProviders":[
+                {"name":"identity-providers/other","type":"LDAP","title":"Other","config":{}},
+                {"name":"identity-providers/google","type":"OAUTH2","title":"Google","config":{"oauth2Config":
+                  {"clientId":"c1","authUrl":"https://accounts.google.com/o/oauth2/v2/auth","scopes":["email"]}}},
+                {"name":"identity-providers/github","type":"OAUTH2","title":"GitHub","config":{"oauth2Config":
+                  {"clientId":"c2","authUrl":"https://github.com/login/oauth/authorize","scopes":[]}}}
+            ]}""",
+        )
+
+        assertEquals("Google", (signIn.provider() as ApiResult.Ok).value?.title)
+    }
+
+    @Test
+    fun A_server_with_no_provider_a_browser_can_use_offers_none_to_sign_in_with() = runTest {
+        reply(200, """{"identityProviders":[]}""")
+
+        assertEquals(ApiResult.Ok(null), signIn.provider())
+    }
 }

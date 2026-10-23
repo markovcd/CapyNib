@@ -10,7 +10,7 @@ data class Selection(val ids: Set<String> = emptySet()) {
 
     /** Only the picked notes still in [content], so a note that left the board is not acted on. */
     fun within(content: BoardContent): Selection {
-        val shown = (content.pinned + content.others).mapTo(mutableSetOf()) { it.id }
+        val shown = content.notes.mapTo(mutableSetOf()) { it.id }
         return if (shown.containsAll(ids)) this else Selection(ids intersect shown)
     }
 
