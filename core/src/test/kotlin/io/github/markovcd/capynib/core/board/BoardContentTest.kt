@@ -43,6 +43,31 @@ class BoardContentTest {
     }
 
     @Test
+    fun A_note_is_found_in_its_own_section_and_a_note_not_shown_in_none() {
+        val board = BoardContent.of(notes)
+
+        assertEquals(listOf("pinned"), board.sectionOf("pinned").map { it.id })
+        assertEquals(listOf("plain"), board.sectionOf("plain").map { it.id })
+        assertEquals(emptyList<Note>(), board.sectionOf("archived"))
+    }
+
+    @Test
+    fun Cards_move_only_on_the_notes_shelf_with_no_search_or_tag_narrowing_it() {
+        val tagged = notes + note("tagged", body = "#shop")
+
+        assertEquals(
+            listOf(true, false, false, false, false),
+            listOf(
+                BoardContent.of(tagged).canMove(Shelf.Notes, query = " "),
+                BoardContent.of(tagged, query = "milk").canMove(Shelf.Notes, query = "milk"),
+                BoardContent.of(tagged, tag = "shop").canMove(Shelf.Notes, query = ""),
+                BoardContent.of(tagged, shelf = Shelf.Archive).canMove(Shelf.Archive, query = ""),
+                BoardContent.of(tagged, shelf = Shelf.Trash).canMove(Shelf.Trash, query = ""),
+            ),
+        )
+    }
+
+    @Test
     fun A_note_is_on_the_trash_shelf_while_trashed_then_the_archive_while_archived() {
         val shelves = listOf("pinned", "archived", "trashed early", "trashed archived").map { id -> Shelf.of(notes.single { it.id == id }) }
 

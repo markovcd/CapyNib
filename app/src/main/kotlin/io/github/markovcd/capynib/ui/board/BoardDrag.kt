@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import io.github.markovcd.capynib.core.board.CardDrag
 
 /**
  * A note being dragged to a new place on the board. While the finger moves, the board shows its
@@ -48,16 +49,13 @@ class BoardDrag {
         order = section
     }
 
-    /** Follows the finger to [to]; over another card of the section, the dragged one takes its place. */
+    /** Follows the finger to [to]; over another card of the section, the dragged one moves as [CardDrag] says. */
     fun drag(to: Offset) {
         finger = to
         val id = dragged ?: return
         val shown = order ?: return
         val over = shown.firstOrNull { it != id && bounds[it]?.contains(to) == true } ?: return
-        order = shown.toMutableList().apply {
-            remove(id)
-            add(shown.indexOf(over), id)
-        }
+        order = CardDrag.over(shown, id, over)
     }
 
     fun offsetOf(id: String): Offset {

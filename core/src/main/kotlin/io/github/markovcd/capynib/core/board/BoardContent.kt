@@ -18,13 +18,19 @@ data class BoardContent(
     /** Every note shown, top to bottom. */
     val notes: List<Note> get() = pinned + others
 
+    /** The section note [id] is in, pinned or others; empty when it is not shown. */
+    fun sectionOf(id: String): List<Note> = listOf(pinned, others).firstOrNull { notes -> notes.any { it.id == id } }.orEmpty()
+
+    /** Whether a card can be dragged to a new place: only on the notes shelf, and only while no [query] or [tag] narrows it. */
+    fun canMove(shelf: Shelf, query: String): Boolean = shelf == Shelf.Notes && query.isBlank() && tag == null
+
     /**
      * The positions that put note [id] at index [to] of its section, pinned or others, for
      * [NoteStore.move][io.github.markovcd.capynib.core.store.NoteStore.move]. Only notes whose
      * position changes are in it: the moved one, and those below it when there is no room.
      */
     fun move(id: String, to: Int): Map<String, Long> {
-        val section = listOf(pinned, others).firstOrNull { notes -> notes.any { it.id == id } } ?: return emptyMap()
+        val section = sectionOf(id).ifEmpty { return emptyMap() }
         val from = section.indexOfFirst { it.id == id }
         val target = to.coerceIn(0, section.lastIndex)
         if (from == target) return emptyMap()

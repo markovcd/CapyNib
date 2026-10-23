@@ -267,8 +267,7 @@ private fun NoteGrid(
 
     val current by rememberUpdatedState(content)
     val picked by rememberUpdatedState(selection)
-    val movable = shelf == Shelf.Notes && query.isBlank() && content.tag == null
-    val canMove by rememberUpdatedState(movable)
+    val canMove by rememberUpdatedState(content.canMove(shelf, query))
     val edge = with(LocalDensity.current) { SCROLL_EDGE.toPx() }
 
     LazyVerticalStaggeredGrid(
@@ -287,8 +286,7 @@ private fun NoteGrid(
                     onDragStart = { id, at ->
                         if (!canMove) return@detectPressOnCard false
                         if (pickedByPress) actions.toggle(id)
-                        val section = if (current.pinned.any { it.id == id }) current.pinned else current.others
-                        drag.start(id, at, section.map { it.id })
+                        drag.start(id, at, current.sectionOf(id).map { it.id })
                         true
                     },
                     onDrag = { at ->
