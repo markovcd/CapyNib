@@ -40,14 +40,14 @@ quiet.
 ## Screens and controls
 
 **Board** (`ui/board/BoardScreen.kt`, `NoteCard.kt`)
-- Top bar: a rounded search field ("Search"), a calendar toggle
+- Top bar (`BoardTopBar.kt`): a rounded search field ("Search"), a calendar toggle
   (calendar; a grid when showing the calendar), an archive toggle
   (archive box; a light bulb when showing the archive), a trash toggle (trash can; a light bulb
   when showing the trash), and a settings gear. The trash opens with one line saying how many days
   notes stay there.
 - Tag bar, under the top bar when any note has a tag: a row of filter chips ("#travel"), one per
   tag on the shelf, scrolling sideways. Tapping one shows only its notes; tapping it again shows all.
-- Body: a staggered grid of note cards, about 160 dp wide columns. Sections "Pinned" and
+- Body (`NoteGrid.kt`): a staggered grid of note cards, about 160 dp wide columns. Sections "Pinned" and
   "Others" get small labels when there are pinned notes. An empty board shows one centered line
   ("Notes you add appear here").
 - Calendar (`NoteCalendar.kt`), in place of the grid while toggled on: the month's name between

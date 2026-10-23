@@ -40,11 +40,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.markovcd.capynib.R
-import io.github.markovcd.capynib.audio.PlayingClip
 import io.github.markovcd.capynib.core.board.CalendarDay
 import io.github.markovcd.capynib.core.board.CalendarMonth
-import io.github.markovcd.capynib.core.board.Selection
-import io.github.markovcd.capynib.core.note.Recording
 import io.github.markovcd.capynib.ui.Tags
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -58,24 +55,13 @@ private const val MAX_MARKS = 3
 private val MONTH_SWIPE = 64.dp
 
 /**
- * The board as a month's calendar: each day marks the notes made on it, and the picked [day]'s
+ * The board as a month's calendar: each day marks the notes made on it, and the picked [BoardState.day]'s
  * notes follow as cards. The arrows, or a sideways swipe over the days, turn the month.
  */
 @Composable
-internal fun NoteCalendar(
-    calendar: CalendarMonth,
-    day: LocalDate,
-    today: LocalDate,
-    selection: Selection,
-    onMonth: (Long) -> Unit,
-    onDay: (LocalDate) -> Unit,
-    onOpen: (String) -> Unit,
-    onToggle: (String) -> Unit,
-    playing: PlayingClip?,
-    onPlay: (Recording) -> Unit,
-    modifier: Modifier,
-) {
-    val picked = calendar.day(day)
+internal fun NoteCalendar(calendar: CalendarMonth, state: BoardState, actions: BoardActions, modifier: Modifier) {
+    val selection = state.selection
+    val picked = calendar.day(state.day)
     LazyVerticalStaggeredGrid(
         columns = StaggeredGridCells.Adaptive(160.dp),
         modifier = modifier.fillMaxSize().testTag(Tags.CALENDAR),
@@ -84,7 +70,7 @@ internal fun NoteCalendar(
         verticalItemSpacing = 8.dp,
     ) {
         item(span = StaggeredGridItemSpan.FullLine, key = "month") {
-            Month(calendar, day, today, onMonth, onDay)
+            Month(calendar, state.day, state.today, actions.onMonth, actions.onDay)
         }
         if (picked == null) return@LazyVerticalStaggeredGrid
         item(span = StaggeredGridItemSpan.FullLine, key = "day-${picked.date}") {
@@ -94,9 +80,9 @@ internal fun NoteCalendar(
             NoteCard(
                 note,
                 selected = note.id in selection.ids,
-                playing = playing,
-                onPlay = onPlay,
-                onOpen = { if (selection.isActive) onToggle(note.id) else onOpen(note.id) },
+                playing = state.playing,
+                onPlay = actions.onPlay,
+                onOpen = { if (selection.isActive) actions.selection.toggle(note.id) else actions.onOpen(note.id) },
             )
         }
     }
