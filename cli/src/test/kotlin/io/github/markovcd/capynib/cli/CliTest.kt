@@ -209,6 +209,17 @@ class CliTest {
     }
 
     @Test
+    fun Every_option_and_flag_a_command_takes_is_in_its_line_of_the_usage() {
+        val lines = run("--help").out.lines()
+        val missing = Cli.COMMANDS.flatMap { (name, command) ->
+            val line = lines.singleOrNull { it.startsWith("  $name ") || it == "  $name" }.orEmpty()
+            (command.options + command.flags).filter { "--$it" !in line }.map { "$name --$it" }
+        }
+
+        assertEquals(emptyList<String>(), missing)
+    }
+
+    @Test
     fun Mistakes_are_usage_errors_that_say_what_was_wrong() {
         assertEquals(ExitCode.USAGE, run().code)
         assertTrue(run("frobnicate").err.startsWith("unknown command 'frobnicate'"))

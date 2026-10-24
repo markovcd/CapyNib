@@ -281,51 +281,37 @@ class Cli(
     }
 
     /** One run of a command: its arguments, the operands after its name, the two writers, and the notes, opened on first use. */
-    private class Call(val args: Arguments, val operands: List<String>, val out: Appendable, val err: Appendable, openStore: () -> NoteStore) {
+    internal class Call(val args: Arguments, val operands: List<String>, val out: Appendable, val err: Appendable, openStore: () -> NoteStore) {
         val store by lazy(openStore)
     }
 
-    /** A command's options and flags, and what it does. */
-    private class Command(val options: Set<String> = emptySet(), val flags: Set<String> = emptySet(), val run: Cli.(Call) -> Int)
+    /** A command's options and flags, its line of the usage after its name, and what it does. */
+    internal class Command(val options: Set<String> = emptySet(), val flags: Set<String> = emptySet(), val usage: String, val run: Cli.(Call) -> Int)
 
-    private companion object {
+    internal companion object {
         val VALUED = setOf("db", "title", "body", "color", "search", "tag", "server", "trash-days")
         val COMMANDS = mapOf(
-            "list" to Command(setOf("search", "tag"), setOf("archived", "trashed", "json")) { list(it.store, it.args, it.out) },
-            "tags" to Command(flags = setOf("archived", "trashed", "json")) { tags(it.store, it.args, it.out) },
-            "show" to Command(flags = setOf("json")) { c -> withNote(c.store, c.operands, c.err) { print(it, c.args, c.out) } },
-            "add" to Command(setOf("title", "body", "color"), setOf("checklist", "pinned", "json")) { add(it.store, it.args, it.out, it.err) },
-            "edit" to Command(setOf("title", "body", "color"), setOf("pin", "unpin", "archive", "unarchive", "json")) { c ->
+            "list" to Command(setOf("search", "tag"), setOf("archived", "trashed", "json"), usage = "[--archived|--trashed] [--search TEXT] [--tag TAG] [--json]") { list(it.store, it.args, it.out) },
+            "tags" to Command(flags = setOf("archived", "trashed", "json"), usage = "[--archived|--trashed] [--json]  the tags on the notes, with the tags they are inside") { tags(it.store, it.args, it.out) },
+            "show" to Command(flags = setOf("json"), usage = "ID [--json]") { c -> withNote(c.store, c.operands, c.err) { print(it, c.args, c.out) } },
+            "add" to Command(setOf("title", "body", "color"), setOf("checklist", "pinned", "json"), usage = "[--title T] [--body B] [--color C] [--checklist] [--pinned] [--json]") { add(it.store, it.args, it.out, it.err) },
+            "edit" to Command(setOf("title", "body", "color"), setOf("pin", "unpin", "archive", "unarchive", "json"), usage = "ID [--title T] [--body B] [--color C] [--pin|--unpin] [--archive|--unarchive] [--json]") { c ->
                 withNote(c.store, c.operands, c.err) { edit(c.store, it, c.args, c.out, c.err) }
             },
-            "check" to Command(flags = setOf("json")) { c -> withNote(c.store, c.operands, c.err) { check(c.store, it, c.operands, c.args, c.out, c.err) } },
-            "delete" to Command(flags = setOf("forever")) { c -> withNote(c.store, c.operands, c.err) { delete(c.store, it, c.args) } },
-            "move" to Command { c -> withNote(c.store, c.operands, c.err) { move(c.store, it, c.operands, c.err) } },
-            "restore" to Command(flags = setOf("json")) { c -> withNote(c.store, c.operands, c.err) { restore(c.store, it, c.args, c.out) } },
-            "empty-trash" to Command(setOf("trash-days")) { c -> emptyTrash({ c.store }, c.args, c.out, c.err) },
-            "sync" to Command(setOf("server", "trash-days"), setOf("json")) { sync(it.store, it.args, it.out, it.err) },
-            "login" to Command(setOf("server"), setOf("json")) { login(it.args, it.out, it.err) },
-            "server" to Command(setOf("server"), setOf("json")) { checkServer(it.args, it.out, it.err) },
-            "colors" to Command { colors(it.out) },
+            "check" to Command(flags = setOf("json"), usage = "ID LINE [--json]        tick or untick a checklist item") { c -> withNote(c.store, c.operands, c.err) { check(c.store, it, c.operands, c.args, c.out, c.err) } },
+            "move" to Command(usage = "ID PLACE                 put at PLACE (0 is first) among the pinned or the other notes") { c -> withNote(c.store, c.operands, c.err) { move(c.store, it, c.operands, c.err) } },
+            "delete" to Command(flags = setOf("forever"), usage = "ID [--forever]         move to the trash, or delete for good") { c -> withNote(c.store, c.operands, c.err) { delete(c.store, it, c.args) } },
+            "restore" to Command(flags = setOf("json"), usage = "ID [--json]           take out of the trash") { c -> withNote(c.store, c.operands, c.err) { restore(c.store, it, c.args, c.out) } },
+            "empty-trash" to Command(setOf("trash-days"), usage = "[--trash-days N]  delete notes N days (default 7) in the trash; prints how many") { c -> emptyTrash({ c.store }, c.args, c.out, c.err) },
+            "sync" to Command(setOf("server", "trash-days"), setOf("json"), usage = "[--server URL] [--trash-days N] [--json]  token from CAPYNIB_TOKEN") { sync(it.store, it.args, it.out, it.err) },
+            "login" to Command(setOf("server"), setOf("json"), usage = "[--server URL] [--json] sign in in the browser; prints a new access token") { login(it.args, it.out, it.err) },
+            "server" to Command(setOf("server"), setOf("json"), usage = "[--server URL] [--json] try every call sync makes on its own test memo; token from CAPYNIB_TOKEN") { checkServer(it.args, it.out, it.err) },
+            "colors" to Command(usage = "") { colors(it.out) },
         )
-        val USAGE = """
-            |usage: capynib [--db FILE] COMMAND
-            |  list [--archived|--trashed] [--search TEXT] [--tag TAG] [--json]
-            |  tags [--archived|--trashed] [--json]  the tags on the notes, with the tags they are inside
-            |  show ID [--json]
-            |  add [--title T] [--body B] [--color C] [--checklist] [--pinned] [--json]
-            |  edit ID [--title T] [--body B] [--color C] [--pin|--unpin] [--archive|--unarchive] [--json]
-            |  check ID LINE [--json]        tick or untick a checklist item
-            |  move ID PLACE                 put at PLACE (0 is first) among the pinned or the other notes
-            |  delete ID [--forever]         move to the trash, or delete for good
-            |  restore ID [--json]           take out of the trash
-            |  empty-trash [--trash-days N]  delete notes N days (default 7) in the trash; prints how many
-            |  sync [--server URL] [--trash-days N] [--json]  token from CAPYNIB_TOKEN
-            |  login [--server URL] [--json] sign in in the browser; prints a new access token
-            |  server [--server URL] [--json] try every call sync makes on its own test memo; token from CAPYNIB_TOKEN
-            |  colors
-            |The database defaults to CAPYNIB_DB, then ./capynib.db.
-            |
-        """.trimMargin()
+        val USAGE = (
+            listOf("usage: capynib [--db FILE] COMMAND") +
+                COMMANDS.map { (name, command) -> "  $name ${command.usage}".trimEnd() } +
+                listOf("The database defaults to CAPYNIB_DB, then ./capynib.db.", "")
+            ).joinToString("\n")
     }
 }
