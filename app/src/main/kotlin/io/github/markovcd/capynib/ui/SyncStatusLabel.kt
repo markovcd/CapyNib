@@ -8,7 +8,9 @@ import androidx.compose.material.icons.outlined.CloudQueue
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.PhoneAndroid
 import androidx.compose.material.icons.outlined.Sync
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import io.github.markovcd.capynib.R
 import io.github.markovcd.capynib.core.memos.SyncFailure
 import io.github.markovcd.capynib.core.sync.SyncStatus
@@ -26,11 +28,17 @@ data class SyncStatusLabel(
             SyncStatus.Waiting -> SyncStatusLabel(Icons.Outlined.CloudQueue, R.string.sync_waiting, SyncTone.Quiet)
             SyncStatus.Syncing -> SyncStatusLabel(Icons.Outlined.Sync, R.string.sync_syncing, SyncTone.Accent)
             is SyncStatus.Synced -> SyncStatusLabel(Icons.Outlined.CloudDone, R.string.sync_synced, SyncTone.Accent)
-            is SyncStatus.Failed -> when (status.failure) {
-                is SyncFailure.Unreachable -> SyncStatusLabel(Icons.Outlined.CloudOff, R.string.sync_offline, SyncTone.Quiet)
-                is SyncFailure.Unauthorized -> SyncStatusLabel(Icons.Outlined.ErrorOutline, R.string.sync_unauthorized, SyncTone.Error)
-                is SyncFailure.Server -> SyncStatusLabel(Icons.Outlined.ErrorOutline, R.string.sync_error, SyncTone.Error, status.failure.message)
-            }
+            is SyncStatus.Failed -> of(status.failure)
+        }
+
+        fun of(failure: SyncFailure): SyncStatusLabel = when (failure) {
+            is SyncFailure.Unreachable -> SyncStatusLabel(Icons.Outlined.CloudOff, R.string.sync_offline, SyncTone.Quiet)
+            is SyncFailure.Unauthorized -> SyncStatusLabel(Icons.Outlined.ErrorOutline, R.string.sync_unauthorized, SyncTone.Error)
+            is SyncFailure.Server -> SyncStatusLabel(Icons.Outlined.ErrorOutline, R.string.sync_error, SyncTone.Error, failure.message)
         }
     }
 }
+
+/** The label's words, with its detail filled in. */
+@Composable
+fun SyncStatusLabel.words(): String = stringResource(text, detail.orEmpty())

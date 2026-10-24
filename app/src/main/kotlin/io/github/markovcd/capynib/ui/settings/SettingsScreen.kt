@@ -40,11 +40,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.markovcd.capynib.R
 import io.github.markovcd.capynib.core.memos.LoopbackReceiver
 import io.github.markovcd.capynib.core.memos.ServerReport
-import io.github.markovcd.capynib.core.memos.SyncFailure
 import io.github.markovcd.capynib.core.store.Trash
 import io.github.markovcd.capynib.ui.SyncStatusLabel
 import io.github.markovcd.capynib.ui.Tags
 import io.github.markovcd.capynib.ui.theme.color
+import io.github.markovcd.capynib.ui.words
 
 @Composable
 fun SettingsScreen(model: SettingsViewModel, onClose: () -> Unit) {
@@ -144,7 +144,7 @@ fun SettingsScreen(model: SettingsViewModel, onClose: () -> Unit) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Icon(label.icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = label.tone.color())
-                    Text(stringResource(label.text, label.detail.orEmpty()), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+                    Text(label.words(), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
                 }
             }
             Text(stringResource(R.string.settings_trash_section).uppercase(), style = MaterialTheme.typography.labelMedium, color = colors.primary)
@@ -175,11 +175,7 @@ private fun messageText(message: SettingsMessage): String = when (message) {
     SettingsMessage.NoSignInProvider -> stringResource(R.string.settings_no_sign_in_provider)
     is SettingsMessage.SignInRefused -> stringResource(R.string.settings_sign_in_refused, message.reason)
     SettingsMessage.NoBrowser -> stringResource(R.string.settings_no_browser)
-    is SettingsMessage.Failed -> when (message.failure) {
-        is SyncFailure.Unreachable -> stringResource(R.string.sync_offline)
-        is SyncFailure.Unauthorized -> stringResource(R.string.sync_unauthorized)
-        is SyncFailure.Server -> stringResource(R.string.sync_error, message.failure.message)
-    }
+    is SettingsMessage.Failed -> SyncStatusLabel.of(message.failure).words()
 }
 
 @Composable
