@@ -102,12 +102,13 @@ fun EditorScreen(
     val note by editor.note.collectAsStateWithLifecycle()
     val recordingSince by recorder.since.collectAsStateWithLifecycle()
     val playing by playback.playing.collectAsStateWithLifecycle()
-    val leave = {
+    // Every way out of the note stops a clip that is recording, then does [last] to the note.
+    fun leave(last: () -> Unit = { editor.close() }) {
         recorder.stop()
-        editor.close()
+        last()
         onClose()
     }
-    BackHandler(onBack = leave)
+    BackHandler { leave() }
     // Opening another note leaves this one without [leave]; a rotation leaves the clip recording.
     val activity = LocalActivity.current
     DisposableEffect(recorder) {
@@ -142,8 +143,7 @@ fun EditorScreen(
             count = 1,
             onConfirm = {
                 confirmingDelete = false
-                editor.deleteForever()
-                onClose()
+                leave(editor::deleteForever)
             },
             onDismiss = { confirmingDelete = false },
         )
@@ -157,19 +157,17 @@ fun EditorScreen(
             topBar = {
                 EditorTopBar(
                     note,
-                    onBack = leave,
+                    onBack = { leave() },
                     onRestore = editor::restore,
                     onDeleteForever = { confirmingDelete = true },
                     onPin = editor::togglePinned,
                     onArchive = {
-                        editor.setArchived(!note.archived)
-                        leave()
+                        leave {
+                            editor.setArchived(!note.archived)
+                            editor.close()
+                        }
                     },
-                    onTrash = {
-                        recorder.stop()
-                        editor.trash()
-                        onClose()
-                    },
+                    onTrash = { leave(editor::trash) },
                 )
             },
             bottomBar = {
