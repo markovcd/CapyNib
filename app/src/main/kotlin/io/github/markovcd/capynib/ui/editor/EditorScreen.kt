@@ -2,8 +2,8 @@ package io.github.markovcd.capynib.ui.editor
 
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
-import androidx.compose.foundation.background
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,8 +24,8 @@ import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Mic
-import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.Palette
+import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -64,16 +64,16 @@ import io.github.markovcd.capynib.core.note.Checklist
 import io.github.markovcd.capynib.core.note.NoteColor
 import io.github.markovcd.capynib.core.note.Opening
 import io.github.markovcd.capynib.ui.ColorPalette
+import io.github.markovcd.capynib.ui.ConfirmDeleteForever
 import io.github.markovcd.capynib.ui.PhotoGrid
 import io.github.markovcd.capynib.ui.PlainTextField
 import io.github.markovcd.capynib.ui.RecordingPlayer
-import io.github.markovcd.capynib.ui.clipTime
-import io.github.markovcd.capynib.ui.ConfirmDeleteForever
 import io.github.markovcd.capynib.ui.Tags
+import io.github.markovcd.capynib.ui.clipTime
+import io.github.markovcd.capynib.ui.theme.Ink
 import io.github.markovcd.capynib.ui.theme.NoteColors
 import kotlinx.coroutines.delay
 
-internal const val RULE_ALPHA = 0.12f
 private const val ELAPSED_TICK_MILLIS = 250L
 private const val EDITOR_PHOTO_PIXELS = 1080
 
@@ -281,7 +281,7 @@ private fun EditorBottomBar(
 ) {
     val ink = MaterialTheme.colorScheme.onSurface
     Column(Modifier.fillMaxWidth().navigationBarsPadding().imePadding()) {
-        HorizontalDivider(color = ink.copy(alpha = RULE_ALPHA))
+        HorizontalDivider(color = ink.copy(alpha = Ink.RULE))
         if (recordingSince != null) {
             RecordingBar(recordingSince, clock, onStopRecording)
             return@Column

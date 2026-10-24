@@ -30,9 +30,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.markovcd.capynib.R
 import io.github.markovcd.capynib.core.note.Photo
+import io.github.markovcd.capynib.ui.theme.Ink
 
 private const val PER_ROW = 3
-private const val FILL_ALPHA = 0.07f
 private const val UNKNOWN_ASPECT = 4f / 3f
 
 /**
@@ -65,7 +65,7 @@ private fun PhotoTile(photo: Photo, pixels: Int, single: Boolean, maxHeight: Dp,
     }
     Box(
         modifier.heightIn(max = maxHeight).aspectRatio(aspect)
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = FILL_ALPHA))
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = Ink.FILL))
             .then(if (onOpen != null) Modifier.clickable(role = Role.Image, onClickLabel = stringResource(R.string.photo_open)) { onOpen(photo) } else Modifier)
             .testTag(Tags.photo(photo.id)),
         contentAlignment = Alignment.Center,

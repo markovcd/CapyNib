@@ -132,6 +132,7 @@ icon set is fine if it covers the same meanings.
 | Note palette (light and dark) | `app/src/main/kotlin/io/github/markovcd/capynib/ui/theme/NoteColors.kt` (`light`, `dark` maps); the only place note colors are defined |
 | Typography | `ui/theme/CapynibType.kt` (Figtree in `res/font/`, license in `licenses/`) |
 | Sync status icon colors | `ui/theme/SyncToneColor.kt` |
+| How strongly ink shows for ticked items, rules, tag pills and fills | `ui/theme/Ink.kt` |
 | Card corner radius, outline | `ui/board/NoteCard.kt` (16 dp, 1 dp `outlineVariant` outline on default notes) |
 | Window color before the UI draws | `app/src/main/res/values/colors.xml`, `values-night/colors.xml` (`window_background`) |
 | Launcher icon | `app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml`, `res/drawable/ic_launcher_foreground.xml`, `ic_launcher_monochrome.xml`, `res/values/colors.xml` (`ic_launcher_background`) |

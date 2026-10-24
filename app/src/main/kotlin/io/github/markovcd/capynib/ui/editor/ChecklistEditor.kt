@@ -56,8 +56,7 @@ import io.github.markovcd.capynib.core.note.Checklist
 import io.github.markovcd.capynib.core.note.ChecklistLine
 import io.github.markovcd.capynib.ui.PlainTextField
 import io.github.markovcd.capynib.ui.Tags
-
-private const val TICKED_ALPHA = 0.62f
+import io.github.markovcd.capynib.ui.theme.Ink
 
 /**
  * Unticked items and text in their order, then the ticked items under a count, as Keep does.
@@ -124,7 +123,7 @@ internal fun ChecklistEditor(body: String, editor: NoteEditor, editable: Boolean
     if (checked.isNotEmpty()) {
         HorizontalDivider(
             Modifier.padding(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 6.dp),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = RULE_ALPHA),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = Ink.RULE),
         )
         Text(
             pluralStringResource(R.plurals.editor_checked_items, checked.size, checked.size),
@@ -198,7 +197,7 @@ private fun ChecklistRow(
             placeholder = stringResource(R.string.editor_item_hint),
             style = MaterialTheme.typography.bodyLarge.copy(textDecoration = if (ticked) TextDecoration.LineThrough else null),
             modifier = Modifier.weight(1f).padding(start = 4.dp).focusRequester(requester).testTag(Tags.item(index))
-                .then(if (ticked) Modifier.alpha(TICKED_ALPHA) else Modifier),
+                .then(if (ticked) Modifier.alpha(Ink.TICKED) else Modifier),
             readOnly = !editable,
         )
         if (editable) {

@@ -29,8 +29,7 @@ import androidx.compose.ui.unit.dp
 import io.github.markovcd.capynib.R
 import io.github.markovcd.capynib.audio.PlayingClip
 import io.github.markovcd.capynib.core.note.Recording
-
-private const val FILL_ALPHA = 0.07f
+import io.github.markovcd.capynib.ui.theme.Ink
 
 /**
  * A recording as a small player: play or stop, how far along it is, and its length. [onRemove] adds
@@ -43,7 +42,7 @@ fun RecordingPlayer(recording: Recording, playing: PlayingClip?, onPlay: () -> U
     val length = mine?.durationMillis ?: recording.durationMillis
     val button = if (compact) 32.dp else 44.dp
     Row(
-        modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(ink.copy(alpha = FILL_ALPHA))
+        modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(ink.copy(alpha = Ink.FILL))
             .heightIn(min = button).padding(end = if (onRemove == null) 12.dp else 0.dp).testTag(Tags.recording(recording.id)),
         horizontalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -65,7 +64,7 @@ fun RecordingPlayer(recording: Recording, playing: PlayingClip?, onPlay: () -> U
             progress = { if (mine == null || mine.durationMillis <= 0) 0f else mine.positionMillis.toFloat() / mine.durationMillis },
             modifier = Modifier.weight(1f),
             color = ink,
-            trackColor = ink.copy(alpha = FILL_ALPHA * 2),
+            trackColor = ink.copy(alpha = Ink.FILL * 2),
             drawStopIndicator = {},
         )
         Text(

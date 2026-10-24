@@ -40,11 +40,10 @@ import io.github.markovcd.capynib.core.note.Recording
 import io.github.markovcd.capynib.ui.PhotoGrid
 import io.github.markovcd.capynib.ui.RecordingPlayer
 import io.github.markovcd.capynib.ui.Tags
+import io.github.markovcd.capynib.ui.theme.Ink
 import io.github.markovcd.capynib.ui.theme.NoteColors
 
 private const val PREVIEW_LINES = 10
-private const val TICKED_ALPHA = 0.62f
-private const val TAG_ALPHA = 0.08f
 private const val CARD_PHOTO_PIXELS = 540
 
 /**
@@ -81,7 +80,7 @@ fun NoteCard(note: Note, selected: Boolean, playing: PlayingClip?, onPlay: (Reco
                         CardCheckbox(line.checked)
                         Text(
                             line.text,
-                            modifier = if (line.checked) Modifier.alpha(TICKED_ALPHA) else Modifier,
+                            modifier = if (line.checked) Modifier.alpha(Ink.TICKED) else Modifier,
                             style = MaterialTheme.typography.bodyMedium,
                             textDecoration = if (line.checked) TextDecoration.LineThrough else null,
                             maxLines = 1,
@@ -112,7 +111,7 @@ fun NoteCard(note: Note, selected: Boolean, playing: PlayingClip?, onPlay: (Reco
 private fun CardTag(tag: String) {
     Text(
         "#$tag",
-        modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.onSurface.copy(alpha = TAG_ALPHA))
+        modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(MaterialTheme.colorScheme.onSurface.copy(alpha = Ink.TAG))
             .padding(horizontal = 6.dp, vertical = 2.dp),
         style = MaterialTheme.typography.labelSmall,
         maxLines = 1,
