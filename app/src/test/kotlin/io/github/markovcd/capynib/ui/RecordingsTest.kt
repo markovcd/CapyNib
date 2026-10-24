@@ -51,20 +51,14 @@ class RecordingsTest {
 
     private fun allowMicrophone() = shadowOf(compose.activity.application).grantPermissions(Manifest.permission.RECORD_AUDIO)
 
-    private fun waitForStore(condition: () -> Boolean) = compose.waitUntil(timeoutMillis = 5_000) { condition() }
-
-    private fun awaitTag(tag: String) = compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty() }
-
-    private fun awaitNoTag(tag: String) = compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isEmpty() }
-
     /** Opens a new note and records one clip into it; returns the note's id. */
     private fun recordIntoNewNote(): String {
         compose.onNodeWithTag(Tags.NEW_NOTE).performClick()
-        awaitTag(Tags.RECORD)
+        compose.awaitTag(Tags.RECORD)
         compose.onNodeWithTag(Tags.RECORD).performClick()
-        awaitTag(Tags.STOP_RECORDING)
+        compose.awaitTag(Tags.STOP_RECORDING)
         compose.onNodeWithTag(Tags.STOP_RECORDING).performClick()
-        waitForStore { graph.store.visible().singleOrNull()?.recordings?.size == 1 }
+        compose.waitForStore { graph.store.visible().singleOrNull()?.recordings?.size == 1 }
         return graph.store.visible().single().id
     }
 
@@ -76,7 +70,7 @@ class RecordingsTest {
 
         val recording = graph.store.get(id)!!.recordings.single()
         assertEquals("hum", graph.store.attachments.read(recording.id)!!.decodeToString())
-        awaitTag(Tags.recordingPlay(recording.id))
+        compose.awaitTag(Tags.recordingPlay(recording.id))
         compose.onNodeWithTag(Tags.RECORD).assertIsDisplayed()
     }
 
@@ -88,8 +82,8 @@ class RecordingsTest {
 
         compose.onNodeWithTag(Tags.BACK).performClick()
 
-        awaitTag(Tags.card(id))
-        awaitTag(Tags.recordingPlay(recording.id))
+        compose.awaitTag(Tags.card(id))
+        compose.awaitTag(Tags.recordingPlay(recording.id))
         assertEquals(listOf(id), graph.store.visible().map { it.id })
     }
 
@@ -98,7 +92,7 @@ class RecordingsTest {
         val note = graph.store.create(graph.clock(), title = "Voice")
         val recording = graph.store.attachments.newRecording(note.id, durationMillis = 7_000, now = graph.clock())
         graph.store.attachments.addRecording(recording, kotlin.io.path.createTempFile().toFile().apply { writeText("hum") })
-        awaitTag(Tags.recordingPlay(recording.id))
+        compose.awaitTag(Tags.recordingPlay(recording.id))
         // The card merges its text into one node; the time is found inside it.
         val time = compose.onNodeWithTag(Tags.recordingTime(recording.id), useUnmergedTree = true)
         time.assertTextEquals("0:07")
@@ -118,14 +112,14 @@ class RecordingsTest {
 
         compose.onNodeWithTag(Tags.recordingRemove(recording.id)).performClick()
 
-        awaitNoTag(Tags.recording(recording.id))
-        waitForStore { graph.store.get(id)!!.recordings.isEmpty() }
+        compose.awaitNoTag(Tags.recording(recording.id))
+        compose.waitForStore { graph.store.get(id)!!.recordings.isEmpty() }
     }
 
     @Test
     fun Recording_waits_for_the_microphone_to_be_allowed() {
         compose.onNodeWithTag(Tags.NEW_NOTE).performClick()
-        awaitTag(Tags.RECORD)
+        compose.awaitTag(Tags.RECORD)
 
         compose.onNodeWithTag(Tags.RECORD).performClick()
 
@@ -141,7 +135,7 @@ class RecordingsTest {
             intArrayOf(PackageManager.PERMISSION_GRANTED),
         )
 
-        awaitTag(Tags.STOP_RECORDING)
+        compose.awaitTag(Tags.STOP_RECORDING)
     }
 
     @Test
@@ -150,9 +144,9 @@ class RecordingsTest {
 
         captured.trySend(CapturedNote(graph.capture(Capture.EmptyRecording), record = true))
 
-        awaitTag(Tags.STOP_RECORDING)
+        compose.awaitTag(Tags.STOP_RECORDING)
         compose.onNodeWithTag(Tags.BACK).performClick()
-        waitForStore { graph.store.visible().singleOrNull()?.recordings?.size == 1 }
+        compose.waitForStore { graph.store.visible().singleOrNull()?.recordings?.size == 1 }
     }
 
     @Test
@@ -160,20 +154,20 @@ class RecordingsTest {
         allowMicrophone()
         val id = graph.capture(Capture(body = "Shopping"))
         captured.trySend(CapturedNote(id, record = true))
-        awaitTag(Tags.STOP_RECORDING)
+        compose.awaitTag(Tags.STOP_RECORDING)
 
         compose.onNodeWithTag(Tags.DELETE).performClick()
 
-        awaitTag(Tags.NEW_NOTE)
+        compose.awaitTag(Tags.NEW_NOTE)
         assertEquals(false, microphone.recording)
-        waitForStore { graph.store.get(id)?.let { it.inTrash && it.recordings.size == 1 } == true }
+        compose.waitForStore { graph.store.get(id)?.let { it.inTrash && it.recordings.size == 1 } == true }
     }
 
     @Test
     fun Turning_the_phone_while_a_note_records_keeps_recording() {
         allowMicrophone()
         captured.trySend(CapturedNote(graph.capture(Capture.EmptyRecording), record = true))
-        awaitTag(Tags.STOP_RECORDING)
+        compose.awaitTag(Tags.STOP_RECORDING)
 
         compose.activityRule.scenario.recreate()
 
@@ -185,12 +179,12 @@ class RecordingsTest {
         allowMicrophone()
         val recorded = graph.capture(Capture.EmptyRecording)
         captured.trySend(CapturedNote(recorded, record = true))
-        awaitTag(Tags.STOP_RECORDING)
+        compose.awaitTag(Tags.STOP_RECORDING)
 
         captured.trySend(CapturedNote(graph.capture(Capture.EmptyNote), record = false))
 
-        awaitTag(Tags.RECORD)
-        waitForStore { graph.store.get(recorded)?.recordings?.size == 1 }
+        compose.awaitTag(Tags.RECORD)
+        compose.waitForStore { graph.store.get(recorded)?.recordings?.size == 1 }
         assertEquals(false, microphone.recording)
     }
 
@@ -198,13 +192,13 @@ class RecordingsTest {
     fun A_note_opened_recording_records_once() {
         allowMicrophone()
         captured.trySend(CapturedNote(graph.capture(Capture.EmptyRecording), record = true))
-        awaitTag(Tags.STOP_RECORDING)
+        compose.awaitTag(Tags.STOP_RECORDING)
         compose.onNodeWithTag(Tags.STOP_RECORDING).performClick()
-        waitForStore { graph.store.visible().singleOrNull()?.recordings?.size == 1 }
+        compose.waitForStore { graph.store.visible().singleOrNull()?.recordings?.size == 1 }
 
         restoration.emulateSavedInstanceStateRestore()
 
-        awaitTag(Tags.RECORD)
+        compose.awaitTag(Tags.RECORD)
         assertEquals(0, compose.onAllNodesWithTag(Tags.STOP_RECORDING).fetchSemanticsNodes().size)
     }
 
@@ -213,7 +207,7 @@ class RecordingsTest {
         allowMicrophone()
         microphone.broken = true
         compose.onNodeWithTag(Tags.NEW_NOTE).performClick()
-        awaitTag(Tags.RECORD)
+        compose.awaitTag(Tags.RECORD)
 
         compose.onNodeWithTag(Tags.RECORD).performClick()
 

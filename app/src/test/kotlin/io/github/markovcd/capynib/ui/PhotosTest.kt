@@ -48,15 +48,9 @@ class PhotosTest {
         compose.setContent { CapynibRoot(graph, captured.receiveAsFlow()) }
     }
 
-    private fun waitForStore(condition: () -> Boolean) = compose.waitUntil(timeoutMillis = 5_000) { condition() }
-
-    private fun awaitTag(tag: String) = compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty() }
-
     /** Waits for [tag] inside a card, which merges what it holds into one node. */
     private fun awaitInCard(tag: String) =
         compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
-
-    private fun awaitNoTag(tag: String) = compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isEmpty() }
 
     private fun photosFolder() = File(compose.activity.cacheDir, "photos")
 
@@ -74,12 +68,12 @@ class PhotosTest {
 
     private fun openNewNote() {
         compose.onNodeWithTag(Tags.NEW_NOTE).performClick()
-        awaitTag(Tags.ADD_PHOTO)
+        compose.awaitTag(Tags.ADD_PHOTO)
     }
 
     private fun takePhoto(image: String?) {
         compose.onNodeWithTag(Tags.ADD_PHOTO).performClick()
-        awaitTag(Tags.TAKE_PHOTO)
+        compose.awaitTag(Tags.TAKE_PHOTO)
         compose.onNodeWithTag(Tags.TAKE_PHOTO).performClick()
         answerCamera(image)
     }
@@ -92,13 +86,13 @@ class PhotosTest {
 
         takePhoto("jpeg")
 
-        waitForStore { graph.store.visible().singleOrNull()?.photos?.size == 1 }
+        compose.waitForStore { graph.store.visible().singleOrNull()?.photos?.size == 1 }
         val photo = onlyPhoto()
         assertEquals(Photo.JPEG, photo.type)
         assertEquals("jpeg", graph.store.attachments.read(photo.id)!!.decodeToString())
-        awaitTag(Tags.photo(photo.id))
+        compose.awaitTag(Tags.photo(photo.id))
         compose.onNodeWithTag(Tags.BACK).performClick()
-        awaitTag(Tags.card(photo.noteId))
+        compose.awaitTag(Tags.card(photo.noteId))
         awaitInCard(Tags.photo(photo.id))
     }
 
@@ -110,7 +104,7 @@ class PhotosTest {
         takePhoto(null)
 
         compose.waitForIdle()
-        waitForStore { graph.store.visible().singleOrNull()?.title == "Trip" }
+        compose.waitForStore { graph.store.visible().singleOrNull()?.title == "Trip" }
         assertEquals(emptyList<Photo>(), graph.store.visible().single().photos)
         assertEquals(emptyList<String>(), photosFolder().list().orEmpty().toList())
     }
@@ -121,12 +115,12 @@ class PhotosTest {
         val image = File(compose.activity.filesDir, "chosen.jpg").apply { writeText("picked") }
 
         compose.onNodeWithTag(Tags.ADD_PHOTO).performClick()
-        awaitTag(Tags.CHOOSE_PHOTO)
+        compose.awaitTag(Tags.CHOOSE_PHOTO)
         compose.onNodeWithTag(Tags.CHOOSE_PHOTO).performClick()
         val started = shadowOf(compose.activity).nextStartedActivityForResult
         shadowOf(compose.activity).receiveResult(started.intent, Activity.RESULT_OK, Intent().setData(Uri.fromFile(image)))
 
-        waitForStore { graph.store.visible().singleOrNull()?.photos?.size == 1 }
+        compose.waitForStore { graph.store.visible().singleOrNull()?.photos?.size == 1 }
         assertEquals("picked", graph.store.attachments.read(onlyPhoto().id)!!.decodeToString())
         assertEquals("picked", image.readText())
     }
@@ -136,16 +130,16 @@ class PhotosTest {
         openNewNote()
         compose.onNodeWithTag(Tags.TITLE).performTextInput("Trip")
         takePhoto("jpeg")
-        waitForStore { graph.store.visible().singleOrNull()?.photos?.size == 1 }
+        compose.waitForStore { graph.store.visible().singleOrNull()?.photos?.size == 1 }
         val photo = onlyPhoto()
-        awaitTag(Tags.photo(photo.id))
+        compose.awaitTag(Tags.photo(photo.id))
 
         compose.onNodeWithTag(Tags.photo(photo.id)).performClick()
-        awaitTag(Tags.viewedPhoto(photo.id))
+        compose.awaitTag(Tags.viewedPhoto(photo.id))
         compose.onNodeWithTag(Tags.REMOVE_PHOTO).performClick()
 
-        awaitNoTag(Tags.PHOTO_VIEWER)
-        waitForStore { graph.store.visible().single().photos.isEmpty() }
+        compose.awaitNoTag(Tags.PHOTO_VIEWER)
+        compose.waitForStore { graph.store.visible().single().photos.isEmpty() }
         compose.onNodeWithTag(Tags.TITLE).assertExists()
     }
 
@@ -167,8 +161,8 @@ class PhotosTest {
 
         answerCamera("jpeg")
 
-        waitForStore { graph.store.visible().singleOrNull()?.photos?.size == 1 }
-        awaitTag(Tags.photo(onlyPhoto().id))
+        compose.waitForStore { graph.store.visible().singleOrNull()?.photos?.size == 1 }
+        compose.awaitTag(Tags.photo(onlyPhoto().id))
         compose.onNodeWithTag(Tags.ADD_PHOTO).assertExists()
     }
 
@@ -179,8 +173,8 @@ class PhotosTest {
 
         answerCamera(null)
 
-        awaitTag(Tags.NEW_NOTE)
-        waitForStore { graph.store.visible().isEmpty() }
+        compose.awaitTag(Tags.NEW_NOTE)
+        compose.waitForStore { graph.store.visible().isEmpty() }
     }
 
     /** An image another app holds at [uri], as its content provider would hand it over. */
@@ -202,7 +196,7 @@ class PhotosTest {
         val note = graph.store.visible().single()
         assertEquals("Zoo", note.body)
         assertEquals(listOf("first", "second"), note.photos.map { graph.store.attachments.read(it.id)!!.decodeToString() })
-        awaitTag(Tags.photo(note.photos.first().id))
+        compose.awaitTag(Tags.photo(note.photos.first().id))
     }
 
     @Test

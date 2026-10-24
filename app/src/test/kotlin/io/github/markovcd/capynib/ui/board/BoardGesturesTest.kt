@@ -6,7 +6,6 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.longClick
-import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
@@ -17,6 +16,9 @@ import io.github.markovcd.capynib.TestGraphs
 import io.github.markovcd.capynib.core.note.NoteColor
 import io.github.markovcd.capynib.ui.CapynibRoot
 import io.github.markovcd.capynib.ui.Tags
+import io.github.markovcd.capynib.ui.awaitNoTag
+import io.github.markovcd.capynib.ui.awaitTag
+import io.github.markovcd.capynib.ui.waitForStore
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
@@ -40,17 +42,10 @@ class BoardGesturesTest {
         compose.setContent { CapynibRoot(graph) }
     }
 
-    // The store answers on a background thread, so the screen catches up a moment after a change.
-    private fun waitForStore(condition: () -> Boolean) = compose.waitUntil(timeoutMillis = 5_000) { condition() }
-
-    private fun awaitTag(tag: String) = compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty() }
-
-    private fun awaitNoTag(tag: String) = compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isEmpty() }
-
     /** Notes made in order, so the last is on top. */
     private fun notes(vararg titles: String): List<String> {
         val ids = titles.map { graph.store.create(graph.clock(), title = it).id }
-        ids.forEach { awaitTag(Tags.card(it)) }
+        ids.forEach { compose.awaitTag(Tags.card(it)) }
         return ids
     }
 
@@ -63,26 +58,26 @@ class BoardGesturesTest {
         val (a, b) = notes("a", "b")
 
         longPress(a)
-        awaitTag(Tags.SELECTION_BAR)
+        compose.awaitTag(Tags.SELECTION_BAR)
         compose.onNodeWithTag(Tags.card(b)).performClick()
 
         compose.onNodeWithTag(Tags.card(a)).assertIsSelected()
         compose.onNodeWithTag(Tags.card(b)).assertIsSelected()
         compose.onNodeWithTag(Tags.SELECTED_COUNT).assertTextEquals("2 selected")
         compose.onNodeWithTag(Tags.CLOSE_SELECTION).performClick()
-        awaitNoTag(Tags.SELECTION_BAR)
+        compose.awaitNoTag(Tags.SELECTION_BAR)
         compose.onNodeWithTag(Tags.card(a)).assertIsNotSelected()
     }
 
     @Test
     fun A_long_press_leaves_the_board_where_it_was_so_the_pressed_note_stays_picked() {
         val (a, b) = listOf("a", "b").map { graph.store.create(graph.clock(), title = it, body = "#travel").id }
-        awaitTag(Tags.card(a))
-        awaitTag(Tags.TAG_BAR)
+        compose.awaitTag(Tags.card(a))
+        compose.awaitTag(Tags.TAG_BAR)
         val before = center(a)
 
         longPress(a)
-        awaitTag(Tags.SELECTION_BAR)
+        compose.awaitTag(Tags.SELECTION_BAR)
         compose.waitForIdle()
 
         assertEquals(before, center(a))
@@ -95,30 +90,30 @@ class BoardGesturesTest {
     fun Archiving_the_picked_notes_archives_them_all_and_undo_brings_them_back() {
         val (a, b, c) = notes("a", "b", "c")
         longPress(a)
-        awaitTag(Tags.SELECTION_BAR)
+        compose.awaitTag(Tags.SELECTION_BAR)
         compose.onNodeWithTag(Tags.card(b)).performClick()
 
         compose.onNodeWithTag(Tags.ARCHIVE_SELECTED).performClick()
 
-        waitForStore { graph.store.get(a)!!.archived && graph.store.get(b)!!.archived }
+        compose.waitForStore { graph.store.get(a)!!.archived && graph.store.get(b)!!.archived }
         assertEquals(false, graph.store.get(c)!!.archived)
-        awaitNoTag(Tags.SELECTION_BAR)
-        awaitTag(Tags.UNDO)
+        compose.awaitNoTag(Tags.SELECTION_BAR)
+        compose.awaitTag(Tags.UNDO)
         compose.onNodeWithTag(Tags.UNDO).performClick()
-        waitForStore { !graph.store.get(a)!!.archived && !graph.store.get(b)!!.archived }
+        compose.waitForStore { !graph.store.get(a)!!.archived && !graph.store.get(b)!!.archived }
     }
 
     @Test
     fun Deleting_the_picked_notes_moves_them_to_the_trash() {
         val (a, b) = notes("a", "b")
         longPress(a)
-        awaitTag(Tags.SELECTION_BAR)
+        compose.awaitTag(Tags.SELECTION_BAR)
 
         compose.onNodeWithTag(Tags.TRASH_SELECTED).performClick()
 
-        waitForStore { graph.store.get(a)!!.inTrash }
+        compose.waitForStore { graph.store.get(a)!!.inTrash }
         assertEquals(false, graph.store.get(b)!!.inTrash)
-        awaitNoTag(Tags.card(a))
+        compose.awaitNoTag(Tags.card(a))
     }
 
     @Test
@@ -126,31 +121,31 @@ class BoardGesturesTest {
         val (a, b) = notes("a", "b")
         graph.store.save(graph.store.get(a)!!.copy(pinned = true), graph.clock())
         longPress(a)
-        awaitTag(Tags.SELECTION_BAR)
+        compose.awaitTag(Tags.SELECTION_BAR)
         compose.onNodeWithTag(Tags.card(b)).performClick()
-        awaitTag(Tags.OTHERS)
+        compose.awaitTag(Tags.OTHERS)
 
         compose.onNodeWithTag(Tags.PIN_SELECTED).performClick()
-        waitForStore { graph.store.get(a)!!.pinned && graph.store.get(b)!!.pinned }
+        compose.waitForStore { graph.store.get(a)!!.pinned && graph.store.get(b)!!.pinned }
         // The bar acts on the board it shows, so the next tap waits for both notes to show as pinned.
-        awaitNoTag(Tags.OTHERS)
+        compose.awaitNoTag(Tags.OTHERS)
 
         compose.onNodeWithTag(Tags.PIN_SELECTED).performClick()
-        waitForStore { !graph.store.get(a)!!.pinned && !graph.store.get(b)!!.pinned }
+        compose.waitForStore { !graph.store.get(a)!!.pinned && !graph.store.get(b)!!.pinned }
     }
 
     @Test
     fun Picking_a_color_colors_every_picked_note() {
         val (a, b) = notes("a", "b")
         longPress(a)
-        awaitTag(Tags.SELECTION_BAR)
+        compose.awaitTag(Tags.SELECTION_BAR)
         compose.onNodeWithTag(Tags.card(b)).performClick()
 
         compose.onNodeWithTag(Tags.COLOR_SELECTED).performClick()
-        awaitTag(Tags.color(NoteColor.Mint.key))
+        compose.awaitTag(Tags.color(NoteColor.Mint.key))
         compose.onNodeWithTag(Tags.color(NoteColor.Mint.key)).performClick()
 
-        waitForStore { listOf(a, b).all { graph.store.get(it)!!.color == NoteColor.Mint } }
+        compose.waitForStore { listOf(a, b).all { graph.store.get(it)!!.color == NoteColor.Mint } }
     }
 
     @Test
@@ -159,11 +154,11 @@ class BoardGesturesTest {
 
         compose.onNodeWithTag(Tags.card(a)).performTouchInput { swipeLeft() }
 
-        waitForStore { graph.store.get(a)!!.archived }
-        awaitTag(Tags.UNDO)
+        compose.waitForStore { graph.store.get(a)!!.archived }
+        compose.awaitTag(Tags.UNDO)
         compose.onNodeWithTag(Tags.UNDO).performClick()
-        waitForStore { !graph.store.get(a)!!.archived }
-        awaitTag(Tags.card(a))
+        compose.waitForStore { !graph.store.get(a)!!.archived }
+        compose.awaitTag(Tags.card(a))
     }
 
     @Test
@@ -171,11 +166,11 @@ class BoardGesturesTest {
         val (a) = notes("a")
 
         compose.onNodeWithTag(Tags.card(a)).performTouchInput { swipeRight() }
-        waitForStore { graph.store.get(a)!!.pinned }
-        awaitTag(Tags.PINNED)
+        compose.waitForStore { graph.store.get(a)!!.pinned }
+        compose.awaitTag(Tags.PINNED)
 
         compose.onNodeWithTag(Tags.card(a)).performTouchInput { swipeRight() }
-        waitForStore { !graph.store.get(a)!!.pinned }
+        compose.waitForStore { !graph.store.get(a)!!.pinned }
         assertEquals(false, graph.store.get(a)!!.archived)
     }
 
@@ -184,11 +179,11 @@ class BoardGesturesTest {
         // The other note keeps the board, and its grid, on screen while the archive opens.
         val (a, _) = notes("a", "b")
         compose.onNodeWithTag(Tags.card(a)).performTouchInput { swipeLeft() }
-        waitForStore { graph.store.get(a)!!.archived }
-        awaitNoTag(Tags.card(a))
+        compose.waitForStore { graph.store.get(a)!!.archived }
+        compose.awaitNoTag(Tags.card(a))
 
         compose.onNodeWithTag(Tags.ARCHIVE_TOGGLE).performClick()
-        awaitTag(Tags.card(a))
+        compose.awaitTag(Tags.card(a))
         compose.waitForIdle()
 
         assertEquals(true, graph.store.get(a)!!.archived)
@@ -199,13 +194,13 @@ class BoardGesturesTest {
         val (a, b) = notes("a", "b")
         graph.store.saveAll(setOf(a, b), graph.clock()) { it.copy(archived = true) }
         compose.onNodeWithTag(Tags.ARCHIVE_TOGGLE).performClick()
-        awaitTag(Tags.card(a))
-        awaitTag(Tags.card(b))
+        compose.awaitTag(Tags.card(a))
+        compose.awaitTag(Tags.card(b))
 
         compose.onNodeWithTag(Tags.card(a)).performTouchInput { swipeRight() }
         compose.onNodeWithTag(Tags.card(b)).performTouchInput { swipeLeft() }
 
-        waitForStore { !graph.store.get(a)!!.archived && graph.store.get(b)!!.inTrash }
+        compose.waitForStore { !graph.store.get(a)!!.archived && graph.store.get(b)!!.inTrash }
         assertEquals(false, graph.store.get(a)!!.pinned)
         assertEquals(false, graph.store.get(a)!!.inTrash)
     }
@@ -222,9 +217,9 @@ class BoardGesturesTest {
             up()
         }
 
-        waitForStore { graph.store.visible().map { it.title } == listOf("bottom", "top") }
+        compose.waitForStore { graph.store.visible().map { it.title } == listOf("bottom", "top") }
         compose.onNodeWithTag(Tags.card(bottom)).assertIsNotSelected()
-        awaitNoTag(Tags.SELECTION_BAR)
+        compose.awaitNoTag(Tags.SELECTION_BAR)
     }
 
     /** Notes made and moved to the trash, with the trash open. */
@@ -232,7 +227,7 @@ class BoardGesturesTest {
         val ids = titles.map { graph.store.create(graph.clock(), title = it).id }
         graph.store.trashAll(ids, graph.clock())
         compose.onNodeWithTag(Tags.TRASH_TOGGLE).performClick()
-        ids.forEach { awaitTag(Tags.card(it)) }
+        ids.forEach { compose.awaitTag(Tags.card(it)) }
         return ids
     }
 
@@ -240,37 +235,37 @@ class BoardGesturesTest {
     fun Restoring_the_picked_notes_in_the_trash_takes_them_out_and_undo_puts_them_back() {
         val (a, b, c) = trashed("a", "b", "c")
         longPress(a)
-        awaitTag(Tags.SELECTION_BAR)
+        compose.awaitTag(Tags.SELECTION_BAR)
         compose.onNodeWithTag(Tags.card(b)).performClick()
 
         compose.onNodeWithTag(Tags.RESTORE_SELECTED).performClick()
 
-        waitForStore { !graph.store.get(a)!!.inTrash && !graph.store.get(b)!!.inTrash }
+        compose.waitForStore { !graph.store.get(a)!!.inTrash && !graph.store.get(b)!!.inTrash }
         assertEquals(true, graph.store.get(c)!!.inTrash)
-        awaitTag(Tags.UNDO)
+        compose.awaitTag(Tags.UNDO)
         compose.onNodeWithTag(Tags.UNDO).performClick()
-        waitForStore { graph.store.get(a)!!.inTrash && graph.store.get(b)!!.inTrash }
+        compose.waitForStore { graph.store.get(a)!!.inTrash && graph.store.get(b)!!.inTrash }
     }
 
     @Test
     fun Deleting_the_picked_notes_forever_asks_first_and_cancel_keeps_them() {
         val (a, b) = trashed("a", "b")
         longPress(a)
-        awaitTag(Tags.SELECTION_BAR)
+        compose.awaitTag(Tags.SELECTION_BAR)
 
         compose.onNodeWithTag(Tags.DELETE_FOREVER_SELECTED).performClick()
-        awaitTag(Tags.CANCEL_DELETE_FOREVER)
+        compose.awaitTag(Tags.CANCEL_DELETE_FOREVER)
         compose.onNodeWithTag(Tags.CANCEL_DELETE_FOREVER).performClick()
-        awaitNoTag(Tags.CANCEL_DELETE_FOREVER)
+        compose.awaitNoTag(Tags.CANCEL_DELETE_FOREVER)
         assertEquals(true, graph.store.get(a)!!.inTrash)
 
         compose.onNodeWithTag(Tags.DELETE_FOREVER_SELECTED).performClick()
-        awaitTag(Tags.CONFIRM_DELETE_FOREVER)
+        compose.awaitTag(Tags.CONFIRM_DELETE_FOREVER)
         compose.onNodeWithTag(Tags.CONFIRM_DELETE_FOREVER).performClick()
 
-        waitForStore { graph.store.get(a) == null }
+        compose.waitForStore { graph.store.get(a) == null }
         assertEquals(true, graph.store.get(b)!!.inTrash)
-        awaitNoTag(Tags.card(a))
+        compose.awaitNoTag(Tags.card(a))
     }
 
     @Test
@@ -279,11 +274,11 @@ class BoardGesturesTest {
 
         compose.onNodeWithTag(Tags.card(a)).performTouchInput { swipeRight() }
 
-        waitForStore { !graph.store.get(a)!!.inTrash }
+        compose.waitForStore { !graph.store.get(a)!!.inTrash }
         assertEquals(false, graph.store.get(a)!!.pinned)
-        awaitTag(Tags.UNDO)
+        compose.awaitTag(Tags.UNDO)
         compose.onNodeWithTag(Tags.UNDO).performClick()
-        waitForStore { graph.store.get(a)!!.inTrash }
+        compose.waitForStore { graph.store.get(a)!!.inTrash }
     }
 
     @Test
@@ -291,15 +286,15 @@ class BoardGesturesTest {
         val (a) = trashed("a")
 
         compose.onNodeWithTag(Tags.card(a)).performTouchInput { swipeLeft() }
-        awaitTag(Tags.CANCEL_DELETE_FOREVER)
+        compose.awaitTag(Tags.CANCEL_DELETE_FOREVER)
         compose.onNodeWithTag(Tags.CANCEL_DELETE_FOREVER).performClick()
-        awaitNoTag(Tags.CANCEL_DELETE_FOREVER)
+        compose.awaitNoTag(Tags.CANCEL_DELETE_FOREVER)
         assertEquals(true, graph.store.get(a)!!.inTrash)
 
         compose.onNodeWithTag(Tags.card(a)).performTouchInput { swipeLeft() }
-        awaitTag(Tags.CONFIRM_DELETE_FOREVER)
+        compose.awaitTag(Tags.CONFIRM_DELETE_FOREVER)
         compose.onNodeWithTag(Tags.CONFIRM_DELETE_FOREVER).performClick()
 
-        waitForStore { graph.store.get(a) == null }
+        compose.waitForStore { graph.store.get(a) == null }
     }
 }

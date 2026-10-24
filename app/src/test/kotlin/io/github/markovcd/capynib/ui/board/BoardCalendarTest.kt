@@ -11,6 +11,8 @@ import io.github.markovcd.capynib.AppGraph
 import io.github.markovcd.capynib.TestGraphs
 import io.github.markovcd.capynib.ui.CapynibRoot
 import io.github.markovcd.capynib.ui.Tags
+import io.github.markovcd.capynib.ui.awaitNoTag
+import io.github.markovcd.capynib.ui.awaitTag
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -38,10 +40,6 @@ class BoardCalendarTest {
         compose.setContent { CapynibRoot(graph) }
     }
 
-    private fun awaitTag(tag: String) = compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty() }
-
-    private fun awaitNoTag(tag: String) = compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isEmpty() }
-
     // The dots sit inside the day's clickable circle, which merges them away in the default tree.
     private fun awaitMarks(date: LocalDate) =
         compose.waitUntil(timeoutMillis = 5_000) { compose.onAllNodesWithTag(Tags.dayMarks(date), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
@@ -51,7 +49,7 @@ class BoardCalendarTest {
         compose.waitUntil(timeoutMillis = 5_000) {
             runCatching { compose.onNodeWithTag(Tags.CALENDAR).performScrollToKey(id) }.isSuccess
         }
-        awaitTag(Tags.card(id))
+        compose.awaitTag(Tags.card(id))
     }
 
     private fun today(): LocalDate = Instant.ofEpochMilli(graph.clock()).atZone(zone).toLocalDate()
@@ -65,7 +63,7 @@ class BoardCalendarTest {
 
     private fun showCalendar() {
         compose.onNodeWithTag(Tags.CALENDAR_TOGGLE).performClick()
-        awaitTag(Tags.CALENDAR)
+        compose.awaitTag(Tags.CALENDAR)
     }
 
     @Test
@@ -73,7 +71,7 @@ class BoardCalendarTest {
         val earlier = today().withDayOfMonth(1).minusMonths(1)
         val now = graph.store.create(graph.clock(), title = "now").id
         val before = madeOn(earlier, "before")
-        awaitTag(Tags.card(before))
+        compose.awaitTag(Tags.card(before))
 
         showCalendar()
 
@@ -88,7 +86,7 @@ class BoardCalendarTest {
         val earlier = today().withDayOfMonth(1).minusMonths(1)
         val now = graph.store.create(graph.clock(), title = "now").id
         val before = madeOn(earlier, "before")
-        awaitTag(Tags.card(before))
+        compose.awaitTag(Tags.card(before))
         showCalendar()
 
         compose.onNodeWithTag(Tags.PREVIOUS_MONTH).performClick()
@@ -96,9 +94,9 @@ class BoardCalendarTest {
         compose.onNodeWithTag(Tags.day(earlier)).performClick()
 
         awaitListed(before)
-        awaitNoTag(Tags.card(now))
+        compose.awaitNoTag(Tags.card(now))
         compose.onNodeWithTag(Tags.card(before)).performClick()
-        awaitTag(Tags.TITLE)
+        compose.awaitTag(Tags.TITLE)
         compose.onNodeWithTag(Tags.TITLE).assertTextEquals("before")
     }
 
@@ -106,26 +104,26 @@ class BoardCalendarTest {
     fun A_day_nothing_was_made_on_has_no_marks_and_says_so() {
         val later = today().withDayOfMonth(1).plusMonths(1)
         val now = graph.store.create(graph.clock(), title = "now").id
-        awaitTag(Tags.card(now))
+        compose.awaitTag(Tags.card(now))
         showCalendar()
 
         compose.onNodeWithTag(Tags.NEXT_MONTH).performClick()
-        awaitTag(Tags.day(later))
+        compose.awaitTag(Tags.day(later))
         compose.onNodeWithTag(Tags.day(later)).performClick()
 
-        awaitTag(Tags.DAY_EMPTY)
+        compose.awaitTag(Tags.DAY_EMPTY)
         compose.onNodeWithTag(Tags.dayMarks(later), useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test
     fun The_toggle_switches_back_to_the_cards() {
         val now = graph.store.create(graph.clock(), title = "now").id
-        awaitTag(Tags.card(now))
+        compose.awaitTag(Tags.card(now))
         showCalendar()
 
         compose.onNodeWithTag(Tags.CALENDAR_TOGGLE).performClick()
 
-        awaitNoTag(Tags.CALENDAR)
-        awaitTag(Tags.BOARD)
+        compose.awaitNoTag(Tags.CALENDAR)
+        compose.awaitTag(Tags.BOARD)
     }
 }
