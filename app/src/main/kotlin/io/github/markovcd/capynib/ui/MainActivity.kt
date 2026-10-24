@@ -37,7 +37,7 @@ class MainActivity : ComponentActivity() {
         val capture = CaptureIntents.capture(intent) ?: return
         val photos = CaptureIntents.sharedPhotos(intent, packageName)
         if (photos.isEmpty()) {
-            captured.trySend(CapturedNote(graph.capture(capture), capture.record, capture.photo))
+            captured.trySend(CapturedNote(graph.capture(capture), capture.opening))
             return
         }
         // Read the shared images while the sharing app's grant lasts, which is as long as this activity.

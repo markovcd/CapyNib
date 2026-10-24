@@ -13,6 +13,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import io.github.markovcd.capynib.AppGraph
 import io.github.markovcd.capynib.capture.CapturedNote
+import io.github.markovcd.capynib.core.note.Opening
 import io.github.markovcd.capynib.ui.board.BoardScreen
 import io.github.markovcd.capynib.ui.board.BoardViewModel
 import io.github.markovcd.capynib.ui.editor.EditorScreen
@@ -31,22 +32,16 @@ import kotlinx.coroutines.flow.emptyFlow
 @Composable
 fun CapynibRoot(graph: AppGraph, captured: Flow<CapturedNote> = emptyFlow()) {
     var openNote by rememberSaveable { mutableStateOf<String?>(null) }
-    var typing by rememberSaveable { mutableStateOf(false) }
-    var recordOnOpen by rememberSaveable { mutableStateOf(false) }
-    var cameraOnOpen by rememberSaveable { mutableStateOf(false) }
+    var opening by rememberSaveable { mutableStateOf(Opening.Read) }
     var settings by rememberSaveable { mutableStateOf(false) }
-    val start = { id: String, new: Boolean ->
+    val start = { id: String, how: Opening ->
         openNote = id
-        typing = new
-        recordOnOpen = false
-        cameraOnOpen = false
+        opening = how
     }
     LaunchedEffect(captured) {
         captured.collect { note ->
             settings = false
-            start(note.id, !note.record && !note.photo)
-            recordOnOpen = note.record
-            cameraOnOpen = note.photo
+            start(note.id, note.opening)
         }
     }
 
@@ -66,11 +61,8 @@ fun CapynibRoot(graph: AppGraph, captured: Flow<CapturedNote> = emptyFlow()) {
                             model.photos,
                             model.playback,
                             model.clock,
-                            startTyping = typing,
-                            startRecording = recordOnOpen,
-                            onRecordingStarted = { recordOnOpen = false },
-                            startCamera = cameraOnOpen,
-                            onCameraStarted = { cameraOnOpen = false },
+                            opening,
+                            onOpened = { opening = Opening.Read },
                             onClose = { openNote = null },
                         )
                     }
@@ -81,7 +73,7 @@ fun CapynibRoot(graph: AppGraph, captured: Flow<CapturedNote> = emptyFlow()) {
                 }
                 else -> {
                     val model: BoardViewModel = viewModel(factory = viewModelFactory { initializer { BoardViewModel(graph) } })
-                    BoardScreen(model, onOpen = { start(it, false) }, onNew = { start(it, true) }, onSettings = { settings = true })
+                    BoardScreen(model, onOpen = { start(it, Opening.Read) }, onNew = { start(it, Opening.Type) }, onSettings = { settings = true })
                 }
             }
         }

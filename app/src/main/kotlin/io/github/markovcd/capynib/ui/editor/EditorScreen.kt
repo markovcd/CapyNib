@@ -62,6 +62,7 @@ import io.github.markovcd.capynib.audio.Playback
 import io.github.markovcd.capynib.core.editor.NoteEditor
 import io.github.markovcd.capynib.core.note.Checklist
 import io.github.markovcd.capynib.core.note.NoteColor
+import io.github.markovcd.capynib.core.note.Opening
 import io.github.markovcd.capynib.ui.ColorPalette
 import io.github.markovcd.capynib.ui.PhotoGrid
 import io.github.markovcd.capynib.ui.PlainTextField
@@ -78,12 +79,12 @@ private const val EDITOR_PHOTO_PIXELS = 1080
 
 /**
  * The open note. Leaving it (back, archive, delete) calls [onClose]. A note in the trash is read-only until restored.
- * With [startTyping] the body, or a checklist's first item, takes focus and the keyboard comes up.
+ * It opens as [opening] says: ready to type puts the body, or a checklist's first item, in focus with the keyboard up.
  * The record button records a clip into the note through [recorder], asking for the microphone the first time;
- * with [startRecording] it is pressed as the note opens, and [onRecordingStarted] is told so it is pressed once.
- * The photo button takes a photo with the camera app or copies in a chosen image through [photos]; with
- * [startCamera] the camera opens with the note, and a note left blank when it is closed without a photo is
- * left too. Photos sit at the top of the note, and tapping one shows them full screen.
+ * opening to record presses it as the note opens. The photo button takes a photo with the camera app or copies in a
+ * chosen image through [photos]; opening to take a photo opens the camera with the note, and a note left blank when
+ * it is closed without a photo is left too. Once a recording or the camera has started, [onOpened] is told so it
+ * starts once. Photos sit at the top of the note, and tapping one shows them full screen.
  */
 @Composable
 fun EditorScreen(
@@ -92,11 +93,8 @@ fun EditorScreen(
     photos: PhotoIntake,
     playback: Playback,
     clock: () -> Long,
-    startTyping: Boolean,
-    startRecording: Boolean,
-    onRecordingStarted: () -> Unit,
-    startCamera: Boolean,
-    onCameraStarted: () -> Unit,
+    opening: Opening,
+    onOpened: () -> Unit,
     onClose: () -> Unit,
 ) {
     val note by editor.note.collectAsStateWithLifecycle()
@@ -131,13 +129,14 @@ fun EditorScreen(
     )
     var viewing by rememberSaveable { mutableStateOf<String?>(null) }
     LaunchedEffect(Unit) {
-        if (startRecording && editable) capture.record()
-        if (startRecording) onRecordingStarted()
+        when (opening) {
+            Opening.Record -> if (editable) capture.record()
+            Opening.Photo -> if (editable) capture.takePhotoWithNote()
+            Opening.Read, Opening.Type -> return@LaunchedEffect
+        }
+        onOpened()
     }
-    LaunchedEffect(Unit) {
-        if (startCamera && editable) capture.takePhotoWithNote()
-        if (startCamera) onCameraStarted()
-    }
+    val startTyping = opening == Opening.Type
     if (confirmingDelete) {
         ConfirmDeleteForever(
             count = 1,

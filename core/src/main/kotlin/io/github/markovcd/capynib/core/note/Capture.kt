@@ -1,18 +1,18 @@
 package io.github.markovcd.capynib.core.note
 
 /**
- * What a quick capture (a widget, a launcher shortcut, the tile, or text or photos shared from another app) starts a note with.
- * With [record] the note opens recording a clip; with [photo] it opens the camera to take a photo into it.
+ * What a quick capture (a widget, a launcher shortcut, the tile, or text or photos shared from another app) starts a note with,
+ * and how the note opens ([opening]).
  */
-data class Capture(val title: String = "", val body: String = "", val record: Boolean = false, val photo: Boolean = false) {
+data class Capture(val title: String = "", val body: String = "", val opening: Opening = Opening.Type) {
     companion object {
         val EmptyNote = Capture()
 
         val EmptyChecklist = Capture(body = Checklist.toChecklist(""))
 
-        val EmptyRecording = Capture(record = true)
+        val EmptyRecording = Capture(opening = Opening.Record)
 
-        val EmptyPhoto = Capture(photo = true)
+        val EmptyPhoto = Capture(opening = Opening.Photo)
 
         /**
          * A note from text another app shared. A browser shares a link as the text and the page title

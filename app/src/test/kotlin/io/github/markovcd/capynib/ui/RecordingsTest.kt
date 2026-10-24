@@ -17,6 +17,7 @@ import io.github.markovcd.capynib.audio.FakeMicrophone
 import io.github.markovcd.capynib.audio.FakePlayback
 import io.github.markovcd.capynib.capture.CapturedNote
 import io.github.markovcd.capynib.core.note.Capture
+import io.github.markovcd.capynib.core.note.Opening
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
 import org.junit.Assert.assertEquals
@@ -142,7 +143,7 @@ class RecordingsTest {
     fun An_audio_note_capture_opens_a_new_note_already_recording_and_leaving_keeps_the_clip() {
         allowMicrophone()
 
-        captured.trySend(CapturedNote(graph.capture(Capture.EmptyRecording), record = true))
+        captured.trySend(CapturedNote(graph.capture(Capture.EmptyRecording), Opening.Record))
 
         compose.awaitTag(Tags.STOP_RECORDING)
         compose.onNodeWithTag(Tags.BACK).performClick()
@@ -153,7 +154,7 @@ class RecordingsTest {
     fun Deleting_a_note_while_it_records_stops_the_microphone_and_keeps_the_clip_in_the_note() {
         allowMicrophone()
         val id = graph.capture(Capture(body = "Shopping"))
-        captured.trySend(CapturedNote(id, record = true))
+        captured.trySend(CapturedNote(id, Opening.Record))
         compose.awaitTag(Tags.STOP_RECORDING)
 
         compose.onNodeWithTag(Tags.DELETE).performClick()
@@ -166,7 +167,7 @@ class RecordingsTest {
     @Test
     fun Turning_the_phone_while_a_note_records_keeps_recording() {
         allowMicrophone()
-        captured.trySend(CapturedNote(graph.capture(Capture.EmptyRecording), record = true))
+        captured.trySend(CapturedNote(graph.capture(Capture.EmptyRecording), Opening.Record))
         compose.awaitTag(Tags.STOP_RECORDING)
 
         compose.activityRule.scenario.recreate()
@@ -178,10 +179,10 @@ class RecordingsTest {
     fun A_capture_arriving_while_a_note_records_keeps_the_clip_in_that_note() {
         allowMicrophone()
         val recorded = graph.capture(Capture.EmptyRecording)
-        captured.trySend(CapturedNote(recorded, record = true))
+        captured.trySend(CapturedNote(recorded, Opening.Record))
         compose.awaitTag(Tags.STOP_RECORDING)
 
-        captured.trySend(CapturedNote(graph.capture(Capture.EmptyNote), record = false))
+        captured.trySend(CapturedNote(graph.capture(Capture.EmptyNote), Opening.Type))
 
         compose.awaitTag(Tags.RECORD)
         compose.waitForStore { graph.store.get(recorded)?.recordings?.size == 1 }
@@ -191,7 +192,7 @@ class RecordingsTest {
     @Test
     fun A_note_opened_recording_records_once() {
         allowMicrophone()
-        captured.trySend(CapturedNote(graph.capture(Capture.EmptyRecording), record = true))
+        captured.trySend(CapturedNote(graph.capture(Capture.EmptyRecording), Opening.Record))
         compose.awaitTag(Tags.STOP_RECORDING)
         compose.onNodeWithTag(Tags.STOP_RECORDING).performClick()
         compose.waitForStore { graph.store.visible().singleOrNull()?.recordings?.size == 1 }

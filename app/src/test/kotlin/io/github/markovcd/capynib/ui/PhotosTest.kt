@@ -14,6 +14,7 @@ import io.github.markovcd.capynib.AppGraph
 import io.github.markovcd.capynib.TestGraphs
 import io.github.markovcd.capynib.capture.CapturedNote
 import io.github.markovcd.capynib.core.note.Capture
+import io.github.markovcd.capynib.core.note.Opening
 import io.github.markovcd.capynib.core.note.Note
 import io.github.markovcd.capynib.core.note.Photo
 import kotlinx.coroutines.channels.Channel
@@ -156,7 +157,7 @@ class PhotosTest {
 
     @Test
     fun The_camera_widget_opens_the_camera_and_keeps_the_photo_as_a_new_note() {
-        captured.trySend(CapturedNote(graph.capture(Capture.EmptyPhoto), photo = true))
+        captured.trySend(CapturedNote(graph.capture(Capture.EmptyPhoto), Opening.Photo))
         compose.waitForIdle()
 
         answerCamera("jpeg")
@@ -168,7 +169,7 @@ class PhotosTest {
 
     @Test
     fun A_camera_widget_note_closed_without_a_photo_is_thrown_away() {
-        captured.trySend(CapturedNote(graph.capture(Capture.EmptyPhoto), photo = true))
+        captured.trySend(CapturedNote(graph.capture(Capture.EmptyPhoto), Opening.Photo))
         compose.waitForIdle()
 
         answerCamera(null)
