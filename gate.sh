@@ -44,7 +44,7 @@ docker run --rm --network "$run_id" --network-alias capynib-tests \
              trap "chown -R \$HOST_OWNER /work" EXIT
              read -r -a versions <<<"$MEMOS_VERSIONS"
              newest=${versions[-1]}
-             ready() { for i in $(seq 1 30); do curl -sf "http://memos-$1:5230/api/v1/instance/profile" >/dev/null && return; sleep 1; done; echo "memos $1 did not start" >&2; return 1; }
+             ready() { for i in $(seq 1 30); do { curl -sf "http://memos-$1:5230/api/instance/profile" || curl -sf "http://memos-$1:5230/api/v1/instance/profile"; } >/dev/null && return; sleep 1; done; echo "memos $1 did not start" >&2; return 1; }
              ready "$newest"
              MEMOS_TEST_URL="http://memos-$newest:5230" ./gradlew --no-daemon --stacktrace check :app:assembleDebug :app:assembleRelease "$@"
              for version in "${versions[@]:0:${#versions[@]}-1}"; do

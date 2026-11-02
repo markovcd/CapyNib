@@ -36,6 +36,7 @@ class BrowserSignInTest {
     fun start() {
         memos.start()
         signIn = BrowserSignIn(ServerAddress.parse(memos.url("/").toString())!!, "Capynib test", port = 0)
+        reply(404, """{"message":"Not Found"}""")
     }
 
     @After
@@ -43,7 +44,9 @@ class BrowserSignInTest {
 
     private fun reply(code: Int, body: String) = memos.enqueue(MockResponse.Builder().code(code).body(body).build())
 
-    private fun heard(): RecordedRequest = memos.takeRequest(1, TimeUnit.SECONDS)!!
+    /** The next request after the API generation probe, which [start] answers as memos 0.31 does. */
+    private fun heard(): RecordedRequest =
+        generateSequence { memos.takeRequest(1, TimeUnit.SECONDS) }.first { it.url.encodedPath != "/api/instance/profile" }
 
     /** What the provider would send the browser back with, as the HTTP status the receiver answered. */
     private fun comeBack(page: HttpUrl, vararg query: Pair<String, String>): Int {

@@ -10,7 +10,7 @@ import java.time.Instant
 import java.time.format.DateTimeParseException
 import java.util.Base64
 
-/** [MemosApi] over the memos v1 REST API, authenticated with an access token. */
+/** [MemosApi] over the memos REST API, authenticated with an access token. */
 class HttpMemosApi(
     server: ServerAddress,
     private val accessToken: String,
@@ -147,7 +147,7 @@ class HttpMemosApi(
         }
     }
 
-    private fun api(path: String): HttpUrl = http.api(path)
+    private suspend fun api(path: String): HttpUrl = http.api(path)
 
     private suspend inline fun <reified T> call(request: Request.Builder): ApiResult<T> = http.call(request, accessToken)
 

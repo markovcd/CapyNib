@@ -73,6 +73,12 @@ class CliTest {
 
     private fun MockWebServer.reply(body: String) = enqueue(MockResponse.Builder().body(body).build())
 
+    /** A started fake memos server that has answered the client's question of which API it speaks. */
+    private fun memos(): MockWebServer = MockWebServer().apply {
+        start()
+        reply("""{"version":"26.11.0"}""")
+    }
+
     private val googleOnly =
         """{"identityProviders":[{"name":"identity-providers/google","type":"OAUTH2","title":"Google",""" +
             """"config":{"oauth2Config":{"clientId":"c1","authUrl":"https://accounts.example.com/auth","scopes":["email"]}}}]}"""
@@ -283,8 +289,7 @@ class CliTest {
 
     @Test
     fun Login_prints_a_new_access_token_after_signing_in_in_the_browser() {
-        MockWebServer().use { memos ->
-            memos.start()
+        memos().use { memos ->
             memos.reply(googleOnly)
             memos.reply("""{"user":{"name":"users/arek","username":"arek"},"accessToken":"session-jwt"}""")
             memos.reply("""{"token":"memos_pat_new"}""")
@@ -299,8 +304,7 @@ class CliTest {
 
     @Test
     fun Login_names_the_redirect_address_the_sign_in_provider_must_allow() {
-        MockWebServer().use { memos ->
-            memos.start()
+        memos().use { memos ->
             memos.reply(googleOnly)
             memos.reply("""{"user":{"name":"users/arek","username":"arek"},"accessToken":"session-jwt"}""")
             memos.reply("""{"token":"memos_pat_new"}""")
@@ -313,8 +317,7 @@ class CliTest {
 
     @Test
     fun Login_to_a_server_without_sign_in_providers_fails_with_its_own_code() {
-        MockWebServer().use { memos ->
-            memos.start()
+        memos().use { memos ->
             memos.reply("""{"identityProviders":[]}""")
 
             val ran = login(memos)
