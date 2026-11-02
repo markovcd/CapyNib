@@ -30,7 +30,7 @@ own, which expires after 30 days; sign in again when Settings says the token was
 **Check server** in Settings (or `capynib server`) tries every call sync makes against your server
 and names any that fail, whatever memos version it runs. Reading touches nothing; the writes go to
 one private test memo of its own and a recording attached to it, deleted at the end. The gate runs the same check and the live sync
-tests against each memos release in [memos-versions.txt](memos-versions.txt) (0.28 to 0.31), and a
+tests against each memos release in [memos-versions.txt](memos-versions.txt) (0.28 to 26.11), and a
 weekly run tries `memos:stable`, the newest release.
 
 Each note is one private memo. The title is the memo's first-line heading and the color is a

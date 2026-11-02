@@ -2,7 +2,7 @@ package io.github.markovcd.capynib.core.memos
 
 import kotlinx.serialization.Serializable
 
-/** The fields of the memos v1 `Memo` message that Capynib uses. */
+/** The fields of the memos `Memo` message that Capynib uses. */
 @Serializable
 internal data class MemoDto(
     val name: String = "",

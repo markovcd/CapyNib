@@ -20,6 +20,7 @@ class HttpMemosApiTest {
     fun start() {
         web.start()
         api = HttpMemosApi(ServerAddress.parse(web.url("/").toString())!!, "secret-token")
+        reply(404, """{"message":"Not Found"}""")
     }
 
     @After
@@ -27,7 +28,9 @@ class HttpMemosApiTest {
 
     private fun reply(code: Int, body: String) = web.enqueue(MockResponse.Builder().code(code).body(body).build())
 
-    private fun heard(): RecordedRequest = web.takeRequest(1, TimeUnit.SECONDS)!!
+    /** The next request after the API generation probe, which [start] answers as memos 0.31 does. */
+    private fun heard(): RecordedRequest =
+        generateSequence { web.takeRequest(1, TimeUnit.SECONDS) }.first { it.url.encodedPath != "/api/instance/profile" }
 
     private fun memoJson(id: String, creator: String = "users/me", content: String = "c", state: String = "NORMAL", pinned: Boolean = false) =
         """{"name":"memos/$id","state":"$state","creator":"$creator","createTime":"2026-10-12T20:00:00Z",""" +
@@ -66,7 +69,8 @@ class HttpMemosApiTest {
         assertEquals(ApiResult.Ok("me"), api.currentUser())
         api.listAll()
 
-        assertEquals(3, web.requestCount)
+        // The generation probe, then the user and two pages.
+        assertEquals(1 + 3, web.requestCount)
     }
 
     @Test
@@ -89,7 +93,8 @@ class HttpMemosApiTest {
         assertEquals("POST", request.method)
         assertEquals("n1", request.url.queryParameter("memoId"))
         assertEquals("""{"content":"hi","visibility":"PRIVATE","createTime":"2026-10-12T20:00:00Z"}""", request.body!!.utf8())
-        assertEquals(1, web.requestCount)
+        // The generation probe, then the create.
+        assertEquals(1 + 1, web.requestCount)
     }
 
     @Test

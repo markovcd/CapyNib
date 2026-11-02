@@ -66,9 +66,10 @@ class BrowserSignIn(
     }
 
     private suspend fun finish(provider: SignInProvider, code: String, verifier: String, redirectUri: String): SignInResult {
+        val providerField = http.generation().signInProviderField
         val body = buildJsonObject {
             putJsonObject("ssoCredentials") {
-                put("idpName", provider.name)
+                put(providerField, provider.name)
                 put("code", code)
                 put("redirectUri", redirectUri)
                 put("codeVerifier", verifier)

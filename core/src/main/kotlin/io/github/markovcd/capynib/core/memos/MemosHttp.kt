@@ -14,9 +14,32 @@ import okhttp3.ResponseBody
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
-/** JSON calls to a memos server's v1 API, each failure turned into an [ApiResult]. */
+/** JSON calls to a memos server's API, each failure turned into an [ApiResult]. */
 internal class MemosHttp(val server: ServerAddress, private val client: OkHttpClient) {
-    fun api(path: String): HttpUrl = server.url.newBuilder().addPathSegments("api/v1/$path").build()
+    private var known: ApiGeneration? = null
+
+    suspend fun api(path: String): HttpUrl = url(generation(), path)
+
+    /**
+     * The API the server speaks, asked once without a token. Only memos 26.10 and later answer
+     * `/api/instance/profile`; older servers answer it with not found or their web page. A server that
+     * cannot be asked is taken for [ApiGeneration.V1] until it can.
+     */
+    suspend fun generation(): ApiGeneration {
+        known?.let { return it }
+        val reply = call<InstanceProfileDto>(Request.Builder().url(url(ApiGeneration.Unversioned, "instance/profile")).get(), null)
+        val found = when {
+            reply is ApiResult.Ok -> ApiGeneration.Unversioned
+            reply == ApiResult.NotFound -> ApiGeneration.V1
+            // A web page where JSON was asked for.
+            reply is ApiResult.Failed && reply.failure is SyncFailure.Server && reply.failure.httpStatus in 200..299 -> ApiGeneration.V1
+            else -> return ApiGeneration.V1
+        }
+        known = found
+        return found
+    }
+
+    private fun url(generation: ApiGeneration, path: String): HttpUrl = server.url.newBuilder().addPathSegments(generation.root + path).build()
 
     /** Sends [request] with [accessToken], if any, and reads the reply as [T]. */
     suspend inline fun <reified T> call(request: Request.Builder, accessToken: String?): ApiResult<T> =
