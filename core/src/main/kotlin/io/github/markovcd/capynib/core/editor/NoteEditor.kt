@@ -17,10 +17,12 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Everything the note screen does, without the screen. Each change shows at once in [note], is
  * written to the store in the background, and then [onSaved] is called, which asks for a sync.
+ * Changes made while a write of the note waits to run go in that write.
  * A change that arrives from the server while the note is open is shown, unless an edit of the
  * user's is still being written. Writes run in [writeScope], which outlives the screen, so leaving
  * the note never drops the last keystrokes.
@@ -37,6 +39,7 @@ class NoteEditor(
     private val current = MutableStateFlow(initial)
     private val writeLock = Mutex()
     private val unsaved = MutableStateFlow(0)
+    private val saveWaiting = AtomicBoolean(false)
 
     val note: StateFlow<Note> = current.asStateFlow()
 
@@ -155,7 +158,12 @@ class NoteEditor(
         val edited = edit(current.value)
         if (edited == current.value) return
         current.value = edited
-        write { store.save(current.value, clock()) }
+        if (saveWaiting.compareAndSet(false, true)) {
+            write {
+                saveWaiting.set(false)
+                store.save(current.value, clock())
+            }
+        }
     }
 
     private fun write(action: () -> Unit) {

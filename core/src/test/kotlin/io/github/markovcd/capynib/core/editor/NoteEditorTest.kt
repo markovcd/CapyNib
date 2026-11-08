@@ -32,7 +32,7 @@ class NoteEditorTest {
     }
 
     @Test
-    fun Every_keystroke_is_saved_and_asks_for_a_sync() = runTest {
+    fun Keystrokes_made_while_a_write_waits_are_saved_in_that_one_write_and_ask_for_one_sync() = runTest {
         val editor = editor()
 
         editor.setTitle("Ti")
@@ -41,7 +41,20 @@ class NoteEditorTest {
         editor.flush()
 
         assertEquals(listOf("Title", "text"), store.get(editor.note.value.id)!!.let { listOf(it.title, it.body) })
-        assertEquals(3, saves)
+        assertEquals(1, saves)
+    }
+
+    @Test
+    fun A_keystroke_after_the_last_write_is_saved_and_asks_for_a_sync() = runTest {
+        val editor = editor()
+
+        editor.setTitle("Title")
+        editor.flush()
+        editor.setBody("text")
+        editor.flush()
+
+        assertEquals(listOf("Title", "text"), store.get(editor.note.value.id)!!.let { listOf(it.title, it.body) })
+        assertEquals(2, saves)
     }
 
     @Test
