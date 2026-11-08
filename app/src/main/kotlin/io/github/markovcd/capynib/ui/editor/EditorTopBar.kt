@@ -19,13 +19,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import io.github.markovcd.capynib.R
-import io.github.markovcd.capynib.core.note.Note
 import io.github.markovcd.capynib.ui.Tags
 
-/** The open note's back button and actions; a note in the trash can only be restored or deleted forever. */
+/**
+ * The open note's back button and actions; a note in the trash can only be restored or deleted forever.
+ * It takes only the flags it shows, so typing in the note leaves it alone.
+ */
 @Composable
 internal fun EditorTopBar(
-    note: Note,
+    inTrash: Boolean,
+    pinned: Boolean,
+    archived: Boolean,
     onBack: () -> Unit,
     onRestore: () -> Unit,
     onDeleteForever: () -> Unit,
@@ -42,7 +46,7 @@ internal fun EditorTopBar(
             }
         },
         actions = {
-            if (note.inTrash) {
+            if (inTrash) {
                 IconButton(onClick = onRestore, modifier = Modifier.testTag(Tags.RESTORE)) {
                     Icon(Icons.Outlined.RestoreFromTrash, contentDescription = stringResource(R.string.editor_restore))
                 }
@@ -54,7 +58,7 @@ internal fun EditorTopBar(
                 }
             } else {
                 IconButton(onClick = onPin, modifier = Modifier.testTag(Tags.PIN)) {
-                    if (note.pinned) {
+                    if (pinned) {
                         Icon(Icons.Filled.PushPin, contentDescription = stringResource(R.string.editor_unpin))
                     } else {
                         Icon(Icons.Outlined.PushPin, contentDescription = stringResource(R.string.editor_pin))
@@ -64,7 +68,7 @@ internal fun EditorTopBar(
                     onClick = onArchive,
                     modifier = Modifier.testTag(Tags.ARCHIVE),
                 ) {
-                    if (note.archived) {
+                    if (archived) {
                         Icon(Icons.Outlined.Unarchive, contentDescription = stringResource(R.string.editor_unarchive))
                     } else {
                         Icon(Icons.Outlined.Archive, contentDescription = stringResource(R.string.editor_archive))

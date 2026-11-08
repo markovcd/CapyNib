@@ -155,14 +155,16 @@ fun EditorScreen(
             contentColor = MaterialTheme.colorScheme.onSurface,
             topBar = {
                 EditorTopBar(
-                    note,
+                    inTrash = note.inTrash,
+                    pinned = note.pinned,
+                    archived = note.archived,
                     onBack = { leave() },
                     onRestore = editor::restore,
                     onDeleteForever = { confirmingDelete = true },
                     onPin = editor::togglePinned,
                     onArchive = {
                         leave {
-                            editor.setArchived(!note.archived)
+                            editor.setArchived(!editor.note.value.archived)
                             editor.close()
                         }
                     },

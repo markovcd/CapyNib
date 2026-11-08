@@ -84,6 +84,20 @@ class ChecklistEditorTest {
     }
 
     @Test
+    fun Ticking_an_item_leaves_the_item_being_typed_below_it_in_focus() {
+        val id = graph.store.create(graph.clock(), body = "- [ ] a\n- [ ] b\n- [ ] c").id
+        compose.openNote(id)
+        compose.awaitTag(Tags.item(2))
+        compose.onNodeWithTag(Tags.item(2)).performClick()
+        compose.onNodeWithTag(Tags.item(2)).assertIsFocused()
+
+        compose.onNodeWithTag(Tags.itemCheck(0)).performClick()
+
+        compose.waitForStore { graph.store.get(id)?.body == "- [x] a\n- [ ] b\n- [ ] c" }
+        compose.onNodeWithTag(Tags.item(2)).assertIsFocused()
+    }
+
+    @Test
     fun An_item_dragged_by_its_handle_moves_to_where_it_is_dropped() {
         val id = graph.store.create(graph.clock(), body = "- [ ] a\n- [ ] b\n- [ ] c").id
         compose.openNote(id)

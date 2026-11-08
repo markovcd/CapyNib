@@ -15,6 +15,10 @@
 - The sync status is shown in Settings, not as a second Settings button on the board.
 - Sync and sign-in work with memos 26.10 and later.
 
+### Fixes
+
+- Ticking a checklist item is about twice as quick and leaves the cursor in the item being typed.
+
 ## 0.1.1 - 2026-10-13
 
 ### Features

@@ -91,24 +91,24 @@ internal fun ChecklistEditor(body: String, editor: NoteEditor, editable: Boolean
     val onDragEnd = { dragged = null }
 
     val itemRow: @Composable (Int) -> Unit = { index ->
-        key(index) {
-            ChecklistRow(
-                index, lines[index], editor, editable, focus, { focus = it }, onDragStart, onDrag, onDragEnd,
-                Modifier.onSizeChanged { heights[index] = it.height }.then(
-                    if (dragged == index) {
-                        Modifier.zIndex(1f).graphicsLayer {
-                            translationY = dragOffset
-                            shadowElevation = 8.dp.toPx()
-                        }.background(fill)
-                    } else {
-                        Modifier
-                    },
-                ),
-            )
-        }
+        ChecklistRow(
+            index, lines[index], editor, editable, focus, { focus = it }, onDragStart, onDrag, onDragEnd,
+            Modifier.onSizeChanged { heights[index] = it.height }.then(
+                if (dragged == index) {
+                    Modifier.zIndex(1f).graphicsLayer {
+                        translationY = dragOffset
+                        shadowElevation = 8.dp.toPx()
+                    }.background(fill)
+                } else {
+                    Modifier
+                },
+            ),
+        )
     }
 
-    open.forEach { itemRow(it) }
+    // Keyed in the loop: a key inside the lambda sits under a group placed by position, so one line
+    // leaving the open items would rebuild every row after it.
+    open.forEach { key(it) { itemRow(it) } }
     if (editable) {
         Row(
             Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { focus = editor.addItemAfter(open.lastOrNull() ?: -1) }
@@ -131,7 +131,7 @@ internal fun ChecklistEditor(body: String, editor: NoteEditor, editable: Boolean
             style = MaterialTheme.typography.titleSmall,
             color = muted,
         )
-        checked.forEach { itemRow(it) }
+        checked.forEach { key(it) { itemRow(it) } }
     }
 }
 
