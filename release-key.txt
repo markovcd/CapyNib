@@ -1,0 +1,3 @@
+# The SHA-256 fingerprint of the release key's certificate (docs/adr/0010). release.sh refuses to
+# sign with any other key, and the F-Droid recipe's AllowedAPKSigningKeys is this value.
+7ed522a5aa8a4075c4378b41bd0b6fa7229e56cc5eb20bae7619cc4e2ffdb422

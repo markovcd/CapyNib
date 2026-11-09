@@ -13,7 +13,8 @@ key to the project's once F-Droid has shipped a build signed with its own.
 ## Decision
 
 - The project keeps one release key. The release workflow holds it as GitHub secrets; no copy is in
-  the repository.
+  the repository. `release-key.txt` holds its certificate's fingerprint, and `release.sh` refuses
+  any other key.
 - A pushed tag `v<versionName>` runs the gate on the tagged commit, then `release.sh` builds the APK
   and the app bundle in the gate's pinned Android SDK image, signed with that key, and the workflow
   publishes both as the tag's GitHub release.

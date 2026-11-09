@@ -56,6 +56,12 @@ docker run --rm --user root \
                  export CAPYNIB_KEYSTORE=/tmp/throwaway.keystore CAPYNIB_KEYSTORE_PASSWORD=throwaway
                  keytool -genkeypair -noprompt -keystore "$CAPYNIB_KEYSTORE" -alias capynib -dname CN=throwaway \
                      -keyalg RSA -keysize 2048 -validity 1 -storepass throwaway -keypass throwaway
+             else
+                 fingerprint=$(keytool -list -v -keystore "$CAPYNIB_KEYSTORE" -storepass:env CAPYNIB_KEYSTORE_PASSWORD -alias capynib \
+                     | sed -n "s/^.*SHA256: //p" | tr -d : | tr A-F a-f)
+                 if [[ $fingerprint != "$(grep -Ev "^\s*(#|$)" release-key.txt)" ]]; then
+                     echo "release: the capynib key in the keystore is not the one release-key.txt names" >&2; exit 1
+                 fi
              fi
              ./gradlew --no-daemon --stacktrace :app:assembleRelease :app:bundleRelease
              cp app/build/outputs/apk/release/app-release.apk "dist/capynib-$VERSION.apk"
