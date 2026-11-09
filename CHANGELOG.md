@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.2.0 - 2026-11-09
+
 ### Features
 
 - The home screen widgets are one tile each: a pen for a new note and a checkbox for a new checklist, on a see-through circle.

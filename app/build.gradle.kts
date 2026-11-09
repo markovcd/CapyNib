@@ -12,8 +12,8 @@ android {
         minSdk = 26
         targetSdk = 36
         // A release commit raises both; the tag v<versionName> marks it (docs/adr/0004).
-        versionCode = 2
-        versionName = "0.1.1"
+        versionCode = 3
+        versionName = "0.2.0"
     }
 
     // release.sh signs with the release key it is given; F-Droid builds without one and copies the

@@ -46,7 +46,7 @@ Builds:
     gradle:
       - yes
 
-AllowedAPKSigningKeys: <the release key's SHA-256 fingerprint>
+AllowedAPKSigningKeys: 7ed522a5aa8a4075c4378b41bd0b6fa7229e56cc5eb20bae7619cc4e2ffdb422
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v\d+\.\d+\.\d+$

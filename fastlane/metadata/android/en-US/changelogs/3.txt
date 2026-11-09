@@ -1,0 +1,5 @@
+- Photos and voice recordings in notes, with home screen widgets for a new photo or audio note.
+- A calendar on the board marks the days notes were made on.
+- Drag checklist items by their handle to reorder them; ticking an item is quicker.
+- Share photos from another app to make a photo note.
+- Works with memos 26.10 and later.
