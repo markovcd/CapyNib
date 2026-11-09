@@ -16,11 +16,23 @@ android {
         versionName = "0.1.1"
     }
 
+    // release.sh signs with the release key it is given; F-Droid builds without one and copies the
+    // signature from the published APK (docs/adr/0010).
+    val releaseKey = System.getenv("CAPYNIB_KEYSTORE")?.let { keystore ->
+        signingConfigs.create("release") {
+            storeFile = file(keystore)
+            storePassword = System.getenv("CAPYNIB_KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("CAPYNIB_KEY_ALIAS")
+            keyPassword = System.getenv("CAPYNIB_KEY_PASSWORD")
+        }
+    }
+
     buildTypes {
         debug {
             versionNameSuffix = "-dev"
         }
         release {
+            signingConfig = releaseKey
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

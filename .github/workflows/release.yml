@@ -1,0 +1,71 @@
+# Release, on a pushed tag v<versionName>: the gate runs on the tagged commit, then release.sh builds
+# the APK and app bundle signed with the release key, and they are published as the tag's GitHub
+# release. F-Droid checks its own build of the tag against that APK (docs/adr/0010); the app bundle
+# is the one uploaded to Google Play.
+# No concurrency cancelling: a release finishes what it started.
+name: release
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .gradle-home
+          key: gradle-${{ hashFiles('gradle/libs.versions.toml', '**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Gate
+        run: ./gate.sh
+
+  publish:
+    needs: gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .gradle-home
+          key: gradle-${{ hashFiles('gradle/libs.versions.toml', '**/*.gradle.kts', 'gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Build
+        env:
+          TAG: ${{ github.ref_name }}
+          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          CAPYNIB_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          CAPYNIB_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          CAPYNIB_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          if [[ -z $RELEASE_KEYSTORE_BASE64 ]]; then echo "release: the RELEASE_KEYSTORE_BASE64 secret is not set" >&2; exit 1; fi
+          export CAPYNIB_KEYSTORE="$RUNNER_TEMP/release.keystore"
+          base64 -d <<<"$RELEASE_KEYSTORE_BASE64" >"$CAPYNIB_KEYSTORE"
+          ./release.sh "$TAG"
+          rm "$CAPYNIB_KEYSTORE"
+
+      - name: Publish
+        env:
+          TAG: ${{ github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "$TAG" --verify-tag --title "Capynib ${TAG#v}" --notes-file dist/notes.md \
+            dist/*.apk dist/*.aab dist/SHA256SUMS

@@ -11,3 +11,4 @@
 | [0007](0007-tags-are-read-from-the-text-the-way-memos-reads-them.md) | Tags are read from the note's text the way memos reads them |
 | [0008](0008-a-notes-place-on-the-board-is-its-memos-create-time.md) | A note's place on the board is its memo's create time |
 | [0009](0009-recordings-and-photos-are-attachments-of-their-notes-memo.md) | Recordings and photos are attachments of their note's memo |
+| [0010](0010-one-release-key-signs-every-store.md) | One release key signs Capynib in every store, and F-Droid publishes our APK when its own build matches it |

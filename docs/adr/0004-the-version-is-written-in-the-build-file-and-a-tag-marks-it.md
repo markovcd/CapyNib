@@ -28,3 +28,8 @@ app that rule and F-Droid cannot both hold.
   builds tells them apart.
 - Capynib has no release key of its own: F-Droid is the one place releases come from, signed with
   F-Droid's key.
+
+## Amendment (2026-11-09)
+
+The project has a release key of its own, and F-Droid publishes the APK it signs: see
+[ADR 0010](0010-one-release-key-signs-every-store.md). The version and tag rules above stand.

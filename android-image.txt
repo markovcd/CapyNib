@@ -1,0 +1,2 @@
+# The pinned Android SDK image the gate and release builds run in.
+cimg/android:2025.10@sha256:dc1cda740cb5712732734ca8ee61fa8f35d2a0fa55fbc468ad13a52efbdf65ac

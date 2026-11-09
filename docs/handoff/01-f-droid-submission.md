@@ -2,24 +2,24 @@
 
 - **Severity:** Low
 - **Status:** Open
-- **Found:** 2026-10-13, on `main`
+- **Found:** 2026-10-13, on `main`; recipe changed 2026-11-09
 
 ## What is wrong
 
-The repository is ready for F-Droid (store listing under `fastlane/`, version in
-`app/build.gradle.kts`, no non-free dependencies, release APK built by the gate; see
-[ADR 0004](../adr/0004-the-version-is-written-in-the-build-file-and-a-tag-marks-it.md)), but
-there is no release tag and no merge request to [fdroiddata](https://gitlab.com/fdroid/fdroiddata).
+The merge request to [fdroiddata](https://gitlab.com/fdroid/fdroiddata/-/merge_requests/52390) is
+open and not merged. Its recipe builds v0.1.1 and lets F-Droid sign with its own key; Capynib now
+signs every store's build with one release key ([ADR 0010](../adr/0010-one-release-key-signs-every-store.md)),
+so the recipe has to change before the merge request is merged.
 
 ## Suggested fix
 
-1. Tag the release: `git tag -a v0.1.0 -m "Capynib 0.1.0"` on a commit whose gate run is green,
-   then `git push origin v0.1.0`.
-2. Fork fdroiddata on GitLab, add `metadata/io.github.markovcd.capynib.yml` with the recipe
-   below, and check it with `fdroid readmeta`, `fdroid rewritemeta io.github.markovcd.capynib`,
-   `fdroid lint io.github.markovcd.capynib` and `fdroid build -v -l io.github.markovcd.capynib`.
-3. Open the merge request on branch `io.github.markovcd.capynib` using fdroiddata's "App
-   inclusion" template.
+1. Make the release key and store it as the release workflow's secrets (`RELEASE_KEYSTORE_BASE64`,
+   `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`).
+2. Release the next version: raise `versionCode` and `versionName`, add its store changelog, tag
+   `v<versionName>` and push the tag. The release workflow publishes the signed APK.
+3. Change the merge request's recipe to the one below, with that release's commit hash and the
+   key's SHA-256 certificate fingerprint (lowercase, no colons; `release.sh` prints it), and check
+   the merge request's pipeline: its build job compares F-Droid's build with the published APK.
 
 Later releases need nothing on F-Droid's side: raise the version, add the changelog, tag.
 
@@ -36,20 +36,20 @@ AutoName: Capynib
 
 RepoType: git
 Repo: https://github.com/markovcd/CapyNib.git
+Binaries: https://github.com/markovcd/CapyNib/releases/download/v%v/capynib-%v.apk
 
 Builds:
-  - versionName: 0.1.0
-    versionCode: 1
-    commit: v0.1.0
+  - versionName: 0.2.0
+    versionCode: 3
+    commit: <the v0.2.0 commit hash>
     subdir: app
     gradle:
       - yes
 
+AllowedAPKSigningKeys: <the release key's SHA-256 fingerprint>
+
 AutoUpdateMode: Version
 UpdateCheckMode: Tags ^v\d+\.\d+\.\d+$
-CurrentVersion: 0.1.0
-CurrentVersionCode: 1
+CurrentVersion: 0.2.0
+CurrentVersionCode: 3
 ```
-
-`commit:` should be the tag's commit hash once it exists; reviewers prefer the hash to the tag
-name.

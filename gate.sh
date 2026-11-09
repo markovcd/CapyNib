@@ -7,7 +7,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-ANDROID_IMAGE="cimg/android:2025.10@sha256:dc1cda740cb5712732734ca8ee61fa8f35d2a0fa55fbc468ad13a52efbdf65ac"
+ANDROID_IMAGE=$(grep -Ev '^\s*(#|$)' android-image.txt)
 
 # "VERSION IMAGE" per line, oldest first; the newest gets the full build.
 mapfile -t releases < <(grep -Ev '^\s*(#|$)' <<<"${GATE_MEMOS_RELEASES:-$(cat memos-versions.txt)}")

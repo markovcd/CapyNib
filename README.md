@@ -46,7 +46,8 @@ photos are its memo's audio and image attachments ([docs/adr/0009-recordings-and
 | Unit and UI tests, no server | `./gradlew check` |
 | Include the live memos tests | `docker run -d -p 5230:5230 --add-host=host.docker.internal:host-gateway neosmemo/memos:stable` then `MEMOS_TEST_URL=http://localhost:5230 MEMOS_TEST_REACH_BACK=host.docker.internal ./gradlew check` |
 | Debug APK | `./gradlew :app:assembleDebug` |
-| Release APK, as F-Droid builds it | `./gradlew :app:assembleRelease` |
+| Release APK, unsigned, as F-Droid builds it | `./gradlew :app:assembleRelease` |
+| Signed release APK and app bundle into `dist/`, with a throwaway key unless `CAPYNIB_KEYSTORE` names the release key (needs Docker) | `./release.sh` |
 | Store screenshots, rendered into `fastlane/` | `./gradlew :app:testDebugUnitTest --tests '*StoreScreenshotsTest' -Pcapynib.screenshots=true` |
 | The command line | `./gradlew :cli:installDist` then `cli/build/install/capynib/bin/capynib --help` |
 
