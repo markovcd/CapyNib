@@ -25,7 +25,8 @@ Later releases need nothing on F-Droid's side: raise the version, add the change
 
 ```yaml
 Categories:
-  - Writing
+  - Note
+  - Task
 License: MIT
 AuthorName: markovcd
 SourceCode: https://github.com/markovcd/CapyNib
