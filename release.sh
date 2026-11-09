@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Builds the release APK and app bundle of HEAD into dist/, signed, in the gate's pinned Android SDK
 # image. F-Droid builds the same commit and publishes ours only if its build matches it byte for byte
-# (docs/adr/0010). The key comes from CAPYNIB_KEYSTORE (a path), CAPYNIB_KEYSTORE_PASSWORD,
-# CAPYNIB_KEY_ALIAS and CAPYNIB_KEY_PASSWORD; without them a local run signs with a throwaway key.
+# (docs/adr/0010). The key is the alias capynib in the keystore CAPYNIB_KEYSTORE names, opened with
+# CAPYNIB_KEYSTORE_PASSWORD; without them a local run signs with a throwaway key.
 # With a tag, ./release.sh v1.2.3, it refuses unless HEAD is that tag's release, ready to publish.
 # Publishing is the release workflow's step, never this script's.
 set -euo pipefail
@@ -33,7 +33,7 @@ if [[ -n ${CAPYNIB_KEYSTORE:-} ]]; then
     [[ -r $CAPYNIB_KEYSTORE ]] || refuse "cannot read the keystore CAPYNIB_KEYSTORE names"
     # -e NAME with no value hands the variable over without putting the secret on a command line.
     key=(-v "$(realpath "$CAPYNIB_KEYSTORE"):/release.keystore:ro" -e CAPYNIB_KEYSTORE=/release.keystore
-         -e CAPYNIB_KEYSTORE_PASSWORD -e CAPYNIB_KEY_ALIAS -e CAPYNIB_KEY_PASSWORD)
+         -e CAPYNIB_KEYSTORE_PASSWORD)
 else
     echo "release: no CAPYNIB_KEYSTORE, signing with a throwaway key" >&2
     key=(-e CAPYNIB_THROWAWAY_KEY=1)
@@ -53,9 +53,8 @@ docker run --rm --user root \
     bash -c 'set -euo pipefail
              trap "chown -R \$HOST_OWNER /work" EXIT
              if [[ -n ${CAPYNIB_THROWAWAY_KEY:-} ]]; then
-                 export CAPYNIB_KEYSTORE=/tmp/throwaway.keystore CAPYNIB_KEY_ALIAS=throwaway
-                 export CAPYNIB_KEYSTORE_PASSWORD=throwaway CAPYNIB_KEY_PASSWORD=throwaway
-                 keytool -genkeypair -noprompt -keystore "$CAPYNIB_KEYSTORE" -alias throwaway -dname CN=throwaway \
+                 export CAPYNIB_KEYSTORE=/tmp/throwaway.keystore CAPYNIB_KEYSTORE_PASSWORD=throwaway
+                 keytool -genkeypair -noprompt -keystore "$CAPYNIB_KEYSTORE" -alias capynib -dname CN=throwaway \
                      -keyalg RSA -keysize 2048 -validity 1 -storepass throwaway -keypass throwaway
              fi
              ./gradlew --no-daemon --stacktrace :app:assembleRelease :app:bundleRelease

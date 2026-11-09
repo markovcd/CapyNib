@@ -52,8 +52,6 @@ jobs:
           TAG: ${{ github.ref_name }}
           RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
           CAPYNIB_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
-          CAPYNIB_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          CAPYNIB_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
           if [[ -z $RELEASE_KEYSTORE_BASE64 ]]; then echo "release: the RELEASE_KEYSTORE_BASE64 secret is not set" >&2; exit 1; fi
           export CAPYNIB_KEYSTORE="$RUNNER_TEMP/release.keystore"

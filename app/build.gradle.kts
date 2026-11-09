@@ -21,9 +21,10 @@ android {
     val releaseKey = System.getenv("CAPYNIB_KEYSTORE")?.let { keystore ->
         signingConfigs.create("release") {
             storeFile = file(keystore)
+            // A PKCS12 keystore has one password, for the store and the key alike.
             storePassword = System.getenv("CAPYNIB_KEYSTORE_PASSWORD")
-            keyAlias = System.getenv("CAPYNIB_KEY_ALIAS")
-            keyPassword = System.getenv("CAPYNIB_KEY_PASSWORD")
+            keyAlias = "capynib"
+            keyPassword = storePassword
         }
     }
 

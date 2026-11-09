@@ -13,8 +13,8 @@ so the recipe has to change before the merge request is merged.
 
 ## Suggested fix
 
-1. Make the release key and store it as the release workflow's secrets (`RELEASE_KEYSTORE_BASE64`,
-   `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`).
+1. Make the release key, alias `capynib` in a PKCS12 keystore, and store it as the release
+   workflow's secrets `RELEASE_KEYSTORE_BASE64` and `RELEASE_KEYSTORE_PASSWORD`.
 2. Release the next version: raise `versionCode` and `versionName`, add its store changelog, tag
    `v<versionName>` and push the tag. The release workflow publishes the signed APK.
 3. Change the merge request's recipe to the one below, with that release's commit hash and the
