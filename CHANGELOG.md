@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fixes
+
+- A memos server on your local network can be reached over plain `http://`; anywhere else still needs `https://`.
+
 ## 0.2.0 - 2026-11-09
 
 ### Features

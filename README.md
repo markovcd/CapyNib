@@ -16,7 +16,8 @@ server (or another device) come back.
    widget and **New audio note** open a new note already recording. The image button beside it takes a
    photo or adds an image from the phone; photos sit at the top of the note and its card, and tapping
    one in the note shows it full screen. The camera widget opens the camera, and the photo becomes a new note.
-3. To sync, open **Settings** (gear on the board), enter your memos address, and either tap
+3. To sync, open **Settings** (gear on the board), enter your memos address (`http://` works only for a
+   server on your local network; anything else needs `https://`), and either tap
    **Sign in with browser** or paste a personal access token (memos web UI: Settings, then Access
    Tokens) and tap **Connect**.
 

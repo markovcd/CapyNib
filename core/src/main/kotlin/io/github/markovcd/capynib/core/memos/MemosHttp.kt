@@ -118,6 +118,7 @@ internal class MemosHttp(val server: ServerAddress, private val client: OkHttpCl
         val defaultClient: OkHttpClient = OkHttpClient.Builder()
             .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
+            .addNetworkInterceptor(PlainHttp)
             .build()
     }
 }
